@@ -20,6 +20,7 @@ import (
 	"flag"
 	"github.com/Terry-Mao/goconf"
 	"runtime"
+	"time"
 )
 
 var (
@@ -41,11 +42,18 @@ type Config struct {
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	StatBind  []string `goconf:"base:stat.bind:,"`
 	// proto section
-	TCPBind []string `goconf:"proto:tcp.bind:,"`
-	Sndbuf  int      `goconf:"proto:sndbuf:memory"`
-	Rcvbuf  int      `goconf:"proto:rcvbuf:memory"`
+	TCPBind      []string      `goconf:"proto:tcp.bind:,"`
+	Sndbuf       int           `goconf:"proto:sndbuf:memory"`
+	Rcvbuf       int           `goconf:"proto:rcvbuf:memory"`
+	ReadTimeout  time.Duration `goconf:"proto:read.timeout:time"`
+	WriteTimeout time.Duration `goconf:"proto:write.timeout:time"`
 	// crypto
-	RSAPrivate `goconf:"crypto:rsa.private"`
+	RSAPrivate string `goconf:"crypto:rsa.private"`
+	// bucket
+	Bucket   int `goconf:"bucket:bucket.num"`
+	CliProto int `goconf:"bucket:cli.proto.num"`
+	SvrProto int `goconf:"bucket:svr.proto.num"`
+	Channel  int `goconf:"bucket:channel.num"`
 }
 
 func NewConfig() *Config {
@@ -58,10 +66,18 @@ func NewConfig() *Config {
 		PprofBind: []string{"localhost:6971"},
 		StatBind:  []string{"localhost:6972"},
 		// proto section
-		TCPBind:    []string{"localhost:8080"},
-		Sndbuf:     2048,
-		Rcvbuf:     256,
+		TCPBind:      []string{"localhost:8080"},
+		Sndbuf:       2048,
+		Rcvbuf:       256,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		// crypto
 		RSAPrivate: "./pri.pem",
+		// bucket
+		Bucket:   1024,
+		CliProto: 1024,
+		SvrProto: 1024,
+		Channel:  1024,
 	}
 }
 

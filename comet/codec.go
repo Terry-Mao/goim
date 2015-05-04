@@ -5,6 +5,7 @@ import (
 	log "code.google.com/p/log4go"
 	"encoding/binary"
 	"net"
+	"time"
 )
 
 const (
@@ -23,7 +24,10 @@ type IMServerCodec struct {
 }
 
 func (c *IMServerCodec) ReadRequestHeader(proto *Proto) (err error) {
-	// TODO SetWriteDeadline
+	if err = c.conn.SetReadDeadline(time.Now().Add(Conf.ReadTimeout)); err != nil {
+		log.Error("conn.SetReadDeadline() error(%v)", err)
+		return
+	}
 	if err = binary.Read(c.rdBuf, binary.BigEndian, &c.packLen); err != nil {
 		log.Error("packLen: binary.Read() error(%v)", err)
 		return
@@ -60,9 +64,10 @@ func (c *IMServerCodec) ReadRequestBody() (body []byte, err error) {
 		t       = int(0)
 		bodyLen = int(c.packLen - uint32(c.headerLen) - packBytes)
 	)
+	log.Debug("read body len: %d", bodyLen)
 	if bodyLen > 0 {
 		body = make([]byte, bodyLen)
-		// TODO SetWriteDeadline
+		// no deadline, because readheader always incoming calls readbody
 		for {
 			if t, err = c.rdBuf.Read(body[n:]); err != nil {
 				log.Error("body: buf.Read() error(%v)", err)
@@ -70,6 +75,7 @@ func (c *IMServerCodec) ReadRequestBody() (body []byte, err error) {
 			}
 			if n += t; n == bodyLen {
 				log.Debug("body: c.Read() fill ok")
+				break
 			} else if n < bodyLen {
 				log.Debug("body: c.Read() need %d bytes", bodyLen-n)
 			} else {
@@ -81,7 +87,10 @@ func (c *IMServerCodec) ReadRequestBody() (body []byte, err error) {
 }
 
 func (c *IMServerCodec) WriteResponse(proto *Proto) (err error) {
-	// TODO SetWriteDeadline
+	if err = c.conn.SetWriteDeadline(time.Now().Add(Conf.WriteTimeout)); err != nil {
+		log.Error("conn.SetWriteDeadline() error(%v)", err)
+		return
+	}
 	log.Debug("write proto: %v", proto)
 	if err = binary.Write(c.wrBuf, binary.BigEndian, rawPackLen+uint32(len(proto.Body))); err != nil {
 		log.Error("packLen: binary.Write() error(%v)", err)

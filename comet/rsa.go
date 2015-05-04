@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	myrsa "github.com/Terry-Mao/goim/libs/crypto/rsa"
 	"io/ioutil"
+	"os"
 )
 
 var (
@@ -12,13 +13,21 @@ var (
 )
 
 func InitRSA() (err error) {
-	var pri []byte
-	if pri, err = ioutil.ReadAll(Conf.RSAPrivate); err != nil {
-		log.Errror("ioutil.ReadAll(\"%s\") error(%v)", Conf.RSAPrivate, err)
+	var (
+		pri  []byte
+		file *os.File
+	)
+	if file, err = os.Open(Conf.RSAPrivate); err != nil {
+		log.Error("os.Open(\"%s\") error(%v)", Conf.RSAPrivate, err)
 		return
 	}
+	if pri, err = ioutil.ReadAll(file); err != nil {
+		log.Error("ioutil.ReadAll(\"%s\") error(%v)", Conf.RSAPrivate, err)
+		return
+	}
+	log.Debug("private.pem : \n%s", string(pri))
 	if RSAPri, err = myrsa.PrivateKey(pri); err != nil {
-		log.Errror("myrsa.PrivateKey() error(%v)", err)
+		log.Error("myrsa.PrivateKey() error(%v)", err)
 	}
 	return
 }

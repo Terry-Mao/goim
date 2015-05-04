@@ -4,8 +4,10 @@ import (
 	"bufio"
 	log "code.google.com/p/log4go"
 	"errors"
+	"github.com/Terry-Mao/goim/libs/crypto/aes"
+	"github.com/Terry-Mao/goim/libs/crypto/padding"
+	"github.com/Terry-Mao/goim/libs/crypto/rsa"
 	"net"
-	"sync"
 )
 
 var (
@@ -22,7 +24,6 @@ type Proto struct {
 	Operation uint32 // operation for request
 	SeqId     uint32 // sequence number chosen by client
 	Body      []byte // body
-	next      *Proto // for free list in Server
 }
 
 type ServerCodec interface {
@@ -41,13 +42,17 @@ type Operator interface {
 }
 
 type Server struct {
-	pLock sync.Mutex // protects freeProto
-	free  *Proto
+	buckets []*Bucket
 }
 
 // NewServer returns a new Server.
 func NewServer() *Server {
-	return new(Server)
+	s := new(Server)
+	s.buckets = make([]*Bucket, Conf.Bucket)
+	for i := 0; i < Conf.Bucket; i++ {
+		s.buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
+	}
+	return s
 }
 
 // Accept accepts connections on the listener and serves requests
@@ -87,164 +92,219 @@ func (server *Server) ServeConn(conn net.Conn) {
 // decode requests and encode responses.
 func (server *Server) ServeCodec(codec ServerCodec) {
 	var (
-		aesKey []byte // aes key
-		subKey string
-		err    error
-		msg    = make(chan *Proto, 1024)
-		proto  *Proto
-		closed = false
+		aesKey  []byte // aes key
+		subKey  string
+		err     error
+		bucket  *Bucket
+		channel *Channel
+		proto   *Proto
 	)
 	// handshake
-	if aesKey, subKey, err = server.handshake(codec); err != nil {
+	if aesKey, subKey, bucket, channel, err = server.handshake(codec); err != nil {
 		log.Error("handshake() error(%v)", err)
-	} else {
-		log.Debug("aes key: %v, sub key: \"%s\"", aesKey, subKey)
-		// start dispatch goroutine
-		go server.dispatch(msg, &closed, codec)
-		for {
-			proto, err = server.readRequest(codec)
-			if err != nil {
-				break
-			}
-			// decrypt body
-			msg <- proto
-		}
-	}
-	if !closed {
-		closed = true
-		// wake writer
-		close(msg)
+		// may call twice
 		if err = codec.Close(); err != nil {
 			log.Error("codec.Close() error(%v)", err)
 		}
-		log.Info("close")
+		return
+	} else {
+		log.Debug("aes key: %v, sub key: \"%s\"", aesKey, subKey)
+		// start dispatch goroutine
+		go server.dispatch(codec, channel, aesKey)
+		for {
+			// fetch a proto from channel free list
+			if proto, err = channel.CliProto.Set(); err != nil {
+				break
+			}
+			// parse request protocol
+			if err = server.readRequest(codec, proto); err != nil {
+				break
+			}
+			// aes decrypt body
+			if proto.Body != nil {
+				if proto.Body, err = aes.ECBDecrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+					break
+				}
+			}
+			// send to writer
+			channel.CliProto.SetAdv()
+			select {
+			case channel.Signal <- 1:
+			default:
+				log.Debug("send a signal that channel has message, ignore this time")
+				break
+			}
+		}
 	}
-	// disconnect, revoke router
+	// dialog finish
+	// revoke the subkey
+	// revoke the remote subkey
+	// close the net.Conn
+	// read & write goroutine
+	// return channel to bucket's free list
+	bucket.Del(subKey)
 	if err = defaultOperator.Disconnect(subKey); err != nil {
 		log.Error("operator.Operate() error(%v)", err)
 	}
+	// may call twice
+	if err = codec.Close(); err != nil {
+		log.Error("codec.Close() error(%v)", err)
+	}
+	// don't use close chan, Signal can be reused
+	// if chan full, writer goroutine next fetch from chan will exit
+	// if chan empty, send a 0(close) let the writer exit
+	select {
+	case channel.Signal <- 0:
+	default:
+	}
+	// TODO channel anyone hold?
+	// bucket.PutChannel(channel)
 }
 
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatch(msg chan *Proto, closed *bool, codec ServerCodec) {
+func (server *Server) dispatch(codec ServerCodec, channel *Channel, aesKey []byte) {
 	var (
-		err   error
-		proto *Proto
+		err    error
+		proto  *Proto
+		signal int
 	)
 	log.Debug("start dispatch goroutine")
 	for {
-		proto = <-msg
-		if proto == nil {
+		if signal = <-channel.Signal; signal == 0 {
 			// woken by reader
+			log.Debug("dispatch goroutine exit, woken by msg close signal")
 			return
 		}
-		// process message
-		if err = defaultOperator.Operate(proto); err != nil {
-			log.Error("operator.Operate() error(%v)", err)
-			goto failed
+		// fetch message from clibox(client send)
+		for {
+			if proto, err = channel.CliProto.Get(); err != nil {
+				log.Debug("channel no more client message, wait signal")
+				break
+			}
+			// process message
+			if err = defaultOperator.Operate(proto); err != nil {
+				log.Error("operator.Operate() error(%v)", err)
+				goto failed
+			}
+			if proto.Body != nil {
+				if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+					goto failed
+				}
+			}
+			if err = server.sendResponse(codec, proto); err != nil {
+				log.Error("server.SendResponse() error(%v)", err)
+				goto failed
+			}
+			channel.CliProto.GetAdv()
 		}
-		if err = server.sendResponse(proto, codec); err != nil {
-			log.Error("server.SendResponse() error(%v)", err)
-			goto failed
+		// fetch message from svrbox(server send)
+		for {
+			if proto, err = channel.SvrProto.Get(); err != nil {
+				log.Debug("channel no more server message, wait signal")
+				break
+			}
+			if proto.Body != nil {
+				if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+					goto failed
+				}
+			}
+			// just forward the message
+			if err = server.sendResponse(codec, proto); err != nil {
+				log.Error("server.SendResponse() error(%v)", err)
+				goto failed
+			}
+			channel.SvrProto.GetAdv()
 		}
-		continue
-	failed:
-		// writer close, reader skip
-		*closed = true
-		if err = codec.Close(); err != nil {
-			log.Error("codec.Close() error(%v)", err)
-		}
-		log.Debug("dispatch goroutine exit")
-		return
 	}
+failed:
+	// wake reader up
+	if err = codec.Close(); err != nil {
+		log.Error("codec.Close() error(%v)", err)
+	}
+	log.Debug("dispatch goroutine exit")
+	return
 }
 
 // handshake for goim handshake with client, use rsa & aes.
-func (server *Server) handshake(codec ServerCodec) (aeskey []byte, subKey string, err error) {
+func (server *Server) handshake(codec ServerCodec) (aesKey []byte, subKey string, bucket *Bucket, channel *Channel, err error) {
 	var (
 		body  []byte
-		proto *Proto
+		proto Proto
 	)
-	proto, err = server.readRequest(codec)
-	if err != nil {
+	if err = server.readRequest(codec, &proto); err != nil {
 		return
 	}
-	// rsa decrypt TODO reuse buf?
-	body, err = Decrypt(proto.Body)
+	// TODO rsa decrypt reuse buf?
+	log.Debug("cipher body : %v", proto.Body)
+	body, err = rsa.Decrypt(proto.Body, RSAPri)
 	if err != nil {
 		log.Error("Decrypt() error(%v)", err)
 		return
 	}
-	// get aes key use first 16bytes
+	log.Debug("body : %v", body)
 	if len(body) < aesKeyLen {
 		log.Warn("handshake body size less than %d: %d", aesKeyLen, len(body))
 		err = ErrHandshake
 		return
 	}
+	// get aes key use first 16bytes
+	aesKey = body[:16]
 	// register router
 	if subKey, err = defaultOperator.Connect(body[16:]); err != nil {
 		log.Error("operator.Operate() error(%v)", err)
 		return
 	}
 	log.Debug("subKey: \"%s\"", subKey)
-	// TODO update map
-	// reply client
 	proto.Body = nil
+	// update subkey -> channel
+	bucket = server.bucket(subKey)
+	// channel = bucket.GetChannel()
+	// channel.Reset()
+	// TODO how to reuse channel
+	channel = NewChannel(Conf.CliProto, Conf.SvrProto)
+	bucket.Put(subKey, channel)
 	proto.Operation = OP_HANDSHARE_REPLY
-	if err = server.sendResponse(proto, codec); err != nil {
+	if err = server.sendResponse(codec, &proto); err != nil {
 		log.Error("server.SendResponse() error(%v)", err)
-		return
 	}
-	return body[:16], subKey, nil
+	return
 }
 
 // readRequest
-func (server *Server) readRequest(codec ServerCodec) (proto *Proto, err error) {
+func (server *Server) readRequest(codec ServerCodec, proto *Proto) (err error) {
 	log.Debug("readRequestHeader")
-	if proto, err = server.readRequestHeader(codec); err != nil {
+	if err = server.readRequestHeader(codec, proto); err != nil {
 		return
 	}
 	// read body
 	log.Debug("readRequestBody")
 	if proto.Body, err = codec.ReadRequestBody(); err != nil {
 	}
+	log.Debug("proto: %v", proto)
 	return
 }
 
-func (server *Server) readRequestHeader(codec ServerCodec) (proto *Proto, err error) {
-	// Grab the request header.
-	proto = server.getProto()
+func (server *Server) readRequestHeader(codec ServerCodec, proto *Proto) (err error) {
 	if err = codec.ReadRequestHeader(proto); err != nil {
-		proto = nil
+		log.Error("codec.ReadRequestHeader() error(%v)", err)
 	}
 	return
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) sendResponse(proto *Proto, codec ServerCodec) (err error) {
-	err = codec.WriteResponse(proto)
-	server.freeProto(proto)
+func (server *Server) sendResponse(codec ServerCodec, proto *Proto) (err error) {
+	if err = codec.WriteResponse(proto); err != nil {
+		log.Error("codec.WriteResponse() error(%v)", err)
+	}
 	return
 }
 
-func (server *Server) getProto() *Proto {
-	server.pLock.Lock()
-	proto := server.free
-	if proto == nil {
-		proto = new(Proto)
-	} else {
-		server.free = proto.next
-		*proto = Proto{} // reset
-	}
-	server.pLock.Unlock()
-	return proto
-}
-
-func (server *Server) freeProto(proto *Proto) {
-	server.pLock.Lock()
-	proto.next = server.free
-	server.free = proto
-	server.pLock.Unlock()
+func (server *Server) bucket(subKey string) *Bucket {
+	h := NewMurmur3C()
+	h.Write([]byte(subKey))
+	idx := h.Sum32() & uint32(Conf.Bucket-1)
+	log.Debug("sub key:\"%s\" hit channel bucket index:%d", subKey, idx)
+	return server.buckets[idx]
 }
