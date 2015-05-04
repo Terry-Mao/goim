@@ -42,11 +42,13 @@ type Config struct {
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	StatBind  []string `goconf:"base:stat.bind:,"`
 	// proto section
-	TCPBind      []string      `goconf:"proto:tcp.bind:,"`
-	Sndbuf       int           `goconf:"proto:sndbuf:memory"`
-	Rcvbuf       int           `goconf:"proto:rcvbuf:memory"`
-	ReadTimeout  time.Duration `goconf:"proto:read.timeout:time"`
-	WriteTimeout time.Duration `goconf:"proto:write.timeout:time"`
+	TCPBind          []string      `goconf:"proto:tcp.bind:,"`
+	Sndbuf           int           `goconf:"proto:sndbuf:memory"`
+	Rcvbuf           int           `goconf:"proto:rcvbuf:memory"`
+	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
+	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
+	ReadBuf          int           `goconf:"proto:read.buf"`
+	WriteBuf         int           `goconf:"proto:write.buf"`
 	// crypto
 	RSAPrivate string `goconf:"crypto:rsa.private"`
 	// bucket
@@ -66,11 +68,13 @@ func NewConfig() *Config {
 		PprofBind: []string{"localhost:6971"},
 		StatBind:  []string{"localhost:6972"},
 		// proto section
-		TCPBind:      []string{"localhost:8080"},
-		Sndbuf:       2048,
-		Rcvbuf:       256,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+		TCPBind:          []string{"localhost:8080"},
+		Sndbuf:           2048,
+		Rcvbuf:           256,
+		HandshakeTimeout: 5 * time.Second,
+		WriteTimeout:     5 * time.Second,
+		ReadBuf:          1024,
+		WriteBuf:         1024,
 		// crypto
 		RSAPrivate: "./pri.pem",
 		// bucket

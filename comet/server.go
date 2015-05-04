@@ -8,18 +8,24 @@ import (
 	"github.com/Terry-Mao/goim/libs/crypto/padding"
 	"github.com/Terry-Mao/goim/libs/crypto/rsa"
 	"net"
+	"sync"
+	"time"
 )
 
 var (
 	defaultOperator = new(IMOperator)
 	ErrHandshake    = errors.New("handshake failed")
 	aesKeyLen       = 16
+	zeroTime        = time.Time{}
+	maxInt          = 2 ^ 31 - 1
 )
 
 // Request is a header written before every goim connect.  It is used internally
 // but documented here as an aid to debugging, such as when analyzing
 // network traffic.
 type Proto struct {
+	PackLen   uint32 // package length
+	HeaderLen uint16 // header length
 	Ver       uint16 // protocol version
 	Operation uint32 // operation for request
 	SeqId     uint32 // sequence number chosen by client
@@ -27,12 +33,10 @@ type Proto struct {
 }
 
 type ServerCodec interface {
-	ReadRequestHeader(*Proto) error
-	ReadRequestBody() ([]byte, error)
+	ReadRequestHeader(*bufio.Reader, *Proto) error
+	ReadRequestBody(*bufio.Reader, *Proto) error
 	// WriteResponse must be safe for concurrent use by multiple goroutines.
-	WriteResponse(*Proto) error
-
-	Close() error
+	WriteResponse(*bufio.Writer, *Proto) error
 }
 
 type Operator interface {
@@ -43,6 +47,9 @@ type Operator interface {
 
 type Server struct {
 	buckets []*Bucket
+	rPool   []*sync.Pool
+	wPool   []*sync.Pool
+	codec   ServerCodec
 }
 
 // NewServer returns a new Server.
@@ -52,6 +59,15 @@ func NewServer() *Server {
 	for i := 0; i < Conf.Bucket; i++ {
 		s.buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
 	}
+	s.rPool = make([]*sync.Pool, Conf.ReadBuf)
+	for i := 0; i < Conf.ReadBuf; i++ {
+		s.rPool[i] = new(sync.Pool)
+	}
+	s.wPool = make([]*sync.Pool, Conf.WriteBuf)
+	for i := 0; i < Conf.WriteBuf; i++ {
+		s.wPool[i] = new(sync.Pool)
+	}
+	s.codec = new(DefaultServerCodec)
 	return s
 }
 
@@ -60,6 +76,7 @@ func NewServer() *Server {
 // invokes it in a go statement.
 func (server *Server) Accept(lis net.Listener) {
 	var (
+		i    = 0
 		conn net.Conn
 		err  error
 	)
@@ -69,28 +86,14 @@ func (server *Server) Accept(lis net.Listener) {
 			log.Error("listener.Accept() error(%v)", err)
 			return
 		}
-		go server.ServeConn(conn)
+		go server.serveConn(conn, i)
+		if i++; i == maxInt {
+			i = 0
+		}
 	}
 }
 
-// ServeConn runs the server on a single connection.
-// ServeConn blocks, serving the connection until the client hangs up.
-// The caller typically invokes ServeConn in a go statement.
-// ServeConn uses the goim wire format on the
-// connection.  To use an alternate codec, use ServeCodec.
-func (server *Server) ServeConn(conn net.Conn) {
-	// TODO reuse buf
-	srv := &IMServerCodec{
-		conn:  conn,
-		rdBuf: bufio.NewReader(conn),
-		wrBuf: bufio.NewWriter(conn),
-	}
-	server.ServeCodec(srv)
-}
-
-// ServeCodec is like ServeConn but uses the specified codec to
-// decode requests and encode responses.
-func (server *Server) ServeCodec(codec ServerCodec) {
+func (server *Server) serveConn(conn net.Conn, r int) {
 	var (
 		aesKey  []byte // aes key
 		subKey  string
@@ -98,26 +101,30 @@ func (server *Server) ServeCodec(codec ServerCodec) {
 		bucket  *Bucket
 		channel *Channel
 		proto   *Proto
+		rp      = server.rPool[r&(Conf.ReadBuf-1)]
+		wp      = server.wPool[r&(Conf.WriteBuf-1)]
+		rd      = newBufioReaderSize(rp, conn, Conf.ReadBuf)
+		wr      = newBufioWriterSize(wp, conn, Conf.WriteBuf)
 	)
 	// handshake
-	if aesKey, subKey, bucket, channel, err = server.handshake(codec); err != nil {
+	if aesKey, subKey, bucket, channel, err = server.handshake(conn, rd, wr); err != nil {
 		log.Error("handshake() error(%v)", err)
 		// may call twice
-		if err = codec.Close(); err != nil {
-			log.Error("codec.Close() error(%v)", err)
+		if err = conn.Close(); err != nil {
+			log.Error("conn.Close() error(%v)", err)
 		}
 		return
 	} else {
 		log.Debug("aes key: %v, sub key: \"%s\"", aesKey, subKey)
 		// start dispatch goroutine
-		go server.dispatch(codec, channel, aesKey)
+		go server.dispatch(conn, wr, wp, channel, aesKey)
 		for {
 			// fetch a proto from channel free list
 			if proto, err = channel.CliProto.Set(); err != nil {
 				break
 			}
 			// parse request protocol
-			if err = server.readRequest(codec, proto); err != nil {
+			if err = server.readRequest(rd, proto); err != nil {
 				break
 			}
 			// aes decrypt body
@@ -137,18 +144,20 @@ func (server *Server) ServeCodec(codec ServerCodec) {
 		}
 	}
 	// dialog finish
+	// put back reader buf
 	// revoke the subkey
 	// revoke the remote subkey
 	// close the net.Conn
 	// read & write goroutine
 	// return channel to bucket's free list
+	putBufioReader(rp, rd)
 	bucket.Del(subKey)
 	if err = defaultOperator.Disconnect(subKey); err != nil {
 		log.Error("operator.Operate() error(%v)", err)
 	}
 	// may call twice
-	if err = codec.Close(); err != nil {
-		log.Error("codec.Close() error(%v)", err)
+	if err = conn.Close(); err != nil {
+		log.Error("conn.Close() error(%v)", err)
 	}
 	// don't use close chan, Signal can be reused
 	// if chan full, writer goroutine next fetch from chan will exit
@@ -157,14 +166,12 @@ func (server *Server) ServeCodec(codec ServerCodec) {
 	case channel.Signal <- 0:
 	default:
 	}
-	// TODO channel anyone hold?
-	// bucket.PutChannel(channel)
 }
 
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatch(codec ServerCodec, channel *Channel, aesKey []byte) {
+func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, aesKey []byte) {
 	var (
 		err    error
 		proto  *Proto
@@ -173,9 +180,7 @@ func (server *Server) dispatch(codec ServerCodec, channel *Channel, aesKey []byt
 	log.Debug("start dispatch goroutine")
 	for {
 		if signal = <-channel.Signal; signal == 0 {
-			// woken by reader
-			log.Debug("dispatch goroutine exit, woken by msg close signal")
-			return
+			goto failed
 		}
 		// fetch message from clibox(client send)
 		for {
@@ -193,7 +198,7 @@ func (server *Server) dispatch(codec ServerCodec, channel *Channel, aesKey []byt
 					goto failed
 				}
 			}
-			if err = server.sendResponse(codec, proto); err != nil {
+			if err = server.sendResponse(conn, wr, proto); err != nil {
 				log.Error("server.SendResponse() error(%v)", err)
 				goto failed
 			}
@@ -211,7 +216,7 @@ func (server *Server) dispatch(codec ServerCodec, channel *Channel, aesKey []byt
 				}
 			}
 			// just forward the message
-			if err = server.sendResponse(codec, proto); err != nil {
+			if err = server.sendResponse(conn, wr, proto); err != nil {
 				log.Error("server.SendResponse() error(%v)", err)
 				goto failed
 			}
@@ -220,20 +225,30 @@ func (server *Server) dispatch(codec ServerCodec, channel *Channel, aesKey []byt
 	}
 failed:
 	// wake reader up
-	if err = codec.Close(); err != nil {
-		log.Error("codec.Close() error(%v)", err)
+	putBufioWriter(wp, wr)
+	if err = conn.Close(); err != nil {
+		log.Error("conn.Close() error(%v)", err)
 	}
 	log.Debug("dispatch goroutine exit")
 	return
 }
 
 // handshake for goim handshake with client, use rsa & aes.
-func (server *Server) handshake(codec ServerCodec) (aesKey []byte, subKey string, bucket *Bucket, channel *Channel, err error) {
+func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Writer) (aesKey []byte, subKey string, bucket *Bucket, channel *Channel, err error) {
 	var (
 		body  []byte
 		proto Proto
 	)
-	if err = server.readRequest(codec, &proto); err != nil {
+	if err = conn.SetReadDeadline(time.Now().Add(Conf.HandshakeTimeout)); err != nil {
+		log.Error("conn.SetReadDeadline() error(%v)", err)
+		return
+	}
+	if err = server.readRequest(rd, &proto); err != nil {
+		return
+	}
+	// a zero value for t means Read will not time out.
+	if err = conn.SetReadDeadline(zeroTime); err != nil {
+		log.Error("conn.SetReadDeadline() error(%v)", err)
 		return
 	}
 	// TODO rsa decrypt reuse buf?
@@ -266,37 +281,48 @@ func (server *Server) handshake(codec ServerCodec) (aesKey []byte, subKey string
 	channel = NewChannel(Conf.CliProto, Conf.SvrProto)
 	bucket.Put(subKey, channel)
 	proto.Operation = OP_HANDSHARE_REPLY
-	if err = server.sendResponse(codec, &proto); err != nil {
+	if err = server.sendResponse(conn, wr, &proto); err != nil {
 		log.Error("server.SendResponse() error(%v)", err)
 	}
 	return
 }
 
 // readRequest
-func (server *Server) readRequest(codec ServerCodec, proto *Proto) (err error) {
+func (server *Server) readRequest(rd *bufio.Reader, proto *Proto) (err error) {
 	log.Debug("readRequestHeader")
-	if err = server.readRequestHeader(codec, proto); err != nil {
+	if err = server.readRequestHeader(rd, proto); err != nil {
 		return
 	}
 	// read body
 	log.Debug("readRequestBody")
-	if proto.Body, err = codec.ReadRequestBody(); err != nil {
+	if err = server.codec.ReadRequestBody(rd, proto); err != nil {
 	}
 	log.Debug("proto: %v", proto)
 	return
 }
 
-func (server *Server) readRequestHeader(codec ServerCodec, proto *Proto) (err error) {
-	if err = codec.ReadRequestHeader(proto); err != nil {
+func (server *Server) readRequestHeader(rd *bufio.Reader, proto *Proto) (err error) {
+	if err = server.codec.ReadRequestHeader(rd, proto); err != nil {
+		log.Error("codec.ReadRequestHeader() error(%v)", err)
+	}
+	return
+}
+
+func (server *Server) readRequestBody(rd *bufio.Reader, proto *Proto) (err error) {
+	if err = server.codec.ReadRequestHeader(rd, proto); err != nil {
 		log.Error("codec.ReadRequestHeader() error(%v)", err)
 	}
 	return
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) sendResponse(codec ServerCodec, proto *Proto) (err error) {
-	if err = codec.WriteResponse(proto); err != nil {
-		log.Error("codec.WriteResponse() error(%v)", err)
+func (server *Server) sendResponse(conn net.Conn, wr *bufio.Writer, proto *Proto) (err error) {
+	if err = conn.SetWriteDeadline(time.Now().Add(Conf.WriteTimeout)); err != nil {
+		log.Error("conn.SetWriteDeadline() error(%v)", err)
+		return
+	}
+	if err = server.codec.WriteResponse(wr, proto); err != nil {
+		log.Error("server.codec.WriteResponse() error(%v)", err)
 	}
 	return
 }
