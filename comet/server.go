@@ -280,10 +280,6 @@ func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Write
 	if err = server.readRequest(rd, &proto); err != nil {
 		return
 	}
-	if err = conn.SetReadDeadline(time.Now().Add(Conf.HandshakeTimeout)); err != nil {
-		log.Error("\"%s\" conn.SetReadDeadline() error(%v)", rAddr, err)
-		return
-	}
 	// TODO rsa decrypt reuse buf?
 	log.Debug("handshake cipher body : %v", proto.Body)
 	body, err = rsa.Decrypt(proto.Body, RSAPri)

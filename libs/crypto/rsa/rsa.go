@@ -39,5 +39,5 @@ func Encrypt(orig []byte, pub *rsa.PublicKey) ([]byte, error) {
 }
 
 func Decrypt(cipher []byte, pri *rsa.PrivateKey) ([]byte, error) {
-	return rsa.DecryptPKCS1v15(rand.Reader, pri, cipher)
+	return rsa.DecryptPKCS1v15(nil, pri, cipher)
 }
