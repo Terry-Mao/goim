@@ -41,7 +41,7 @@ type ServerCodec interface {
 
 type Operator interface {
 	Operate(*Proto) error
-	Connect(body []byte) (string, error)
+	Connect(body []byte) (string, time.Duration, error)
 	Disconnect(string) error
 }
 
@@ -55,18 +55,22 @@ type Server struct {
 // NewServer returns a new Server.
 func NewServer() *Server {
 	s := new(Server)
+	log.Info("server: create %d bucket for store sub channel", Conf.Bucket)
 	s.buckets = make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
 		s.buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
 	}
+	log.Info("server: create %d reader buffer pool", Conf.ReadBuf)
 	s.rPool = make([]*sync.Pool, Conf.ReadBuf)
 	for i := 0; i < Conf.ReadBuf; i++ {
 		s.rPool[i] = new(sync.Pool)
 	}
+	log.Info("server: create %d writer buffer pool", Conf.WriteBuf)
 	s.wPool = make([]*sync.Pool, Conf.WriteBuf)
 	for i := 0; i < Conf.WriteBuf; i++ {
 		s.wPool[i] = new(sync.Pool)
 	}
+	log.Info("server: use default server codec")
 	s.codec = new(DefaultServerCodec)
 	return s
 }
@@ -81,9 +85,10 @@ func (server *Server) Accept(lis net.Listener) {
 		err  error
 	)
 	for {
+		log.Debug("server: accept round: %d", i)
 		if conn, err = lis.Accept(); err != nil {
 			// if listener close then return
-			log.Error("listener.Accept() error(%v)", err)
+			log.Error("listener.Accept(\"%s\") error(%v)", lis.Addr().String(), err)
 			return
 		}
 		go server.serveConn(conn, i)
@@ -95,50 +100,60 @@ func (server *Server) Accept(lis net.Listener) {
 
 func (server *Server) serveConn(conn net.Conn, r int) {
 	var (
-		aesKey  []byte // aes key
-		subKey  string
-		err     error
-		bucket  *Bucket
-		channel *Channel
-		proto   *Proto
-		rp      = server.rPool[r&(Conf.ReadBuf-1)]
-		wp      = server.wPool[r&(Conf.WriteBuf-1)]
-		rd      = newBufioReaderSize(rp, conn, Conf.ReadBuf)
-		wr      = newBufioWriterSize(wp, conn, Conf.WriteBuf)
+		aesKey    []byte // aes key
+		subKey    string
+		err       error
+		bucket    *Bucket
+		channel   *Channel
+		proto     *Proto
+		heartbeat time.Duration
+		rp        = server.rPool[r&(Conf.ReadBuf-1)]
+		wp        = server.wPool[r&(Conf.WriteBuf-1)]
+		rd        = newBufioReaderSize(rp, conn, Conf.ReadBuf)
+		wr        = newBufioWriterSize(wp, conn, Conf.WriteBuf)
+		lAddr     = conn.LocalAddr().String()
+		rAddr     = conn.RemoteAddr().String()
 	)
 	// handshake
-	if aesKey, subKey, bucket, channel, err = server.handshake(conn, rd, wr); err != nil {
-		log.Error("handshake() error(%v)", err)
+	log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
+	if aesKey, subKey, bucket, channel, heartbeat, err = server.handshake(conn, rd, wr); err != nil {
+		log.Error("handshake(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
 		// may call twice
 		if err = conn.Close(); err != nil {
-			log.Error("conn.Close() error(%v)", err)
+			log.Error("conn.Close(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
 		}
+		putBufioReader(rp, rd)
+		putBufioWriter(wp, wr)
 		return
 	} else {
-		log.Debug("aes key: %v, sub key: \"%s\"", aesKey, subKey)
+		log.Debug("%s[%s] serverconn goroutine start", subKey, rAddr)
+		log.Debug("[%s] aes key: %v, sub key: \"%s\"", conn.RemoteAddr().String(), aesKey, subKey)
 		// start dispatch goroutine
-		go server.dispatch(conn, wr, wp, channel, aesKey)
+		go server.dispatch(conn, wr, wp, channel, aesKey, heartbeat)
 		for {
 			// fetch a proto from channel free list
 			if proto, err = channel.CliProto.Set(); err != nil {
+				log.Error("%s[%s] fetch client proto error(%v)", subKey, rAddr, err)
 				break
 			}
 			// parse request protocol
 			if err = server.readRequest(rd, proto); err != nil {
+				log.Error("%s[%s] read client request error(%v)", subKey, rAddr, err)
 				break
 			}
 			// aes decrypt body
 			if proto.Body != nil {
 				if proto.Body, err = aes.ECBDecrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+					log.Error("%s[%s] decrypt client proto error(%v)", subKey, rAddr, err)
 					break
 				}
 			}
 			// send to writer
 			channel.CliProto.SetAdv()
 			select {
-			case channel.Signal <- 1:
+			case channel.Signal <- ProtoReady:
 			default:
-				log.Debug("send a signal that channel has message, ignore this time")
+				log.Warn("%s[%s] send a signal, but chan is full just ignore", subKey, rAddr)
 				break
 			}
 		}
@@ -153,29 +168,33 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 	putBufioReader(rp, rd)
 	bucket.Del(subKey)
 	if err = defaultOperator.Disconnect(subKey); err != nil {
-		log.Error("operator.Operate() error(%v)", err)
+		log.Error("%s[%s] operator do disconnect error(%v)", subKey, rAddr, err)
 	}
 	// may call twice
 	if err = conn.Close(); err != nil {
-		log.Error("conn.Close() error(%v)", err)
+		log.Error("conn.Close(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
 	}
 	// don't use close chan, Signal can be reused
 	// if chan full, writer goroutine next fetch from chan will exit
 	// if chan empty, send a 0(close) let the writer exit
 	select {
-	case channel.Signal <- 0:
+	case channel.Signal <- ProtoFinsh:
 	default:
+		log.Warn("%s[%s] send proto finish signal, but chan is full just ignore", subKey, rAddr)
 	}
+	log.Debug("%s[%s] serverconn goroutine exit", subKey, rAddr)
 }
 
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, aesKey []byte) {
+func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, aesKey []byte, heartbeat time.Duration) {
 	var (
 		err    error
 		proto  *Proto
 		signal int
+		lAddr  = conn.LocalAddr().String()
+		rAddr  = conn.RemoteAddr().String()
 	)
 	log.Debug("start dispatch goroutine")
 	for {
@@ -185,21 +204,33 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 		// fetch message from clibox(client send)
 		for {
 			if proto, err = channel.CliProto.Get(); err != nil {
-				log.Debug("channel no more client message, wait signal")
+				log.Debug("\"%s\" channel no more client message, wait signal", rAddr)
 				break
 			}
-			// process message
-			if err = defaultOperator.Operate(proto); err != nil {
-				log.Error("operator.Operate() error(%v)", err)
-				goto failed
-			}
-			if proto.Body != nil {
-				if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+			if proto.Operation == OP_HEARTBEAT {
+				if err = conn.SetReadDeadline(time.Now().Add(heartbeat)); err != nil {
+					log.Error("\"%s\" conn.SetReadDeadline() error(%v)", rAddr, err)
 					goto failed
+				}
+				// heartbeat
+				proto.Body = nil
+				proto.Operation = OP_HEARTBEAT_REPLY
+				log.Debug("\"%s\" heartbeat proto: %v", rAddr, proto)
+			} else {
+				// process message
+				if err = defaultOperator.Operate(proto); err != nil {
+					log.Error("\"%s\" operator.Operate() error(%v)", rAddr, err)
+					goto failed
+				}
+				if proto.Body != nil {
+					if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+						log.Error("\"%s\" aes.Encrypt() error(%v)", rAddr, err)
+						goto failed
+					}
 				}
 			}
 			if err = server.sendResponse(conn, wr, proto); err != nil {
-				log.Error("server.SendResponse() error(%v)", err)
+				log.Error("\"%s\" server.SendResponse() error(%v)", rAddr, err)
 				goto failed
 			}
 			channel.CliProto.GetAdv()
@@ -207,17 +238,18 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 		// fetch message from svrbox(server send)
 		for {
 			if proto, err = channel.SvrProto.Get(); err != nil {
-				log.Debug("channel no more server message, wait signal")
+				log.Debug("\"%s\" channel no more server message, wait signal", rAddr)
 				break
 			}
 			if proto.Body != nil {
 				if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+					log.Error("\"%s\" aes.Encrypt() error(%v)", rAddr, err)
 					goto failed
 				}
 			}
 			// just forward the message
 			if err = server.sendResponse(conn, wr, proto); err != nil {
-				log.Error("server.SendResponse() error(%v)", err)
+				log.Error("\"%s\" server.SendResponse() error(%v)", rAddr, err)
 				goto failed
 			}
 			channel.SvrProto.GetAdv()
@@ -227,38 +259,39 @@ failed:
 	// wake reader up
 	putBufioWriter(wp, wr)
 	if err = conn.Close(); err != nil {
-		log.Error("conn.Close() error(%v)", err)
+		log.Error("conn.Close(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
 	}
 	log.Debug("dispatch goroutine exit")
 	return
 }
 
 // handshake for goim handshake with client, use rsa & aes.
-func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Writer) (aesKey []byte, subKey string, bucket *Bucket, channel *Channel, err error) {
+func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Writer) (aesKey []byte, subKey string, bucket *Bucket, channel *Channel, heartbeat time.Duration, err error) {
 	var (
 		body  []byte
 		proto Proto
+		lAddr = conn.LocalAddr().String()
+		rAddr = conn.RemoteAddr().String()
 	)
 	if err = conn.SetReadDeadline(time.Now().Add(Conf.HandshakeTimeout)); err != nil {
-		log.Error("conn.SetReadDeadline() error(%v)", err)
+		log.Error("\"%s\" conn.SetReadDeadline() error(%v)", rAddr, err)
 		return
 	}
 	if err = server.readRequest(rd, &proto); err != nil {
 		return
 	}
-	// a zero value for t means Read will not time out.
-	if err = conn.SetReadDeadline(zeroTime); err != nil {
-		log.Error("conn.SetReadDeadline() error(%v)", err)
+	if err = conn.SetReadDeadline(time.Now().Add(Conf.HandshakeTimeout)); err != nil {
+		log.Error("\"%s\" conn.SetReadDeadline() error(%v)", rAddr, err)
 		return
 	}
 	// TODO rsa decrypt reuse buf?
-	log.Debug("cipher body : %v", proto.Body)
+	log.Debug("handshake cipher body : %v", proto.Body)
 	body, err = rsa.Decrypt(proto.Body, RSAPri)
 	if err != nil {
-		log.Error("Decrypt() error(%v)", err)
+		log.Error("rsa.Decrypt() error(%v)", err)
 		return
 	}
-	log.Debug("body : %v", body)
+	log.Debug("handshake body : %v", body)
 	if len(body) < aesKeyLen {
 		log.Warn("handshake body size less than %d: %d", aesKeyLen, len(body))
 		err = ErrHandshake
@@ -267,37 +300,36 @@ func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Write
 	// get aes key use first 16bytes
 	aesKey = body[:16]
 	// register router
-	if subKey, err = defaultOperator.Connect(body[16:]); err != nil {
-		log.Error("operator.Operate() error(%v)", err)
+	if subKey, heartbeat, err = defaultOperator.Connect(body[16:]); err != nil {
+		log.Error("%s[%s] operator do connect error(%v)", subKey, rAddr, err)
 		return
 	}
-	log.Debug("subKey: \"%s\"", subKey)
+	if err = conn.SetReadDeadline(time.Now().Add(heartbeat)); err != nil {
+		log.Error("\"%s\" conn.SetReadDeadline() error(%v)", rAddr, err)
+		return
+	}
 	proto.Body = nil
-	// update subkey -> channel
-	bucket = server.bucket(subKey)
-	// channel = bucket.GetChannel()
-	// channel.Reset()
 	// TODO how to reuse channel
+	// update subkey -> channel
+	bucket = server.Bucket(subKey)
 	channel = NewChannel(Conf.CliProto, Conf.SvrProto)
 	bucket.Put(subKey, channel)
 	proto.Operation = OP_HANDSHARE_REPLY
 	if err = server.sendResponse(conn, wr, &proto); err != nil {
-		log.Error("server.SendResponse() error(%v)", err)
+		log.Error("%s[%s]server.SendResponse() error(%v)", subKey, rAddr, lAddr, err)
 	}
 	return
 }
 
 // readRequest
 func (server *Server) readRequest(rd *bufio.Reader, proto *Proto) (err error) {
-	log.Debug("readRequestHeader")
 	if err = server.readRequestHeader(rd, proto); err != nil {
 		return
 	}
 	// read body
-	log.Debug("readRequestBody")
 	if err = server.codec.ReadRequestBody(rd, proto); err != nil {
 	}
-	log.Debug("proto: %v", proto)
+	log.Debug("read request finish, proto: %v", proto)
 	return
 }
 
@@ -317,20 +349,21 @@ func (server *Server) readRequestBody(rd *bufio.Reader, proto *Proto) (err error
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
 func (server *Server) sendResponse(conn net.Conn, wr *bufio.Writer, proto *Proto) (err error) {
+	rAddr := conn.RemoteAddr().String()
 	if err = conn.SetWriteDeadline(time.Now().Add(Conf.WriteTimeout)); err != nil {
-		log.Error("conn.SetWriteDeadline() error(%v)", err)
+		log.Error("\"%s\" conn.SetWriteDeadline() error(%v)", rAddr, err)
 		return
 	}
 	if err = server.codec.WriteResponse(wr, proto); err != nil {
-		log.Error("server.codec.WriteResponse() error(%v)", err)
+		log.Error("\"%s\" server.codec.WriteResponse() error(%v)", rAddr, err)
 	}
 	return
 }
 
-func (server *Server) bucket(subKey string) *Bucket {
+func (server *Server) Bucket(subKey string) *Bucket {
 	h := NewMurmur3C()
 	h.Write([]byte(subKey))
 	idx := h.Sum32() & uint32(Conf.Bucket-1)
-	log.Debug("sub key:\"%s\" hit channel bucket index:%d", subKey, idx)
+	log.Debug("\"%s\" hit channel bucket index: %d", subKey, idx)
 	return server.buckets[idx]
 }

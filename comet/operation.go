@@ -2,6 +2,9 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	"strconv"
+	"sync/atomic"
+	"time"
 )
 
 const (
@@ -16,6 +19,10 @@ const (
 	// for test
 	OP_TEST       = uint32(254)
 	OP_TEST_REPLY = uint32(255)
+)
+
+var (
+	testKey = int64(0)
 )
 
 type IMOperator struct {
@@ -42,9 +49,10 @@ func (operator *IMOperator) Operate(proto *Proto) error {
 	return nil
 }
 
-func (operator *IMOperator) Connect(body []byte) (string, error) {
+func (operator *IMOperator) Connect(body []byte) (string, time.Duration, error) {
 	// TODO call register router
-	return "Terry-Mao", nil
+	atomic.AddInt64(&testKey, 1)
+	return "Terry-Mao" + strconv.FormatInt(testKey, 10), 30 * time.Second, nil
 }
 
 func (operator *IMOperator) Disconnect(string) error {

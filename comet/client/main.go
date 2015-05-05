@@ -89,38 +89,49 @@ func main() {
 	if _, err = ReadProto(rd, proto); err != nil {
 		panic(err)
 	}
+	fmt.Printf("handshake ok, proto: %v\n", proto)
 	seqId++
-	// heartbeat
+	// writer
+	go func() {
+		proto1 := new(Proto)
+		for {
+			proto1.Operation = OP_HEARTBEAT
+			proto1.SeqId = seqId
+			proto1.Body = nil
+			if err = WriteProto(wr, proto1); err != nil {
+				panic(err)
+			}
+			proto1.Operation = OP_TEST
+			proto1.SeqId = seqId
+			// use aes
+			if body, err = aes.ECBEncrypt([]byte("hello test"), aesKey, padding.PKCS5); err != nil {
+				panic(err)
+			}
+			proto1.Body = body
+			if err = WriteProto(wr, proto1); err != nil {
+				panic(err)
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+	}()
+	// reader
 	for {
-		proto.Operation = OP_HEARTBEAT
-		proto.SeqId = seqId
-		proto.Body = nil
-		if err = WriteProto(wr, proto); err != nil {
+		if proto.Body, err = ReadProto(rd, proto); err != nil {
 			panic(err)
 		}
-		if _, err = ReadProto(rd, proto); err != nil {
-			panic(err)
+		if proto.Body != nil {
+			if body, err = aes.ECBDecrypt(body, aesKey, padding.PKCS5); err != nil {
+				panic(err)
+			}
+			fmt.Printf("body: %s\n", string(body))
+		}
+		if proto.Operation == OP_HEARTBEAT_REPLY {
+			if err = conn.SetReadDeadline(time.Now().Add(25 * time.Second)); err != nil {
+				panic(err)
+			}
+			fmt.Printf("receive heartbeat\n")
 		}
 		seqId++
-		proto.Operation = OP_TEST
-		proto.SeqId = seqId
-		// use aes
-		if body, err = aes.ECBEncrypt([]byte("hello test"), aesKey, padding.PKCS5); err != nil {
-			panic(err)
-		}
-		proto.Body = body
-		if err = WriteProto(wr, proto); err != nil {
-			panic(err)
-		}
-		if body, err = ReadProto(rd, proto); err != nil {
-			panic(err)
-		}
-		if body, err = aes.ECBDecrypt(body, aesKey, padding.PKCS5); err != nil {
-			panic(err)
-		}
-		fmt.Printf("body: %s", string(body))
-		seqId++
-		time.Sleep(10 * time.Second)
 	}
 }
 
@@ -201,6 +212,8 @@ func ReadBody(packLen uint32, headerLen uint16, rd *bufio.Reader) (body []byte, 
 			} else {
 			}
 		}
+	} else {
+		body = nil
 	}
 	return
 }

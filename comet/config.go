@@ -56,6 +56,10 @@ type Config struct {
 	CliProto int `goconf:"bucket:cli.proto.num"`
 	SvrProto int `goconf:"bucket:svr.proto.num"`
 	Channel  int `goconf:"bucket:channel.num"`
+	// push
+	HttpPushBind     []string      `goconf:"push:push.bind:,"`
+	HttpReadTimeout  time.Duration `goconf:"push:read.timeout:time"`
+	HttpWriteTimeout time.Duration `goconf:"push:write.timeout:time"`
 }
 
 func NewConfig() *Config {
@@ -82,6 +86,10 @@ func NewConfig() *Config {
 		CliProto: 1024,
 		SvrProto: 1024,
 		Channel:  1024,
+		// push
+		HttpPushBind:     []string{"localhost:8082"},
+		HttpReadTimeout:  5 * time.Second,
+		HttpWriteTimeout: 5 * time.Second,
 	}
 }
 

@@ -84,6 +84,8 @@ func (c *DefaultServerCodec) ReadRequestBody(rd *bufio.Reader, proto *Proto) (er
 				log.Error("body: readbytes %d > %d", n, bodyLen)
 			}
 		}
+	} else {
+		proto.Body = nil
 	}
 	return
 }
