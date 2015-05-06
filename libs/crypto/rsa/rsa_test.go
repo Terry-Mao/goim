@@ -7,29 +7,18 @@ import (
 const (
 	priKey = `
 -----BEGIN RSA PRIVATE KEY-----
-MIICXQIBAAKBgQC0uoYIqecHK2c9CgyEKWDK5XGrYLT29CgENUm9eBPi4YyCGCXq
-aesdRs1TS7X7JKpAh114BGkkNPuEEFHbzIgIHSoNGIB9r/ustGGggdeqqFiEhq6v
-xWM85RPWBGxv3WNAnwVqZ+NJ5+1Q0Rwpaazr6wr6LddByFzf/U88GQfzhQIDAQAB
-AoGBALE6qO4eD1zMh3UoQZXpLe5KiunQ8CWs0QEvcJzJAFdhb/Sz0ZrLO7F+GSQx
-/sfF8N9O364uRR0oh+2+Q0gUjuAgE1dUvzQbQqaygzrs8JiElFQtun9LpUUd9SyI
-1jjUhY2/VYW+wKMurUm9DM6bWsyvVkLve1IUCUBEoXRd/OOBAkEA3P5FUHfpmfoq
-IHfdfE1d1tZHH5QC0hBxzC4qdsZcg8r3bGssSgSJEz4ujM23kiVIZ5QrdmqeBrq9
-G5G5a+6PrQJBANFbcG9OkejCpT50jQXomnTingOTA/xGkcnPqAYoNkPJ5KOi16H6
-uXDDv/cRU3TdiO2lzTY6daXla9lF2PkYjjkCQQDCm2eOpQohfhr63JM+kyK/vZKE
-TGLveWu80iqyzZtKs8GOyBIIXFYZi/iSJdYx7IMGM4TSkrD2XBuL25fdZAdBAkBm
-qHfRnK1ffVKZ9XzRUOWsOxNQnV5u7gu+8dxqaH1zcCR1OPyTqOYVrWcMN6q8u4TR
-Q2QFG1VlK8JeoClsu+XBAkAsyXoZ7X6FGclZawtmSgU6Rxv/bBHyRQNhIUxhOTXQ
-03ZzpyZ2hrnA4sCQp+nNgzinzttlMub3JEa3KNGzVFys
+MIGTAgEAAhwA3h6/w3C9rE/bZ9C/99QZzz+42d+Md14KCpQ9AgMBAAECG0MCLcHN
+MjtYgA1KqY8WXD/pIvxA0OAWRCiA1QIODyI7B8E9NtKx0qExxQ8CDg6tWyaQ7V4+
+4YlwMQnzAg4M85efWGJiA8kJYMiuQwIOCPUZ5R6cD2G3CccT1qsCDgN060UY1a0K
+xLj6/Fgx
 -----END RSA PRIVATE KEY-----
-    `
+`
 	pubKey = `
 -----BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC0uoYIqecHK2c9CgyEKWDK5XGr
-YLT29CgENUm9eBPi4YyCGCXqaesdRs1TS7X7JKpAh114BGkkNPuEEFHbzIgIHSoN
-GIB9r/ustGGggdeqqFiEhq6vxWM85RPWBGxv3WNAnwVqZ+NJ5+1Q0Rwpaazr6wr6
-LddByFzf/U88GQfzhQIDAQAB
+MDcwDQYJKoZIhvcNAQEBBQADJgAwIwIcAN4ev8NwvaxP22fQv/fUGc8/uNnfjHde
+CgqUPQIDAQAB
 -----END PUBLIC KEY-----
-    `
+`
 )
 
 func TestRSA(t *testing.T) {
@@ -43,7 +32,7 @@ func TestRSA(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	msg := "woaini"
+	msg := "1234567890123456"
 	cipher, err := Encrypt([]byte(msg), pub)
 	if err != nil {
 		t.Error(err)
@@ -56,5 +45,30 @@ func TestRSA(t *testing.T) {
 	}
 	if string(ori) != msg {
 		t.FailNow()
+	}
+}
+
+func BenchmarkRSA(b *testing.B) {
+	pri, err := PrivateKey([]byte(priKey))
+	if err != nil {
+		b.Error(err)
+		b.FailNow()
+	}
+	pub, err := PublicKey([]byte(pubKey))
+	if err != nil {
+		b.Error(err)
+		b.FailNow()
+	}
+	msg := "1234567890123456"
+	cipher, err := Encrypt([]byte(msg), pub)
+	if err != nil {
+		b.Error(err)
+		b.FailNow()
+	}
+	for i := 0; i < b.N; i++ {
+		if _, err := Decrypt(cipher, pri); err != nil {
+			b.Error(err)
+			b.FailNow()
+		}
 	}
 }

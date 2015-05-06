@@ -53,3 +53,19 @@ func TestAes(t *testing.T) {
 		t.Error("decrypt error")
 	}
 }
+
+func BenchmarkAES(b *testing.B) {
+	a := []byte("1111111111111111")
+	d, err := ECBEncrypt(a, a, padding.PKCS5)
+	if err != nil {
+		b.Error(err)
+		b.FailNow()
+	}
+	for i := 0; i < b.N; i++ {
+		_, err := ECBDecrypt(d, a, padding.PKCS5)
+		if err != nil {
+			b.Error(err)
+			b.FailNow()
+		}
+	}
+}

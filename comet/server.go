@@ -20,7 +20,7 @@ var (
 	maxInt          = 2 ^ 31 - 1
 )
 
-// Request is a header written before every goim connect.  It is used internally
+// Proto is a request&response written before every goim connect.  It is used internally
 // but documented here as an aid to debugging, such as when analyzing
 // network traffic.
 type Proto struct {
@@ -118,7 +118,6 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 	log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
 	if aesKey, subKey, bucket, channel, heartbeat, err = server.handshake(conn, rd, wr); err != nil {
 		log.Error("handshake(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
-		// may call twice
 		if err = conn.Close(); err != nil {
 			log.Error("conn.Close(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
 		}
@@ -127,9 +126,9 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		return
 	} else {
 		log.Debug("%s[%s] serverconn goroutine start", subKey, rAddr)
-		log.Debug("[%s] aes key: %v, sub key: \"%s\"", conn.RemoteAddr().String(), aesKey, subKey)
+		log.Debug("[%s] aes key: %v, sub key: \"%s\"", rAddr, aesKey, subKey)
 		// start dispatch goroutine
-		go server.dispatch(conn, wr, wp, channel, aesKey, heartbeat)
+		go server.dispatch(conn, wr, wp, channel, aesKey, heartbeat, rAddr, lAddr)
 		for {
 			// fetch a proto from channel free list
 			if proto, err = channel.CliProto.Set(); err != nil {
@@ -188,15 +187,13 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, aesKey []byte, heartbeat time.Duration) {
+func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, aesKey []byte, heartbeat time.Duration, rAddr, lAddr string) {
 	var (
 		err    error
 		proto  *Proto
 		signal int
-		lAddr  = conn.LocalAddr().String()
-		rAddr  = conn.RemoteAddr().String()
 	)
-	log.Debug("start dispatch goroutine")
+	log.Debug("\"%s\" start dispatch goroutine", rAddr)
 	for {
 		if signal = <-channel.Signal; signal == 0 {
 			goto failed
@@ -261,7 +258,7 @@ failed:
 	if err = conn.Close(); err != nil {
 		log.Error("conn.Close(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
 	}
-	log.Debug("dispatch goroutine exit")
+	log.Debug("\"%s\" dispatch goroutine exit", rAddr)
 	return
 }
 
@@ -270,11 +267,9 @@ func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Write
 	var (
 		body  []byte
 		proto Proto
-		lAddr = conn.LocalAddr().String()
-		rAddr = conn.RemoteAddr().String()
 	)
 	if err = conn.SetReadDeadline(time.Now().Add(Conf.HandshakeTimeout)); err != nil {
-		log.Error("\"%s\" conn.SetReadDeadline() error(%v)", rAddr, err)
+		log.Error("conn.SetReadDeadline() error(%v)", err)
 		return
 	}
 	if err = server.readRequest(rd, &proto); err != nil {
@@ -282,8 +277,7 @@ func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Write
 	}
 	// TODO rsa decrypt reuse buf?
 	log.Debug("handshake cipher body : %v", proto.Body)
-	body, err = rsa.Decrypt(proto.Body, RSAPri)
-	if err != nil {
+	if body, err = rsa.Decrypt(proto.Body, RSAPri); err != nil {
 		log.Error("rsa.Decrypt() error(%v)", err)
 		return
 	}
@@ -297,11 +291,11 @@ func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Write
 	aesKey = body[:16]
 	// register router
 	if subKey, heartbeat, err = defaultOperator.Connect(body[16:]); err != nil {
-		log.Error("%s[%s] operator do connect error(%v)", subKey, rAddr, err)
+		log.Error("[%s] operator do connect error(%v)", subKey, err)
 		return
 	}
 	if err = conn.SetReadDeadline(time.Now().Add(heartbeat)); err != nil {
-		log.Error("\"%s\" conn.SetReadDeadline() error(%v)", rAddr, err)
+		log.Error("conn.SetReadDeadline() error(%v)", err)
 		return
 	}
 	proto.Body = nil
@@ -312,7 +306,7 @@ func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Write
 	bucket.Put(subKey, channel)
 	proto.Operation = OP_HANDSHARE_REPLY
 	if err = server.sendResponse(conn, wr, &proto); err != nil {
-		log.Error("%s[%s]server.SendResponse() error(%v)", subKey, rAddr, lAddr, err)
+		log.Error("[%s] server.SendResponse() error(%v)", subKey, err)
 	}
 	return
 }
@@ -345,13 +339,12 @@ func (server *Server) readRequestBody(rd *bufio.Reader, proto *Proto) (err error
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
 func (server *Server) sendResponse(conn net.Conn, wr *bufio.Writer, proto *Proto) (err error) {
-	rAddr := conn.RemoteAddr().String()
 	if err = conn.SetWriteDeadline(time.Now().Add(Conf.WriteTimeout)); err != nil {
-		log.Error("\"%s\" conn.SetWriteDeadline() error(%v)", rAddr, err)
+		log.Error("conn.SetWriteDeadline() error(%v)", err)
 		return
 	}
 	if err = server.codec.WriteResponse(wr, proto); err != nil {
-		log.Error("\"%s\" server.codec.WriteResponse() error(%v)", rAddr, err)
+		log.Error("server.codec.WriteResponse() error(%v)", err)
 	}
 	return
 }

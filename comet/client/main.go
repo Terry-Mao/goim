@@ -33,10 +33,8 @@ const (
 
 	rsaPubKey = `
 -----BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC0uoYIqecHK2c9CgyEKWDK5XGr
-YLT29CgENUm9eBPi4YyCGCXqaesdRs1TS7X7JKpAh114BGkkNPuEEFHbzIgIHSoN
-GIB9r/ustGGggdeqqFiEhq6vxWM85RPWBGxv3WNAnwVqZ+NJ5+1Q0Rwpaazr6wr6
-LddByFzf/U88GQfzhQIDAQAB
+MDcwDQYJKoZIhvcNAQEBBQADJgAwIwIcAN4ev8NwvaxP22fQv/fUGc8/uNnfjHde
+CgqUPQIDAQAB
 -----END PUBLIC KEY-----
 `
 )
@@ -81,7 +79,7 @@ func main() {
 	proto.Body = aesKey
 	// use rsa
 	if proto.Body, err = myrsa.Encrypt(proto.Body, RSAPub); err != nil {
-		return
+		panic(err)
 	}
 	if err = WriteProto(wr, proto); err != nil {
 		panic(err)
