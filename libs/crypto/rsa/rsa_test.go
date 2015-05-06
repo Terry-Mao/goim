@@ -7,16 +7,13 @@ import (
 const (
 	priKey = `
 -----BEGIN RSA PRIVATE KEY-----
-MIGTAgEAAhwA3h6/w3C9rE/bZ9C/99QZzz+42d+Md14KCpQ9AgMBAAECG0MCLcHN
-MjtYgA1KqY8WXD/pIvxA0OAWRCiA1QIODyI7B8E9NtKx0qExxQ8CDg6tWyaQ7V4+
-4YlwMQnzAg4M85efWGJiA8kJYMiuQwIOCPUZ5R6cD2G3CccT1qsCDgN060UY1a0K
-xLj6/Fgx
+MFECAQACDQDt0G4B3JeeHjLWvX0CAwEAAQINANmKZncRf2SzCt/qiQIHAP1hu7hC
+NwIHAPBFhAcz6wIHAMKsRD3dIQIGDn4S7aBLAgY5OcfnuCQ=
 -----END RSA PRIVATE KEY-----
 `
 	pubKey = `
 -----BEGIN PUBLIC KEY-----
-MDcwDQYJKoZIhvcNAQEBBQADJgAwIwIcAN4ev8NwvaxP22fQv/fUGc8/uNnfjHde
-CgqUPQIDAQAB
+MCgwDQYJKoZIhvcNAQEBBQADFwAwFAINAO3QbgHcl54eMta9fQIDAQAB
 -----END PUBLIC KEY-----
 `
 )
@@ -32,7 +29,7 @@ func TestRSA(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	msg := "1234567890123456"
+	msg := "1"
 	cipher, err := Encrypt([]byte(msg), pub)
 	if err != nil {
 		t.Error(err)
@@ -59,7 +56,7 @@ func BenchmarkRSA(b *testing.B) {
 		b.Error(err)
 		b.FailNow()
 	}
-	msg := "1234567890123456"
+	msg := "1"
 	cipher, err := Encrypt([]byte(msg), pub)
 	if err != nil {
 		b.Error(err)

@@ -1,6 +1,8 @@
 package aes
 
 import (
+	"encoding/hex"
+	"fmt"
 	"github.com/Terry-Mao/goim/libs/crypto/padding"
 	"testing"
 )
@@ -11,6 +13,8 @@ func TestAes(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	fmt.Printf("%s\n", hex.EncodeToString(a))
+	fmt.Printf("%s\n", hex.EncodeToString(b))
 	c, err := ECBDecrypt(b, a, padding.PKCS5)
 	if err != nil {
 		t.Error(err)

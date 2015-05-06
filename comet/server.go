@@ -24,11 +24,11 @@ var (
 // but documented here as an aid to debugging, such as when analyzing
 // network traffic.
 type Proto struct {
-	PackLen   uint32 // package length
-	HeaderLen uint16 // header length
-	Ver       uint16 // protocol version
-	Operation uint32 // operation for request
-	SeqId     uint32 // sequence number chosen by client
+	PackLen   int32  // package length
+	HeaderLen int16  // header length
+	Ver       int16  // protocol version
+	Operation int32  // operation for request
+	SeqId     int32  // sequence number chosen by client
 	Body      []byte // body
 }
 
@@ -142,7 +142,7 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 			}
 			// aes decrypt body
 			if proto.Body != nil {
-				if proto.Body, err = aes.ECBDecrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+				if proto.Body, err = aes.ECBDecrypt(proto.Body, aesKey, padding.PKCS7); err != nil {
 					log.Error("%s[%s] decrypt client proto error(%v)", subKey, rAddr, err)
 					break
 				}
@@ -220,7 +220,7 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 					goto failed
 				}
 				if proto.Body != nil {
-					if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+					if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS7); err != nil {
 						log.Error("\"%s\" aes.Encrypt() error(%v)", rAddr, err)
 						goto failed
 					}
@@ -239,7 +239,7 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 				break
 			}
 			if proto.Body != nil {
-				if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+				if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS7); err != nil {
 					log.Error("\"%s\" aes.Encrypt() error(%v)", rAddr, err)
 					goto failed
 				}
@@ -272,6 +272,7 @@ func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Write
 		log.Error("conn.SetReadDeadline() error(%v)", err)
 		return
 	}
+	log.Debug("get handshake request protocol")
 	if err = server.readRequest(rd, &proto); err != nil {
 		return
 	}

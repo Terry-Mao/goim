@@ -8,12 +8,8 @@ import (
 )
 
 const (
-	packBytes    = 4
-	headerBytes  = 2
-	rawPackLen   = uint32(16)
-	rawHeaderLen = uint16(12)
 	maxPackLen   = 2 << 10
-	fixHeaderLen = uint16(12)
+	rawHeaderLen = int16(16)
 )
 
 var (
@@ -38,7 +34,7 @@ func (c *DefaultServerCodec) ReadRequestHeader(rd *bufio.Reader, proto *Proto) (
 		return
 	}
 	log.Debug("headerLen: %d", proto.HeaderLen)
-	if proto.HeaderLen != fixHeaderLen {
+	if proto.HeaderLen != rawHeaderLen {
 		return ErrProtoHeaderLen
 	}
 	if err = binary.Read(rd, binary.BigEndian, &proto.Ver); err != nil {
@@ -64,7 +60,7 @@ func (c *DefaultServerCodec) ReadRequestBody(rd *bufio.Reader, proto *Proto) (er
 	var (
 		n       = int(0)
 		t       = int(0)
-		bodyLen = int(proto.PackLen - uint32(proto.HeaderLen) - packBytes)
+		bodyLen = int(proto.PackLen - int32(proto.HeaderLen))
 	)
 	log.Debug("read body len: %d", bodyLen)
 	if bodyLen > 0 {
@@ -92,7 +88,8 @@ func (c *DefaultServerCodec) ReadRequestBody(rd *bufio.Reader, proto *Proto) (er
 
 func (c *DefaultServerCodec) WriteResponse(wr *bufio.Writer, proto *Proto) (err error) {
 	log.Debug("write proto: %v", proto)
-	if err = binary.Write(wr, binary.BigEndian, rawPackLen+uint32(len(proto.Body))); err != nil {
+	// packlen =header(16) + body
+	if err = binary.Write(wr, binary.BigEndian, uint32(rawHeaderLen)+uint32(len(proto.Body))); err != nil {
 		log.Error("packLen: binary.Write() error(%v)", err)
 		return
 	}

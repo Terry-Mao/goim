@@ -27,7 +27,7 @@ func NewChannel(cliProto, svrProto int) *Channel {
 	return c
 }
 
-func (c *Channel) Push(ver uint16, operation uint32, body []byte) (err error) {
+func (c *Channel) Push(ver int16, operation int32, body []byte) (err error) {
 	var proto *Proto
 	// fetch a proto from channel free list
 	proto, err = c.SvrProto.Set()
@@ -45,7 +45,7 @@ func (c *Channel) Push(ver uint16, operation uint32, body []byte) (err error) {
 	return
 }
 
-func (c *Channel) Pushs(ver uint16, operations []uint32, bodies [][]byte) (n int, err error) {
+func (c *Channel) Pushs(ver int16, operations []int32, bodies [][]byte) (n int, err error) {
 	var (
 		proto *Proto
 	)

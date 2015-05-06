@@ -26,10 +26,7 @@ const (
 )
 
 const (
-	packBytes    = 4
-	headerBytes  = 2
-	rawPackLen   = uint32(16)
-	rawHeaderLen = uint16(12)
+	rawHeaderLen = uint16(16)
 
 	rsaPubKey = `
 -----BEGIN PUBLIC KEY-----
@@ -58,7 +55,7 @@ type Proto struct {
 }
 
 func main() {
-	conn, err := net.Dial("tcp", "localhost:8080")
+	conn, err := net.Dial("tcp", "10.33.156.249:8080")
 	if err != nil {
 		panic(err)
 	}
@@ -135,7 +132,7 @@ func main() {
 
 func WriteProto(wr *bufio.Writer, proto *Proto) (err error) {
 	// write
-	if err = binary.Write(wr, binary.BigEndian, rawPackLen+uint32(len(proto.Body))); err != nil {
+	if err = binary.Write(wr, binary.BigEndian, uint32(rawHeaderLen)+uint32(len(proto.Body))); err != nil {
 		return
 	}
 	if err = binary.Write(wr, binary.BigEndian, rawHeaderLen); err != nil {
@@ -195,7 +192,7 @@ func ReadBody(packLen uint32, headerLen uint16, rd *bufio.Reader) (body []byte, 
 	var (
 		n       = int(0)
 		t       = int(0)
-		bodyLen = int(packLen - uint32(headerLen) - packBytes)
+		bodyLen = int(packLen - uint32(headerLen))
 	)
 	fmt.Printf("read body len: %d\n", bodyLen)
 	if bodyLen > 0 {

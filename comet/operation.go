@@ -8,17 +8,17 @@ import (
 )
 
 const (
-	OP_HANDSHARE        = uint32(0)
-	OP_HANDSHARE_REPLY  = uint32(1)
-	OP_HEARTBEAT        = uint32(2)
-	OP_HEARTBEAT_REPLY  = uint32(3)
-	OP_SEND_SMS         = uint32(4)
-	OP_SEND_SMS_REPLY   = uint32(5)
-	OP_DISCONNECT_REPLY = uint32(6)
+	OP_HANDSHARE        = int32(0)
+	OP_HANDSHARE_REPLY  = int32(1)
+	OP_HEARTBEAT        = int32(2)
+	OP_HEARTBEAT_REPLY  = int32(3)
+	OP_SEND_SMS         = int32(4)
+	OP_SEND_SMS_REPLY   = int32(5)
+	OP_DISCONNECT_REPLY = int32(6)
 
 	// for test
-	OP_TEST       = uint32(254)
-	OP_TEST_REPLY = uint32(255)
+	OP_TEST       = int32(254)
+	OP_TEST_REPLY = int32(255)
 )
 
 var (
