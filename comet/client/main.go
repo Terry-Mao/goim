@@ -55,7 +55,7 @@ type Proto struct {
 }
 
 func main() {
-	conn, err := net.Dial("tcp", "10.33.156.249:8080")
+	conn, err := net.Dial("tcp", "10.33.21.152:8980")
 	if err != nil {
 		panic(err)
 	}

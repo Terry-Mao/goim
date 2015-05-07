@@ -47,8 +47,12 @@ type Config struct {
 	Rcvbuf           int           `goconf:"proto:rcvbuf:memory"`
 	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
 	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
-	ReadBuf          int           `goconf:"proto:read.buf"`
-	WriteBuf         int           `goconf:"proto:write.buf"`
+	ReadBuf          int           `goconf:"proto:readbuf"`
+	WriteBuf         int           `goconf:"proto:writebuf"`
+	ReadBufSize      int           `goconf:"proto:readbuf.size"`
+	WriteBufSize     int           `goconf:"proto:writebuf.size"`
+	Timer            int           `goconf:"proto:timer"`
+	TimerSize        int           `goconf:"proto:timer.size"`
 	// crypto
 	RSAPrivate string `goconf:"crypto:rsa.private"`
 	// bucket
@@ -79,6 +83,10 @@ func NewConfig() *Config {
 		WriteTimeout:     5 * time.Second,
 		ReadBuf:          1024,
 		WriteBuf:         1024,
+		ReadBufSize:      1024 * 2,
+		WriteBufSize:     1024 * 2,
+		Timer:            1024,
+		TimerSize:        10000,
 		// crypto
 		RSAPrivate: "./pri.pem",
 		// bucket

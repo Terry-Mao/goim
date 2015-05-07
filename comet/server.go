@@ -49,6 +49,7 @@ type Server struct {
 	buckets []*Bucket
 	rPool   []*sync.Pool
 	wPool   []*sync.Pool
+	timers  []*Timer
 	codec   ServerCodec
 }
 
@@ -69,6 +70,10 @@ func NewServer() *Server {
 	s.wPool = make([]*sync.Pool, Conf.WriteBuf)
 	for i := 0; i < Conf.WriteBuf; i++ {
 		s.wPool[i] = new(sync.Pool)
+	}
+	log.Info("server: create %d time", Conf.Timer)
+	for i := 0; i < Conf.Timer; i++ {
+		s.timers[i] = NewTimer(Conf.TimerSize)
 	}
 	log.Info("server: use default server codec")
 	s.codec = new(DefaultServerCodec)
@@ -107,15 +112,29 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		channel   *Channel
 		proto     *Proto
 		heartbeat time.Duration
-		rp        = server.rPool[r&(Conf.ReadBuf-1)]
-		wp        = server.wPool[r&(Conf.WriteBuf-1)]
-		rd        = newBufioReaderSize(rp, conn, Conf.ReadBuf)
-		wr        = newBufioWriterSize(wp, conn, Conf.WriteBuf)
-		lAddr     = conn.LocalAddr().String()
-		rAddr     = conn.RemoteAddr().String()
+		//timerData TimerData
+		rp = server.rPool[r&(Conf.ReadBuf-1)]
+		wp = server.wPool[r&(Conf.WriteBuf-1)]
+		rd = newBufioReaderSize(rp, conn, Conf.ReadBufSize)
+		wr = newBufioWriterSize(wp, conn, Conf.WriteBufSize)
+		//timer     = server.timers[r&(Conf.Timer-1)]
+		lAddr = conn.LocalAddr().String()
+		rAddr = conn.RemoteAddr().String()
 	)
 	// handshake
+	// register handshake timer
 	log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
+	//timerData.Key = time.Now().Unixnano() + Conf.HandshakeTimeout*time.Second
+	//timerData.Value = conn
+	//if err = timer.Push(&timerData); err != nil {
+	//	// TODO
+	//	if err = conn.Close(); err != nil {
+	//		log.Error("conn.Close(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
+	//	}
+	//	putBufioReader(rp, rd)
+	//	putBufioWriter(wp, wr)
+	//	return
+	//}
 	if aesKey, subKey, bucket, channel, heartbeat, err = server.handshake(conn, rd, wr); err != nil {
 		log.Error("handshake(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
 		if err = conn.Close(); err != nil {
@@ -268,10 +287,6 @@ func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Write
 		body  []byte
 		proto Proto
 	)
-	if err = conn.SetReadDeadline(time.Now().Add(Conf.HandshakeTimeout)); err != nil {
-		log.Error("conn.SetReadDeadline() error(%v)", err)
-		return
-	}
 	log.Debug("get handshake request protocol")
 	if err = server.readRequest(rd, &proto); err != nil {
 		return
@@ -293,10 +308,6 @@ func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Write
 	// register router
 	if subKey, heartbeat, err = defaultOperator.Connect(body[16:]); err != nil {
 		log.Error("[%s] operator do connect error(%v)", subKey, err)
-		return
-	}
-	if err = conn.SetReadDeadline(time.Now().Add(heartbeat)); err != nil {
-		log.Error("conn.SetReadDeadline() error(%v)", err)
 		return
 	}
 	proto.Body = nil
@@ -340,10 +351,13 @@ func (server *Server) readRequestBody(rd *bufio.Reader, proto *Proto) (err error
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
 func (server *Server) sendResponse(conn net.Conn, wr *bufio.Writer, proto *Proto) (err error) {
-	if err = conn.SetWriteDeadline(time.Now().Add(Conf.WriteTimeout)); err != nil {
-		log.Error("conn.SetWriteDeadline() error(%v)", err)
-		return
-	}
+	/*
+		if err = conn.SetWriteDeadline(time.Now().Add(Conf.WriteTimeout)); err != nil {
+			log.Error("conn.SetWriteDeadline() error(%v)", err)
+			return
+		}
+	*/
+	// do not set write timer, if pendding no heartbeat will receive, then conn.Close() will wake this up.
 	if err = server.codec.WriteResponse(wr, proto); err != nil {
 		log.Error("server.codec.WriteResponse() error(%v)", err)
 	}
