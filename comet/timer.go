@@ -19,9 +19,14 @@ var (
 )
 
 type TimerData struct {
-	Key   int64
-	Value net.Conn
+	key   time.Time
+	value net.Conn
 	index int
+}
+
+func (td *TimerData) Set(expire time.Duration, value net.Conn) {
+	td.key = time.Now().Add(expire)
+	td.value = value
 }
 
 type Timer struct {
@@ -42,12 +47,6 @@ func NewTimer(num int) *Timer {
 	t.timers = make([]*TimerData, num, num)
 	t.cur = -1
 	t.max = num - 1
-	/*
-		n := h.Len()
-		for i := n/2 - 1; i >= 0; i-- {
-			t.down(i, n)
-		}
-	*/
 	go t.process()
 	return t
 }
@@ -96,7 +95,7 @@ func (t *Timer) Pop() (item *TimerData, err error) {
 // The complexity is O(log(n)) where n = h.Len().
 //
 func (t *Timer) Remove(item *TimerData) (nitem *TimerData, err error) {
-	log.Debug("timer: remove item Key: %d", item.Key)
+	log.Debug("timer: remove item key: %d", item.key)
 	t.lock.Lock()
 	if item.index == -1 {
 		err = ErrTimerNoItem
@@ -123,6 +122,15 @@ func (t *Timer) Peek() (item *TimerData, err error) {
 		return
 	}
 	item = t.timers[0]
+	return
+}
+
+func (t *Timer) Update(item *TimerData, expire time.Duration) (err error) {
+	if item, err = t.Remove(item); err != nil {
+		return
+	}
+	item.key = time.Now().Add(expire)
+	err = t.Push(item)
 	return
 }
 
@@ -156,7 +164,7 @@ func (t *Timer) down(i, n int) {
 }
 
 func (t *Timer) less(i, j int) bool {
-	return t.timers[i].Key < t.timers[j].Key
+	return t.timers[i].key.Before(t.timers[j].key)
 }
 
 func (t *Timer) swap(i, j int) {
@@ -176,8 +184,8 @@ func (t *Timer) process() {
 	var (
 		err   error
 		td    *TimerData
-		now   int64
-		sleep int64
+		now   time.Time
+		sleep time.Duration
 	)
 	log.Info("start process timer")
 	for {
@@ -186,22 +194,23 @@ func (t *Timer) process() {
 			time.Sleep(timerDelay)
 			continue
 		}
-		now = time.Now().UnixNano()
-		if sleep = (td.Key - now); sleep > 0 {
-			log.Debug("timer: delay %d millisecond", sleep*int64(time.Nanosecond)/int64(time.Millisecond))
-			time.Sleep(time.Duration(sleep))
+		now = time.Now()
+		if sleep = td.key.Sub(now); int64(sleep) > 0 {
+			log.Debug("timer: delay %s", sleep.String())
+			time.Sleep(sleep)
 			continue
 		}
 		if td, err = t.Pop(); err != nil {
 			time.Sleep(timerDelay)
 			continue
 		}
-		log.Debug("expire timer: %d", td.Key)
-		if td.Value == nil {
+		// TODO recheck?
+		log.Debug("expire timer: %s", td.key.Format("2006-01-02 15:04:05"))
+		if td.value == nil {
 			log.Warn("expire timer no net.Conn")
 			continue
 		}
-		if err = td.Value.Close(); err != nil {
+		if err = td.value.Close(); err != nil {
 			log.Error("timer conn close error(%v)", err)
 		}
 	}
