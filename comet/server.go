@@ -109,11 +109,11 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		aesKey    []byte // aes key
 		subKey    string
 		err       error
+		heartbeat time.Duration
+		timerData TimerData
 		bucket    *Bucket
 		channel   *Channel
 		proto     *Proto
-		heartbeat time.Duration
-		timerData TimerData
 		rp        = server.rPool[r&(Conf.ReadBuf-1)]
 		wp        = server.wPool[r&(Conf.WriteBuf-1)]
 		rd        = newBufioReaderSize(rp, conn, Conf.ReadBufSize)
@@ -232,6 +232,10 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 						goto failed
 					}
 				*/
+				// TODO
+				// Use a previous timer value if difference between it and a new
+				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
+				// to minimize the minheap operations for fast connections.
 				// handshake push a timer, reuse
 				if err = timer.Update(timerd, heartbeat); err != nil {
 					log.Error("\"%s\" dispatch timer.Update() error(%v)", rAddr, err)

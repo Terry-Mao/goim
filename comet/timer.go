@@ -29,6 +29,10 @@ func (td *TimerData) Set(expire time.Duration, value net.Conn) {
 	td.value = value
 }
 
+func (td *TimerData) String() string {
+	return td.key.Format("2006-01-02 15:04:05")
+}
+
 type Timer struct {
 	cur    int
 	max    int
@@ -55,6 +59,7 @@ func NewTimer(num int) *Timer {
 // O(log(n)) where n = h.Len().
 //
 func (t *Timer) Push(item *TimerData) error {
+	log.Debug("timer: push item key: %s", item.String())
 	log.Debug("timer: before push cur: %d, max: %d", t.cur, t.max)
 	t.lock.Lock()
 	if t.cur >= t.max {
@@ -95,7 +100,8 @@ func (t *Timer) Pop() (item *TimerData, err error) {
 // The complexity is O(log(n)) where n = h.Len().
 //
 func (t *Timer) Remove(item *TimerData) (nitem *TimerData, err error) {
-	log.Debug("timer: remove item key: %d", item.key)
+	log.Debug("timer: remove item key: %s", item.String())
+	log.Debug("timer: before remove cur: %d, max: %d", t.cur, t.max)
 	t.lock.Lock()
 	if item.index == -1 {
 		err = ErrTimerNoItem
@@ -112,7 +118,7 @@ func (t *Timer) Remove(item *TimerData) (nitem *TimerData, err error) {
 	// remove item is the last node
 	nitem = t.pop()
 	t.lock.Unlock()
-	log.Debug("timer: before remove cur: %d, max: %d", t.cur, t.max)
+	log.Debug("timer: after remove cur: %d, max: %d", t.cur, t.max)
 	return
 }
 
@@ -126,6 +132,7 @@ func (t *Timer) Peek() (item *TimerData, err error) {
 }
 
 func (t *Timer) Update(item *TimerData, expire time.Duration) (err error) {
+	// item may change in removing
 	if item, err = t.Remove(item); err != nil {
 		return
 	}
@@ -190,7 +197,7 @@ func (t *Timer) process() {
 	log.Info("start process timer")
 	for {
 		if td, err = t.Peek(); err != nil {
-			log.Debug("timer: no expire")
+			//log.Debug("timer: no expire")
 			time.Sleep(timerDelay)
 			continue
 		}
@@ -205,7 +212,7 @@ func (t *Timer) process() {
 			continue
 		}
 		// TODO recheck?
-		log.Debug("expire timer: %s", td.key.Format("2006-01-02 15:04:05"))
+		log.Debug("expire timer: %s", td.String())
 		if td.value == nil {
 			log.Warn("expire timer no net.Conn")
 			continue
