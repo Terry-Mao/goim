@@ -52,8 +52,6 @@ func NewTimer(num int) *Timer {
 // O(log(n)) where n = h.Len().
 //
 func (t *Timer) Push(item *TimerData) error {
-	log.Debug("timer: push item key: %s", item.String())
-	log.Debug("timer: before push cur: %d, max: %d", t.cur, t.max)
 	t.lock.Lock()
 	if t.cur >= t.max {
 		t.lock.Unlock()
@@ -65,7 +63,7 @@ func (t *Timer) Push(item *TimerData) error {
 	t.timers[t.cur] = item
 	t.up(t.cur - 1)
 	t.lock.Unlock()
-	log.Debug("timer: after push cur: %d, max: %d", t.cur, t.max)
+	log.Debug("timer: push item key: %s", item.String())
 	return nil
 }
 
@@ -74,7 +72,6 @@ func (t *Timer) Push(item *TimerData) error {
 // It is equivalent to Remove(h, 0).
 //
 func (t *Timer) Pop() (item *TimerData, err error) {
-	log.Debug("timer: before pop cur: %d, max: %d", t.cur, t.max)
 	t.lock.Lock()
 	if t.cur < 0 {
 		t.lock.Unlock()
@@ -86,7 +83,6 @@ func (t *Timer) Pop() (item *TimerData, err error) {
 	// remove last element
 	item = t.pop()
 	t.lock.Unlock()
-	log.Debug("timer: after pop cur: %d, max: %d", t.cur, t.max)
 	return
 }
 
@@ -94,11 +90,10 @@ func (t *Timer) Pop() (item *TimerData, err error) {
 // The complexity is O(log(n)) where n = h.Len().
 //
 func (t *Timer) Remove(item *TimerData) (nitem *TimerData, err error) {
-	log.Debug("timer: remove item key: %s", item.String())
-	log.Debug("timer: before remove cur: %d, max: %d", t.cur, t.max)
 	t.lock.Lock()
 	if item.index == -1 {
 		t.lock.Unlock()
+		log.Error("timer: remove item key: %s not exist", item.String())
 		err = ErrTimerNoItem
 		return
 	}
@@ -113,7 +108,6 @@ func (t *Timer) Remove(item *TimerData) (nitem *TimerData, err error) {
 	// remove item is the last node
 	nitem = t.pop()
 	t.lock.Unlock()
-	log.Debug("timer: after remove cur: %d, max: %d", t.cur, t.max)
 	return
 }
 
