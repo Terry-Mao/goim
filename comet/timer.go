@@ -8,13 +8,20 @@ import (
 )
 
 const (
-	timerDelay = 100 * time.Millisecond
+	zeroDuration     = time.Duration(0)
+	infiniteDuration = time.Duration(-1)
+	timerDelay       = 100 * time.Millisecond
+	maxTimerDelay    = 500 * time.Millisecond
 )
 
 type TimerData struct {
 	key   time.Time
 	value net.Conn
 	index int
+}
+
+func (td *TimerData) Delay() time.Duration {
+	return td.key.Sub(time.Now())
 }
 
 func (td *TimerData) Set(expire time.Duration, value net.Conn) {
@@ -51,7 +58,7 @@ func NewTimer(num int) *Timer {
 // Push pushes the element x onto the heap. The complexity is
 // O(log(n)) where n = h.Len().
 //
-func (t *Timer) Push(item *TimerData) error {
+func (t *Timer) Add(item *TimerData) error {
 	t.lock.Lock()
 	if t.cur >= t.max {
 		t.lock.Unlock()
@@ -61,7 +68,7 @@ func (t *Timer) Push(item *TimerData) error {
 	item.index = t.cur
 	// add to the minheap last node
 	t.timers[t.cur] = item
-	t.up(t.cur - 1)
+	t.up(t.cur)
 	t.lock.Unlock()
 	log.Debug("timer: push item key: %s, index: %d", item.String(), item.index)
 	return nil
@@ -69,66 +76,71 @@ func (t *Timer) Push(item *TimerData) error {
 
 // Pop removes the minimum element (according to Less) from the heap
 // and returns it. The complexity is O(log(n)) where n = h.Len().
-// It is equivalent to Remove(h, 0).
+// It is equivalent to Del(0).
 //
-func (t *Timer) Pop() (item *TimerData, err error) {
+func (t *Timer) Expire() {
+	var (
+		err error
+		d   time.Duration
+	)
 	t.lock.Lock()
-	if t.cur < 0 {
-		t.lock.Unlock()
-		err = ErrTimerEmpty
-		return
+	for t.cur >= 0 {
+		if d = t.timers[0].Delay(); d > 0 {
+			break
+		}
+		if t.timers[0].value == nil {
+			log.Warn("expire timer no net.Conn")
+		} else {
+			if err = t.timers[0].value.Close(); err != nil {
+				log.Error("timer conn close error(%v)", err)
+			}
+		}
+		// remove
+		if _, err = t.remove(0); err != nil {
+			break
+		}
 	}
-	t.swap(0, t.cur)
-	t.down(0, t.cur)
-	// remove last element
-	item = t.pop()
 	t.lock.Unlock()
-	log.Debug("timer: pop item key: %s, index: %d", item.String(), item.index)
 	return
 }
 
-// Remove removes the element at index i from the heap.
+// Del removes the element at index i from the heap.
 // The complexity is O(log(n)) where n = h.Len().
 //
-func (t *Timer) Remove(item *TimerData) (nitem *TimerData, err error) {
+func (t *Timer) Del(item *TimerData) (err error) {
+	var nitem *TimerData
 	t.lock.Lock()
-	if item.index == -1 {
-		t.lock.Unlock()
-		log.Error("timer: remove item key: %s not exist", item.String())
-		err = ErrTimerNoItem
-		return
-	}
-	if t.cur != item.index {
-		// swap the last node
-		// let the big one down
-		// let the small one up
-		t.swap(item.index, t.cur)
-		t.down(item.index, t.cur)
-		t.up(item.index)
-	}
-	// remove item is the last node
-	nitem = t.pop()
+	nitem, err = t.remove(item.index)
 	t.lock.Unlock()
 	log.Debug("timer: remove item key: %s, index: %d", nitem.String(), nitem.index)
 	return
 }
 
-func (t *Timer) Peek() (item *TimerData, err error) {
-	if t.cur < 0 {
-		err = ErrTimerEmpty
+func (t *Timer) remove(i int) (nitem *TimerData, err error) {
+	if i == -1 {
+		log.Error("timer: remove item key: %s not exist", nitem.String())
+		err = ErrTimerNoItem
 		return
 	}
-	item = t.timers[0]
+	if t.cur != i {
+		t.swap(i, t.cur)
+		t.down(i, t.cur)
+		t.up(i)
+	}
+	// remove item is the last node
+	nitem = t.last()
 	return
 }
 
-func (t *Timer) Update(item *TimerData, expire time.Duration) (nitem *TimerData, err error) {
-	// item may change in removing
-	if nitem, err = t.Remove(item); err != nil {
+func (t *Timer) Find() (d time.Duration) {
+	t.lock.Lock()
+	if t.cur < 0 {
+		d = infiniteDuration
+		t.lock.Unlock()
 		return
 	}
-	nitem.key = time.Now().Add(expire)
-	err = t.Push(nitem)
+	d = t.timers[0].Delay()
+	t.lock.Unlock()
 	return
 }
 
@@ -166,50 +178,35 @@ func (t *Timer) less(i, j int) bool {
 }
 
 func (t *Timer) swap(i, j int) {
+	//log.Debug("swap(%d, %d)", i, j)
 	t.timers[i], t.timers[j] = t.timers[j], t.timers[i]
 	t.timers[i].index = i
 	t.timers[j].index = j
 }
 
-func (t *Timer) pop() (item *TimerData) {
+func (t *Timer) last() (item *TimerData) {
 	item = t.timers[t.cur]
 	item.index = -1 // for safety
 	t.cur--
+	//log.Debug("pop cur: %d", t.cur)
 	return
 }
 
 func (t *Timer) process() {
-	var (
-		err   error
-		td    *TimerData
-		now   time.Time
-		sleep time.Duration
-	)
-	log.Info("start process timer")
+	var d time.Duration
+	log.Debug("strat timer process")
 	for {
-		if td, err = t.Peek(); err != nil {
-			//log.Debug("timer: no expire")
-			time.Sleep(timerDelay)
+		d = t.Find()
+		if d > zeroDuration {
+			if d > maxTimerDelay {
+				d = maxTimerDelay
+			}
+		} else if d == infiniteDuration {
+			d = timerDelay
+		} else {
+			t.Expire()
 			continue
 		}
-		now = time.Now()
-		if sleep = td.key.Sub(now); int64(sleep) > 0 {
-			log.Debug("timer: delay %s", sleep.String())
-			time.Sleep(sleep)
-			continue
-		}
-		if td, err = t.Pop(); err != nil {
-			time.Sleep(timerDelay)
-			continue
-		}
-		// TODO recheck?
-		log.Debug("expire timer: %s", td.String())
-		if td.value == nil {
-			log.Warn("expire timer no net.Conn")
-			continue
-		}
-		if err = td.value.Close(); err != nil {
-			log.Error("timer conn close error(%v)", err)
-		}
+		time.Sleep(d)
 	}
 }

@@ -7,61 +7,57 @@ import (
 )
 
 func TestTimer(t *testing.T) {
-	timer := NewTimer(3)
-	timerData1 := new(TimerData)
-	timerData1.key = time.Now()
-	if err := timer.Push(timerData1); err != nil {
-		t.Error(err)
-		t.FailNow()
+	timer := NewTimer(100)
+	now := time.Now().Add(5 * time.Minute)
+	tds := make([]*TimerData, 100)
+	for i := 0; i < 100; i++ {
+		tds[i] = new(TimerData)
+		tds[i].key = time.Now().Add(5 * time.Minute).Add(time.Duration(i) * time.Second)
+		if err := timer.Add(tds[i]); err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
 	}
-	timerData2 := new(TimerData)
-	timerData2.key = time.Now()
-	if err := timer.Push(timerData2); err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	timerData3 := new(TimerData)
-	timerData3.key = time.Now()
-	if err := timer.Push(timerData3); err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	// remove 2
-	if _, err := timer.Remove(timerData2); err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	// re add 2
-	if err := timer.Push(timerData2); err != nil {
+	td := new(TimerData)
+	td.key = now
+	// overflow
+	if err := timer.Add(td); err == nil {
 		t.Error(err)
 		t.FailNow()
 	}
 	printTimer(timer)
-	if _, err := timer.Pop(); err != nil {
-		t.Error(err)
-		t.FailNow()
+	for i := 0; i < 100; i++ {
+		log.Debug("td: %s, %d", tds[i].String(), tds[i].index)
+		if err := timer.Del(tds[i]); err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
 	}
-	if _, err := timer.Pop(); err != nil {
-		t.Error(err)
-		t.FailNow()
+	printTimer(timer)
+	for i := 0; i < 100; i++ {
+		tds[i] = new(TimerData)
+		tds[i].key = now
+		if err := timer.Add(tds[i]); err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
 	}
-	if _, err := timer.Pop(); err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	if _, err := timer.Pop(); err == nil {
-		t.Error(err)
-		t.FailNow()
+	printTimer(timer)
+	for i := 0; i < 100; i++ {
+		if _, err := timer.remove(0); err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
 	}
 	printTimer(timer)
 }
 
 func TestTimerProcess(t *testing.T) {
 	// process test
-	var timerData TimerData
+	td := new(TimerData)
 	timer := NewTimer(3)
-	timerData.Set(5*time.Second, nil)
-	if err := timer.Push(&timerData); err != nil {
+	td.Set(5*time.Second, nil)
+	if err := timer.Add(td); err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
@@ -69,7 +65,9 @@ func TestTimerProcess(t *testing.T) {
 }
 
 func printTimer(timer *Timer) {
+	log.Debug("--------------------")
 	for i := 0; i <= timer.cur; i++ {
-		log.Debug("timer : %s", timer.timers[i].key.Format("2006-01-02 15:04:05"))
+		log.Debug("timer: %s, index: %d", timer.timers[i].String(), timer.timers[i].index)
 	}
+	log.Debug("--------------------")
 }
