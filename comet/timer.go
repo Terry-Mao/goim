@@ -63,7 +63,7 @@ func (t *Timer) Push(item *TimerData) error {
 	t.timers[t.cur] = item
 	t.up(t.cur - 1)
 	t.lock.Unlock()
-	log.Debug("timer: push item key: %s", item.String())
+	log.Debug("timer: push item key: %s, index: %d", item.String(), item.index)
 	return nil
 }
 
@@ -83,6 +83,7 @@ func (t *Timer) Pop() (item *TimerData, err error) {
 	// remove last element
 	item = t.pop()
 	t.lock.Unlock()
+	log.Debug("timer: pop item key: %s, index: %d", item.String(), item.index)
 	return
 }
 
@@ -108,6 +109,7 @@ func (t *Timer) Remove(item *TimerData) (nitem *TimerData, err error) {
 	// remove item is the last node
 	nitem = t.pop()
 	t.lock.Unlock()
+	log.Debug("timer: remove item key: %s, index: %d", nitem.String(), nitem.index)
 	return
 }
 
@@ -120,13 +122,13 @@ func (t *Timer) Peek() (item *TimerData, err error) {
 	return
 }
 
-func (t *Timer) Update(item *TimerData, expire time.Duration) (err error) {
+func (t *Timer) Update(item *TimerData, expire time.Duration) (nitem *TimerData, err error) {
 	// item may change in removing
-	if item, err = t.Remove(item); err != nil {
+	if nitem, err = t.Remove(item); err != nil {
 		return
 	}
-	item.key = time.Now().Add(expire)
-	err = t.Push(item)
+	nitem.key = time.Now().Add(expire)
+	err = t.Push(nitem)
 	return
 }
 

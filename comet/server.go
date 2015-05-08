@@ -104,12 +104,9 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		bucket    *Bucket
 		channel   *Channel
 		// proto
-		proto Proto
-		pp    = &proto
+		proto *Proto
 		// timer
-		timerData TimerData
-		timerd    = &timerData
-		timer     = server.timers[r&(Conf.Timer-1)]
+		timer = server.timers[r&(Conf.Timer-1)]
 		// bufio&bufpool
 		rp = server.rPool[r&(Conf.ReadBuf-1)]
 		wp = server.wPool[r&(Conf.WriteBuf-1)]
@@ -120,17 +117,17 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		rAddr = conn.RemoteAddr().String()
 	)
 	// handshake
-	timerd.Set(Conf.HandshakeTimeout, conn)
-	if err = timer.Push(timerd); err != nil {
-		log.Error("\"%s\" handshake timer.Push() error(%v)", rAddr, err)
-	} else {
-		log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
-		if aesKey, subKey, heartbeat, bucket, channel, err = server.handshake(rd, wr, pp); err != nil {
-			// deltimer
-			timer.Remove(timerd)
-			log.Error("\"%s\"->\"%s\" handshake() error(%v)", lAddr, rAddr, err)
-		}
+	//timerd.Set(Conf.HandshakeTimeout, conn)
+	//if err = timer.Push(timerd); err != nil {
+	//	log.Error("\"%s\" handshake timer.Push() error(%v)", rAddr, err)
+	//} else {
+	log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
+	if aesKey, subKey, heartbeat, bucket, channel, err = server.handshake(rd, wr); err != nil {
+		log.Error("\"%s\"->\"%s\" handshake() error(%v)", lAddr, rAddr, err)
 	}
+	// deltimer
+	//	timerd, _ = timer.Remove(timerd)
+	//}
 	// failed
 	if err != nil {
 		if err = conn.Close(); err != nil {
@@ -143,21 +140,21 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 	// hanshake ok start dispatch goroutine
 	log.Debug("%s[%s] serverconn goroutine start", subKey, rAddr)
 	log.Debug("[%s] aes key: %v, sub key: \"%s\"", rAddr, aesKey, subKey)
-	go server.dispatch(conn, wr, wp, channel, aesKey, heartbeat, timer, timerd, rAddr, lAddr)
+	go server.dispatch(conn, wr, wp, channel, aesKey, heartbeat, timer, rAddr, lAddr)
 	for {
 		// fetch a proto from channel free list
-		if pp, err = channel.CliProto.Set(); err != nil {
+		if proto, err = channel.CliProto.Set(); err != nil {
 			log.Error("%s[%s] fetch client proto error(%v)", subKey, rAddr, err)
 			break
 		}
 		// parse request protocol
-		if err = server.readRequest(rd, pp); err != nil {
+		if err = server.readRequest(rd, proto); err != nil {
 			log.Error("%s[%s] read client request error(%v)", subKey, rAddr, err)
 			break
 		}
 		// aes decrypt body
-		if pp.Body != nil {
-			if pp.Body, err = aes.ECBDecrypt(pp.Body, aesKey, padding.PKCS7); err != nil {
+		if proto.Body != nil {
+			if proto.Body, err = aes.ECBDecrypt(proto.Body, aesKey, padding.PKCS7); err != nil {
 				log.Error("%s[%s] decrypt client proto error(%v)", subKey, rAddr, err)
 				break
 			}
@@ -201,7 +198,7 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, aesKey []byte, heartbeat time.Duration, timer *Timer, timerd *TimerData, rAddr, lAddr string) {
+func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, aesKey []byte, heartbeat time.Duration, timer *Timer, rAddr, lAddr string) {
 	var (
 		err    error
 		proto  *Proto
@@ -209,10 +206,11 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 	)
 	log.Debug("\"%s\" start dispatch goroutine", rAddr)
 	log.Debug("\"%s\" first set heartbeat timer", rAddr)
-	if err = timer.Update(timerd, heartbeat); err != nil {
-		log.Error("\"%s\" dispatch timer.Update() error(%v)", rAddr, err)
-		goto failed
-	}
+	//timerd.Set(heartbeat, conn)
+	//if err = timer.Push(timerd); err != nil {
+	//	log.Error("\"%s\" dispatch timer.Update() error(%v)", rAddr, err)
+	//	goto failed
+	//}
 	for {
 		if signal = <-channel.Signal; signal == 0 {
 			goto failed
@@ -229,10 +227,12 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
 				// to minimize the minheap operations for fast connections.
 				// handshake push a timer, reuse
-				if err = timer.Update(timerd, heartbeat); err != nil {
-					log.Error("\"%s\" dispatch timer.Update() error(%v)", rAddr, err)
-					goto failed
-				}
+				/*
+					if timerd, err = timer.Update(timerd, heartbeat); err != nil {
+						log.Error("\"%s\" dispatch timer.Update() error(%v)", rAddr, err)
+						goto failed
+					}
+				*/
 				// heartbeat
 				proto.Body = nil
 				proto.Operation = OP_HEARTBEAT_REPLY
@@ -283,15 +283,21 @@ failed:
 		log.Error("conn.Close(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
 	}
 	// deltimer
-	if _, err = timer.Remove(timerd); err != nil {
-		log.Error("\"%s\" dispatch timer.Remove() error(%v)", rAddr, err)
-	}
+	/*
+		if _, err = timer.Remove(timerd); err != nil {
+			log.Error("\"%s\" dispatch timer.Remove() error(%v)", rAddr, err)
+		}
+	*/
 	log.Debug("\"%s\" dispatch goroutine exit", rAddr)
 	return
 }
 
 // handshake for goim handshake with client, use rsa & aes.
-func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto) (aesKey []byte, subKey string, heartbeat time.Duration, bucket *Bucket, channel *Channel, err error) {
+func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer) (aesKey []byte, subKey string, heartbeat time.Duration, bucket *Bucket, channel *Channel, err error) {
+	var (
+		// TODO
+		proto = new(Proto)
+	)
 	// 1. exchange aes key
 	log.Debug("get handshake request protocol")
 	if err = server.readRequest(rd, proto); err != nil {
