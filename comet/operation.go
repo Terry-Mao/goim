@@ -7,8 +7,8 @@ import (
 
 const (
 	// handshake
-	OP_HANDSHARE       = int32(0)
-	OP_HANDSHARE_REPLY = int32(1)
+	OP_HANDSHAKE       = int32(0)
+	OP_HANDSHAKE_REPLY = int32(1)
 	// heartbeat
 	OP_HEARTBEAT       = int32(2)
 	OP_HEARTBEAT_REPLY = int32(3)

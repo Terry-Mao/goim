@@ -208,6 +208,11 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 		signal int
 	)
 	log.Debug("\"%s\" start dispatch goroutine", rAddr)
+	log.Debug("\"%s\" first set heartbeat timer", rAddr)
+	if err = timer.Update(timerd, heartbeat); err != nil {
+		log.Error("\"%s\" dispatch timer.Update() error(%v)", rAddr, err)
+		goto failed
+	}
 	for {
 		if signal = <-channel.Signal; signal == 0 {
 			goto failed
@@ -292,7 +297,7 @@ func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto
 	if err = server.readRequest(rd, proto); err != nil {
 		return
 	}
-	if proto.Operation != OP_HANDSHARE {
+	if proto.Operation != OP_HANDSHAKE {
 		log.Warn("handshake operation not valid: %d", proto.Operation)
 		err = ErrOperation
 		return
@@ -310,7 +315,7 @@ func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto
 	}
 	log.Debug("send handshake response protocol")
 	proto.Body = nil
-	proto.Operation = OP_HANDSHARE_REPLY
+	proto.Operation = OP_HANDSHAKE_REPLY
 	if err = server.sendResponse(wr, proto); err != nil {
 		log.Error("[%s] server.SendResponse() error(%v)", subKey, err)
 		return

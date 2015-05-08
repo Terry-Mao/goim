@@ -77,6 +77,7 @@ func (t *Timer) Pop() (item *TimerData, err error) {
 	log.Debug("timer: before pop cur: %d, max: %d", t.cur, t.max)
 	t.lock.Lock()
 	if t.cur < 0 {
+		t.lock.Unlock()
 		err = ErrTimerEmpty
 		return
 	}
@@ -97,6 +98,7 @@ func (t *Timer) Remove(item *TimerData) (nitem *TimerData, err error) {
 	log.Debug("timer: before remove cur: %d, max: %d", t.cur, t.max)
 	t.lock.Lock()
 	if item.index == -1 {
+		t.lock.Unlock()
 		err = ErrTimerNoItem
 		return
 	}
