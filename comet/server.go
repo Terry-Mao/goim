@@ -106,7 +106,8 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		// proto
 		proto *Proto
 		// timer
-		timer = server.timers[r&(Conf.Timer-1)]
+		timer  = server.timers[r&(Conf.Timer-1)]
+		timerd *TimerData
 		// bufio&bufpool
 		rp = server.rPool[r&(Conf.ReadBuf-1)]
 		wp = server.wPool[r&(Conf.WriteBuf-1)]
@@ -117,17 +118,16 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		rAddr = conn.RemoteAddr().String()
 	)
 	// handshake
-	//timerd.Set(Conf.HandshakeTimeout, conn)
-	//if err = timer.Push(timerd); err != nil {
-	//	log.Error("\"%s\" handshake timer.Push() error(%v)", rAddr, err)
-	//} else {
-	log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
-	if aesKey, subKey, heartbeat, bucket, channel, err = server.handshake(rd, wr); err != nil {
-		log.Error("\"%s\"->\"%s\" handshake() error(%v)", lAddr, rAddr, err)
+	if timerd, err = timer.Add(Conf.HandshakeTimeout, conn); err != nil {
+		log.Error("\"%s\" handshake timer.Add() error(%v)", rAddr, err)
+	} else {
+		log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
+		if aesKey, subKey, heartbeat, bucket, channel, err = server.handshake(rd, wr); err != nil {
+			log.Error("\"%s\"->\"%s\" handshake() error(%v)", lAddr, rAddr, err)
+		}
+		//deltimer
+		timer.Del(timerd)
 	}
-	// deltimer
-	//	timerd, _ = timer.Remove(timerd)
-	//}
 	// failed
 	if err != nil {
 		if err = conn.Close(); err != nil {
@@ -140,7 +140,7 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 	// hanshake ok start dispatch goroutine
 	log.Debug("%s[%s] serverconn goroutine start", subKey, rAddr)
 	log.Debug("[%s] aes key: %v, sub key: \"%s\"", rAddr, aesKey, subKey)
-	go server.dispatch(conn, wr, wp, channel, aesKey, heartbeat, timer, rAddr, lAddr)
+	go server.dispatch(conn, wr, wp, channel, aesKey, heartbeat, timer, rAddr)
 	for {
 		// fetch a proto from channel free list
 		if proto, err = channel.CliProto.Set(); err != nil {
@@ -187,6 +187,7 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 	// don't use close chan, Signal can be reused
 	// if chan full, writer goroutine next fetch from chan will exit
 	// if chan empty, send a 0(close) let the writer exit
+	log.Debug("wake up dispatch goroutine")
 	select {
 	case channel.Signal <- ProtoFinsh:
 	default:
@@ -198,19 +199,19 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, aesKey []byte, heartbeat time.Duration, timer *Timer, rAddr, lAddr string) {
+func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, aesKey []byte, heartbeat time.Duration, timer *Timer, rAddr string) {
 	var (
 		err    error
 		proto  *Proto
 		signal int
+		timerd *TimerData
 	)
 	log.Debug("\"%s\" start dispatch goroutine", rAddr)
 	log.Debug("\"%s\" first set heartbeat timer", rAddr)
-	//timerd.Set(heartbeat, conn)
-	//if err = timer.Push(timerd); err != nil {
-	//	log.Error("\"%s\" dispatch timer.Update() error(%v)", rAddr, err)
-	//	goto failed
-	//}
+	if timerd, err = timer.Add(heartbeat, conn); err != nil {
+		log.Error("\"%s\" dispatch timer.Add() error(%v)", rAddr, err)
+		goto failed
+	}
 	for {
 		if signal = <-channel.Signal; signal == 0 {
 			goto failed
@@ -227,12 +228,11 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
 				// to minimize the minheap operations for fast connections.
 				// handshake push a timer, reuse
-				/*
-					if timerd, err = timer.Update(timerd, heartbeat); err != nil {
-						log.Error("\"%s\" dispatch timer.Update() error(%v)", rAddr, err)
-						goto failed
-					}
-				*/
+				timer.Del(timerd)
+				if timerd, err = timer.Add(heartbeat, conn); err != nil {
+					log.Error("\"%s\" dispatch timer.Add() error(%v)", rAddr, err)
+					goto failed
+				}
 				// heartbeat
 				proto.Body = nil
 				proto.Operation = OP_HEARTBEAT_REPLY
@@ -280,14 +280,10 @@ failed:
 	// wake reader up
 	putBufioWriter(wp, wr)
 	if err = conn.Close(); err != nil {
-		log.Error("conn.Close(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
+		log.Error("conn.Close(\"%s\") error(%v)", rAddr, err)
 	}
 	// deltimer
-	/*
-		if _, err = timer.Remove(timerd); err != nil {
-			log.Error("\"%s\" dispatch timer.Remove() error(%v)", rAddr, err)
-		}
-	*/
+	timer.Del(timerd)
 	log.Debug("\"%s\" dispatch goroutine exit", rAddr)
 	return
 }

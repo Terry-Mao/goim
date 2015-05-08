@@ -91,6 +91,8 @@ func main() {
 	fmt.Printf("handshake ok, proto: %v\n", proto)
 	seqId++
 	// auth
+	// test handshake timeout
+	// time.Sleep(time.Second * 31)
 	proto.Operation = OP_AUTH
 	proto.SeqId = seqId
 	proto.Body = []byte("Terry-Mao")
@@ -110,13 +112,17 @@ func main() {
 	go func() {
 		proto1 := new(Proto)
 		for {
+			// heartbeat
 			proto1.Operation = OP_HEARTBEAT
 			proto1.SeqId = seqId
 			proto1.Body = nil
 			if err = WriteProto(wr, proto1); err != nil {
 				panic(err)
 			}
+			// test heartbeat
+			//time.Sleep(time.Second * 31)
 			seqId++
+			// op_test
 			proto1.Operation = OP_TEST
 			proto1.SeqId = seqId
 			// use aes

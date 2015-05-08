@@ -7,61 +7,49 @@ import (
 )
 
 func TestTimer(t *testing.T) {
+	var err error
 	timer := NewTimer(100)
-	now := time.Now().Add(5 * time.Minute)
 	tds := make([]*TimerData, 100)
 	for i := 0; i < 100; i++ {
-		tds[i] = new(TimerData)
-		tds[i].key = time.Now().Add(5 * time.Minute).Add(time.Duration(i) * time.Second)
-		if err := timer.Add(tds[i]); err != nil {
+		if tds[i], err = timer.Add(time.Duration(i)*time.Second+5*time.Minute, nil); err != nil {
 			t.Error(err)
 			t.FailNow()
 		}
 	}
-	td := new(TimerData)
-	td.key = now
 	// overflow
-	if err := timer.Add(td); err == nil {
+	if _, err = timer.Add(1*time.Second, nil); err == nil {
 		t.Error(err)
 		t.FailNow()
 	}
 	printTimer(timer)
 	for i := 0; i < 100; i++ {
 		log.Debug("td: %s, %d", tds[i].String(), tds[i].index)
-		if err := timer.Del(tds[i]); err != nil {
+		timer.Del(tds[i])
+	}
+	printTimer(timer)
+	for i := 0; i < 100; i++ {
+		if tds[i], err = timer.Add(time.Duration(i)*time.Second+5*time.Minute, nil); err != nil {
 			t.Error(err)
 			t.FailNow()
 		}
 	}
 	printTimer(timer)
 	for i := 0; i < 100; i++ {
-		tds[i] = new(TimerData)
-		tds[i].key = now
-		if err := timer.Add(tds[i]); err != nil {
-			t.Error(err)
-			t.FailNow()
-		}
-	}
-	printTimer(timer)
-	for i := 0; i < 100; i++ {
-		if _, err := timer.remove(0); err != nil {
-			t.Error(err)
-			t.FailNow()
-		}
+		timer.remove(0)
 	}
 	printTimer(timer)
 }
 
 func TestTimerProcess(t *testing.T) {
 	// process test
-	td := new(TimerData)
 	timer := NewTimer(3)
-	td.Set(5*time.Second, nil)
-	if err := timer.Add(td); err != nil {
+	timerd, err := timer.Add(5*time.Second, nil)
+	if err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
 	time.Sleep(10 * time.Second)
+	timer.Del(timerd)
 }
 
 func printTimer(timer *Timer) {
