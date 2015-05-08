@@ -45,13 +45,11 @@ func (operator *IMOperator) Operate(proto *Proto) error {
 
 		proto.Operation = OP_SEND_SMS_REPLY
 		log.Info("send sms proto: %v", proto)
-		return nil
 	} else if proto.Operation == OP_TEST {
 		// TODO remove
 		log.Debug("test operation: %s", proto.Body)
 		proto.Operation = OP_TEST_REPLY
 		proto.Body = []byte("reply test")
-		return nil
 	} else {
 		return ErrOperation
 	}

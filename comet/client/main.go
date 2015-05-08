@@ -85,7 +85,7 @@ func main() {
 	if err = WriteProto(wr, proto); err != nil {
 		panic(err)
 	}
-	if _, err = ReadProto(rd, proto); err != nil {
+	if err = ReadProto(rd, proto); err != nil {
 		panic(err)
 	}
 	fmt.Printf("handshake ok, proto: %v\n", proto)
@@ -101,7 +101,7 @@ func main() {
 	if err = WriteProto(wr, proto); err != nil {
 		panic(err)
 	}
-	if _, err = ReadProto(rd, proto); err != nil {
+	if err = ReadProto(rd, proto); err != nil {
 		panic(err)
 	}
 	fmt.Printf("auth ok, proto: %v\n", proto)
@@ -116,6 +116,7 @@ func main() {
 			if err = WriteProto(wr, proto1); err != nil {
 				panic(err)
 			}
+			seqId++
 			proto1.Operation = OP_TEST
 			proto1.SeqId = seqId
 			// use aes
@@ -126,27 +127,29 @@ func main() {
 			if err = WriteProto(wr, proto1); err != nil {
 				panic(err)
 			}
-			time.Sleep(500 * time.Millisecond)
+			seqId++
+			time.Sleep(10000 * time.Millisecond)
 		}
 	}()
 	// reader
 	for {
-		if proto.Body, err = ReadProto(rd, proto); err != nil {
+		if err = ReadProto(rd, proto); err != nil {
 			panic(err)
 		}
 		if proto.Body != nil {
-			if body, err = aes.ECBDecrypt(body, aesKey, padding.PKCS5); err != nil {
+			if proto.Body, err = aes.ECBDecrypt(body, aesKey, padding.PKCS5); err != nil {
 				panic(err)
 			}
-			fmt.Printf("body: %s\n", string(body))
 		}
 		if proto.Operation == OP_HEARTBEAT_REPLY {
 			if err = conn.SetReadDeadline(time.Now().Add(25 * time.Second)); err != nil {
 				panic(err)
 			}
 			fmt.Printf("receive heartbeat\n")
+		} else if proto.Operation == OP_TEST_REPLY {
+			fmt.Printf("receive test\n")
+			fmt.Printf("body: %s\n", string(proto.Body))
 		}
-		seqId++
 	}
 }
 
@@ -177,7 +180,7 @@ func WriteProto(wr *bufio.Writer, proto *Proto) (err error) {
 	return
 }
 
-func ReadProto(rd *bufio.Reader, proto *Proto) (body []byte, err error) {
+func ReadProto(rd *bufio.Reader, proto *Proto) (err error) {
 	// read
 	if err = binary.Read(rd, binary.BigEndian, &proto.PackLen); err != nil {
 		return
