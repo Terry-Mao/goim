@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// TODO
 func newBufioReaderSize(pool *sync.Pool, r io.Reader, size int) *bufio.Reader {
 	if v := pool.Get(); v != nil {
 		br := v.(*bufio.Reader)

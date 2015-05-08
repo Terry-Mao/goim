@@ -14,7 +14,7 @@ type Ring struct {
 	// read
 	rn uint
 	rp int
-	// write TODO cpu cache line aligned?
+	// write
 	wn uint
 	wp int
 	// info

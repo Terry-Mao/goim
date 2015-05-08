@@ -17,7 +17,7 @@ func InitTCP(server *Server) (err error) {
 		}
 		// split N core accept
 		for i := 0; i < Conf.MaxProc; i++ {
-			log.Info("start tcp accept[goroutine %d]: \"%s\"", i, bind)
+			log.Debug("start tcp accept[goroutine %d]: \"%s\"", i, bind)
 			go server.Accept(listener)
 		}
 	}

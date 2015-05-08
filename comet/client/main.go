@@ -14,15 +14,17 @@ import (
 )
 
 const (
-	OP_HANDSHARE        = uint32(0)
-	OP_HANDSHARE_REPLY  = uint32(1)
-	OP_HEARTBEAT        = uint32(2)
-	OP_HEARTBEAT_REPLY  = uint32(3)
-	OP_SEND_SMS         = uint32(4)
-	OP_SEND_SMS_REPLY   = uint32(5)
-	OP_DISCONNECT_REPLY = uint32(6)
-	OP_TEST             = uint32(254)
-	OP_TEST_REPLY       = uint32(255)
+	OP_HANDSHARE        = int32(0)
+	OP_HANDSHARE_REPLY  = int32(1)
+	OP_HEARTBEAT        = int32(2)
+	OP_HEARTBEAT_REPLY  = int32(3)
+	OP_SEND_SMS         = int32(4)
+	OP_SEND_SMS_REPLY   = int32(5)
+	OP_DISCONNECT_REPLY = int32(6)
+	OP_AUTH             = int32(7)
+	OP_AUTH_REPLY       = int32(8)
+	OP_TEST             = int32(254)
+	OP_TEST_REPLY       = int32(255)
 )
 
 const (
@@ -48,9 +50,11 @@ func init() {
 }
 
 type Proto struct {
-	Ver       uint16 // protocol version
-	Operation uint32 // operation for request
-	SeqId     uint32 // sequence number chosen by client
+	PackLen   int32  // package length
+	HeaderLen int16  // header length
+	Ver       int16  // protocol version
+	Operation int32  // operation for request
+	SeqId     int32  // sequence number chosen by client
 	Body      []byte // body
 }
 
@@ -60,7 +64,7 @@ func main() {
 		panic(err)
 	}
 	var body []byte
-	seqId := uint32(0)
+	seqId := int32(0)
 	wr := bufio.NewWriter(conn)
 	rd := bufio.NewReader(conn)
 	proto := new(Proto)
@@ -85,6 +89,22 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("handshake ok, proto: %v\n", proto)
+	seqId++
+	// auth
+	proto.Operation = OP_AUTH
+	proto.SeqId = seqId
+	proto.Body = []byte("Terry-Mao")
+	// user aes encrypt sub key
+	if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
+		panic(err)
+	}
+	if err = WriteProto(wr, proto); err != nil {
+		panic(err)
+	}
+	if _, err = ReadProto(rd, proto); err != nil {
+		panic(err)
+	}
+	fmt.Printf("auth ok, proto: %v\n", proto)
 	seqId++
 	// writer
 	go func() {
@@ -158,19 +178,15 @@ func WriteProto(wr *bufio.Writer, proto *Proto) (err error) {
 }
 
 func ReadProto(rd *bufio.Reader, proto *Proto) (body []byte, err error) {
-	var (
-		packLen   uint32
-		headerLen uint16
-	)
 	// read
-	if err = binary.Read(rd, binary.BigEndian, &packLen); err != nil {
+	if err = binary.Read(rd, binary.BigEndian, &proto.PackLen); err != nil {
 		return
 	}
-	fmt.Printf("packLen: %d\n", packLen)
-	if err = binary.Read(rd, binary.BigEndian, &headerLen); err != nil {
+	fmt.Printf("packLen: %d\n", proto.PackLen)
+	if err = binary.Read(rd, binary.BigEndian, &proto.HeaderLen); err != nil {
 		return
 	}
-	fmt.Printf("headerLen: %d\n", headerLen)
+	fmt.Printf("headerLen: %d\n", proto.HeaderLen)
 	if err = binary.Read(rd, binary.BigEndian, &proto.Ver); err != nil {
 		return
 	}
@@ -183,22 +199,22 @@ func ReadProto(rd *bufio.Reader, proto *Proto) (body []byte, err error) {
 		return
 	}
 	fmt.Printf("seqId: %d\n", proto.SeqId)
-	if body, err = ReadBody(packLen, headerLen, rd); err != nil {
+	if err = ReadBody(rd, proto); err != nil {
 	}
 	return
 }
 
-func ReadBody(packLen uint32, headerLen uint16, rd *bufio.Reader) (body []byte, err error) {
+func ReadBody(rd *bufio.Reader, proto *Proto) (err error) {
 	var (
 		n       = int(0)
 		t       = int(0)
-		bodyLen = int(packLen - uint32(headerLen))
+		bodyLen = int(proto.PackLen - int32(proto.HeaderLen))
 	)
 	fmt.Printf("read body len: %d\n", bodyLen)
 	if bodyLen > 0 {
-		body = make([]byte, bodyLen)
+		proto.Body = make([]byte, bodyLen)
 		for {
-			if t, err = rd.Read(body[n:]); err != nil {
+			if t, err = rd.Read(proto.Body[n:]); err != nil {
 				return
 			}
 			if n += t; n == bodyLen {
@@ -208,7 +224,7 @@ func ReadBody(packLen uint32, headerLen uint16, rd *bufio.Reader) (body []byte, 
 			}
 		}
 	} else {
-		body = nil
+		proto.Body = nil
 	}
 	return
 }

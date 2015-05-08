@@ -14,10 +14,11 @@ import (
 
 var (
 	defaultOperator = new(IMOperator)
-	ErrHandshake    = errors.New("handshake failed")
 	aesKeyLen       = 16
-	zeroTime        = time.Time{}
 	maxInt          = 2 ^ 31 - 1
+
+	ErrHandshake = errors.New("handshake failed")
+	ErrOperation = errors.New("request operation not valid")
 )
 
 // Proto is a request&response written before every goim connect.  It is used internally
@@ -56,27 +57,27 @@ type Server struct {
 // NewServer returns a new Server.
 func NewServer() *Server {
 	s := new(Server)
-	log.Info("server: create %d bucket for store sub channel", Conf.Bucket)
+	log.Debug("server: create %d bucket for store sub channel", Conf.Bucket)
 	s.buckets = make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
 		s.buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
 	}
-	log.Info("server: create %d reader buffer pool", Conf.ReadBuf)
+	log.Debug("server: create %d reader buffer pool", Conf.ReadBuf)
 	s.rPool = make([]*sync.Pool, Conf.ReadBuf)
 	for i := 0; i < Conf.ReadBuf; i++ {
 		s.rPool[i] = new(sync.Pool)
 	}
-	log.Info("server: create %d writer buffer pool", Conf.WriteBuf)
+	log.Debug("server: create %d writer buffer pool", Conf.WriteBuf)
 	s.wPool = make([]*sync.Pool, Conf.WriteBuf)
 	for i := 0; i < Conf.WriteBuf; i++ {
 		s.wPool[i] = new(sync.Pool)
 	}
-	log.Info("server: create %d time", Conf.Timer)
+	log.Debug("server: create %d time", Conf.Timer)
 	s.timers = make([]*Timer, Conf.Timer)
 	for i := 0; i < Conf.Timer; i++ {
 		s.timers[i] = NewTimer(Conf.TimerSize)
 	}
-	log.Info("server: use default server codec")
+	log.Debug("server: use default server codec")
 	s.codec = new(DefaultServerCodec)
 	return s
 }
@@ -106,36 +107,38 @@ func (server *Server) Accept(lis net.Listener) {
 
 func (server *Server) serveConn(conn net.Conn, r int) {
 	var (
-		aesKey    []byte // aes key
+		aesKey    []byte
 		subKey    string
 		err       error
 		heartbeat time.Duration
-		timerData TimerData
 		bucket    *Bucket
 		channel   *Channel
-		proto     *Proto
-		rp        = server.rPool[r&(Conf.ReadBuf-1)]
-		wp        = server.wPool[r&(Conf.WriteBuf-1)]
-		rd        = newBufioReaderSize(rp, conn, Conf.ReadBufSize)
-		wr        = newBufioWriterSize(wp, conn, Conf.WriteBufSize)
-		timer     = server.timers[r&(Conf.Timer-1)]
+		// proto
+		proto Proto
+		pp    = &proto
+		// timer
+		timerData TimerData
 		timerd    = &timerData
-		lAddr     = conn.LocalAddr().String()
-		rAddr     = conn.RemoteAddr().String()
+		timer     = server.timers[r&(Conf.Timer-1)]
+		// bufio&bufpool
+		rp = server.rPool[r&(Conf.ReadBuf-1)]
+		wp = server.wPool[r&(Conf.WriteBuf-1)]
+		rd = newBufioReaderSize(rp, conn, Conf.ReadBufSize)
+		wr = newBufioWriterSize(wp, conn, Conf.WriteBufSize)
+		// ip addr
+		lAddr = conn.LocalAddr().String()
+		rAddr = conn.RemoteAddr().String()
 	)
 	// handshake
-	log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
-	// register handshake timer
 	timerd.Set(Conf.HandshakeTimeout, conn)
 	if err = timer.Push(timerd); err != nil {
 		log.Error("\"%s\" handshake timer.Push() error(%v)", rAddr, err)
 	} else {
-		if aesKey, subKey, bucket, channel, heartbeat, err = server.handshake(conn, rd, wr); err != nil {
-			log.Error("\"%s\"->\"%s\" handshake() error(%v)", lAddr, rAddr, err)
+		log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
+		if aesKey, subKey, heartbeat, bucket, channel, err = server.handshake(rd, wr, pp); err != nil {
 			// deltimer
-			if _, err = timer.Remove(&timerData); err != nil {
-				log.Error("\"%s\" handshake timer.Remove() error(%v)", rAddr, err)
-			}
+			timer.Remove(timerd)
+			log.Error("\"%s\"->\"%s\" handshake() error(%v)", lAddr, rAddr, err)
 		}
 	}
 	// failed
@@ -147,24 +150,24 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		putBufioWriter(wp, wr)
 		return
 	}
-	// start dispatch goroutine
+	// hanshake ok start dispatch goroutine
 	log.Debug("%s[%s] serverconn goroutine start", subKey, rAddr)
 	log.Debug("[%s] aes key: %v, sub key: \"%s\"", rAddr, aesKey, subKey)
 	go server.dispatch(conn, wr, wp, channel, aesKey, heartbeat, timer, timerd, rAddr, lAddr)
 	for {
 		// fetch a proto from channel free list
-		if proto, err = channel.CliProto.Set(); err != nil {
+		if pp, err = channel.CliProto.Set(); err != nil {
 			log.Error("%s[%s] fetch client proto error(%v)", subKey, rAddr, err)
 			break
 		}
 		// parse request protocol
-		if err = server.readRequest(rd, proto); err != nil {
+		if err = server.readRequest(rd, pp); err != nil {
 			log.Error("%s[%s] read client request error(%v)", subKey, rAddr, err)
 			break
 		}
 		// aes decrypt body
-		if proto.Body != nil {
-			if proto.Body, err = aes.ECBDecrypt(proto.Body, aesKey, padding.PKCS7); err != nil {
+		if pp.Body != nil {
+			if pp.Body, err = aes.ECBDecrypt(pp.Body, aesKey, padding.PKCS7); err != nil {
 				log.Error("%s[%s] decrypt client proto error(%v)", subKey, rAddr, err)
 				break
 			}
@@ -226,12 +229,6 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 				break
 			}
 			if proto.Operation == OP_HEARTBEAT {
-				/*
-					if err = conn.SetReadDeadline(time.Now().Add(heartbeat)); err != nil {
-						log.Error("\"%s\" conn.SetReadDeadline() error(%v)", rAddr, err)
-						goto failed
-					}
-				*/
 				// TODO
 				// Use a previous timer value if difference between it and a new
 				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
@@ -258,7 +255,7 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 					}
 				}
 			}
-			if err = server.sendResponse(conn, wr, proto); err != nil {
+			if err = server.sendResponse(wr, proto); err != nil {
 				log.Error("\"%s\" server.SendResponse() error(%v)", rAddr, err)
 				goto failed
 			}
@@ -277,7 +274,7 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 				}
 			}
 			// just forward the message
-			if err = server.sendResponse(conn, wr, proto); err != nil {
+			if err = server.sendResponse(wr, proto); err != nil {
 				log.Error("\"%s\" server.SendResponse() error(%v)", rAddr, err)
 				goto failed
 			}
@@ -299,42 +296,62 @@ failed:
 }
 
 // handshake for goim handshake with client, use rsa & aes.
-func (server *Server) handshake(conn net.Conn, rd *bufio.Reader, wr *bufio.Writer) (aesKey []byte, subKey string, bucket *Bucket, channel *Channel, heartbeat time.Duration, err error) {
-	var (
-		body  []byte
-		proto Proto
-	)
+func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto) (aesKey []byte, subKey string, heartbeat time.Duration, bucket *Bucket, channel *Channel, err error) {
+	// exchange aes key
 	log.Debug("get handshake request protocol")
-	if err = server.readRequest(rd, &proto); err != nil {
+	if err = server.readRequest(rd, proto); err != nil {
 		return
 	}
-	// TODO rsa decrypt reuse buf?
+	if proto.Operation != OP_HANDSHARE {
+		log.Warn("handshake operation not valid: %d", proto.Operation)
+		err = ErrOperation
+		return
+	}
 	log.Debug("handshake cipher body : %v", proto.Body)
-	if body, err = rsa.Decrypt(proto.Body, RSAPri); err != nil {
+	if aesKey, err = rsa.Decrypt(proto.Body, RSAPri); err != nil {
 		log.Error("rsa.Decrypt() error(%v)", err)
 		return
 	}
-	log.Debug("handshake body : %v", body)
-	if len(body) < aesKeyLen {
-		log.Warn("handshake body size less than %d: %d", aesKeyLen, len(body))
+	log.Debug("handshake aesKey : 0x%x", aesKey)
+	if len(aesKey) < aesKeyLen {
+		log.Warn("handshake aes key size not valid: %d", len(aesKey))
 		err = ErrHandshake
 		return
 	}
-	// get aes key use first 16bytes
-	aesKey = body[:16]
-	// register router
-	if subKey, heartbeat, err = defaultOperator.Connect(body[16:]); err != nil {
-		log.Error("[%s] operator do connect error(%v)", subKey, err)
+	log.Debug("send handshake response protocol")
+	proto.Body = nil
+	proto.Operation = OP_HANDSHARE_REPLY
+	if err = server.sendResponse(wr, proto); err != nil {
+		log.Error("[%s] server.SendResponse() error(%v)", subKey, err)
 		return
 	}
-	proto.Body = nil
+	// auth token
+	log.Debug("get auth request protocol")
+	if err = server.readRequest(rd, proto); err != nil {
+		return
+	}
+	if proto.Operation != OP_AUTH {
+		log.Warn("auth operation not valid: %d", proto.Operation)
+		err = ErrOperation
+		return
+	}
+	if proto.Body, err = aes.ECBDecrypt(proto.Body, aesKey, padding.PKCS7); err != nil {
+		log.Error("auth decrypt client proto error(%v)", err)
+		return
+	}
+	if subKey, heartbeat, err = defaultOperator.Connect(proto.Body); err != nil {
+		log.Error("operator.Connect error(%v)", err)
+		return
+	}
 	// TODO how to reuse channel
-	// update subkey -> channel
+	// register key->channel
 	bucket = server.Bucket(subKey)
 	channel = NewChannel(Conf.CliProto, Conf.SvrProto)
 	bucket.Put(subKey, channel)
-	proto.Operation = OP_HANDSHARE_REPLY
-	if err = server.sendResponse(conn, wr, &proto); err != nil {
+	log.Debug("send auth response protocol")
+	proto.Body = nil
+	proto.Operation = OP_AUTH_REPLY
+	if err = server.sendResponse(wr, proto); err != nil {
 		log.Error("[%s] server.SendResponse() error(%v)", subKey, err)
 	}
 	return
@@ -367,13 +384,7 @@ func (server *Server) readRequestBody(rd *bufio.Reader, proto *Proto) (err error
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) sendResponse(conn net.Conn, wr *bufio.Writer, proto *Proto) (err error) {
-	/*
-		if err = conn.SetWriteDeadline(time.Now().Add(Conf.WriteTimeout)); err != nil {
-			log.Error("conn.SetWriteDeadline() error(%v)", err)
-			return
-		}
-	*/
+func (server *Server) sendResponse(wr *bufio.Writer, proto *Proto) (err error) {
 	// do not set write timer, if pendding no heartbeat will receive, then conn.Close() will wake this up.
 	if err = server.codec.WriteResponse(wr, proto); err != nil {
 		log.Error("server.codec.WriteResponse() error(%v)", err)
