@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	log "code.google.com/p/log4go"
-	"errors"
 	"github.com/Terry-Mao/goim/libs/crypto/aes"
 	"github.com/Terry-Mao/goim/libs/crypto/padding"
 	"github.com/Terry-Mao/goim/libs/crypto/rsa"
@@ -16,9 +15,6 @@ var (
 	defaultOperator = new(IMOperator)
 	aesKeyLen       = 16
 	maxInt          = 2 ^ 31 - 1
-
-	ErrHandshake = errors.New("handshake failed")
-	ErrOperation = errors.New("request operation not valid")
 )
 
 // Proto is a request&response written before every goim connect.  It is used internally
@@ -38,12 +34,6 @@ type ServerCodec interface {
 	ReadRequestBody(*bufio.Reader, *Proto) error
 	// WriteResponse must be safe for concurrent use by multiple goroutines.
 	WriteResponse(*bufio.Writer, *Proto) error
-}
-
-type Operator interface {
-	Operate(*Proto) error
-	Connect(body []byte) (string, time.Duration, error)
-	Disconnect(string) error
 }
 
 type Server struct {
@@ -297,7 +287,7 @@ failed:
 
 // handshake for goim handshake with client, use rsa & aes.
 func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto) (aesKey []byte, subKey string, heartbeat time.Duration, bucket *Bucket, channel *Channel, err error) {
-	// exchange aes key
+	// 1. exchange aes key
 	log.Debug("get handshake request protocol")
 	if err = server.readRequest(rd, proto); err != nil {
 		return
@@ -325,7 +315,7 @@ func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto
 		log.Error("[%s] server.SendResponse() error(%v)", subKey, err)
 		return
 	}
-	// auth token
+	// 2. auth token
 	log.Debug("get auth request protocol")
 	if err = server.readRequest(rd, proto); err != nil {
 		return
@@ -339,7 +329,7 @@ func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto
 		log.Error("auth decrypt client proto error(%v)", err)
 		return
 	}
-	if subKey, heartbeat, err = defaultOperator.Connect(proto.Body); err != nil {
+	if subKey, heartbeat, err = defaultOperator.Connect(proto); err != nil {
 		log.Error("operator.Connect error(%v)", err)
 		return
 	}

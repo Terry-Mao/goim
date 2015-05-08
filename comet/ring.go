@@ -2,12 +2,6 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"errors"
-)
-
-var (
-	ErrRingEmpty = errors.New("ring buffer empty")
-	ErrRingFull  = errors.New("ring buffer full")
 )
 
 type Ring struct {

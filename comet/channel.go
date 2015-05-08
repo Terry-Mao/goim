@@ -1,10 +1,5 @@
 package main
 
-import (
-	"errors"
-	"fmt"
-)
-
 const (
 	signalNum  = 1
 	ProtoFinsh = 0
@@ -50,7 +45,7 @@ func (c *Channel) Pushs(ver int16, operations []int32, bodies [][]byte) (n int, 
 		proto *Proto
 	)
 	if len(operations) != len(bodies) {
-		err = errors.New(fmt.Sprintf("operations(%d) != bodies(%d) length", len(operations), len(bodies)))
+		err = ErrPushArgs
 		return
 	}
 	for n = 0; n < len(operations); n++ {

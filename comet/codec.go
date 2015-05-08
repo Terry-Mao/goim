@@ -4,17 +4,11 @@ import (
 	"bufio"
 	log "code.google.com/p/log4go"
 	"encoding/binary"
-	"errors"
 )
 
 const (
 	maxPackLen   = 2 << 10
 	rawHeaderLen = int16(16)
-)
-
-var (
-	ErrProtoPackLen   = errors.New("default server codec pack length error")
-	ErrProtoHeaderLen = errors.New("default server codec header length error")
 )
 
 type DefaultServerCodec struct {

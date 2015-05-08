@@ -2,7 +2,6 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"errors"
 	"net"
 	"sync"
 	"time"
@@ -10,12 +9,6 @@ import (
 
 const (
 	timerDelay = 100 * time.Millisecond
-)
-
-var (
-	ErrTimerFull   = errors.New("timer full")
-	ErrTimerEmpty  = errors.New("timer empty")
-	ErrTimerNoItem = errors.New("timer item not exist")
 )
 
 type TimerData struct {
