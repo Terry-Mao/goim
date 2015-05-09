@@ -134,7 +134,7 @@ func main() {
 				panic(err)
 			}
 			seqId++
-			time.Sleep(10000 * time.Millisecond)
+			//time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	// reader

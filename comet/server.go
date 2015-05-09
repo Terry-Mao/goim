@@ -223,15 +223,15 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 				break
 			}
 			if proto.Operation == OP_HEARTBEAT {
-				// TODO
 				// Use a previous timer value if difference between it and a new
 				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
 				// to minimize the minheap operations for fast connections.
-				// handshake push a timer, reuse
-				timer.Del(timerd)
-				if timerd, err = timer.Add(heartbeat, conn); err != nil {
-					log.Error("\"%s\" dispatch timer.Add() error(%v)", rAddr, err)
-					goto failed
+				if !timerd.Lazy(heartbeat) {
+					timer.Del(timerd)
+					if timerd, err = timer.Add(heartbeat, conn); err != nil {
+						log.Error("\"%s\" dispatch timer.Add() error(%v)", rAddr, err)
+						goto failed
+					}
 				}
 				// heartbeat
 				proto.Body = nil

@@ -35,7 +35,6 @@ func (c *DefaultServerCodec) ReadRequestHeader(rd *bufio.Reader, proto *Proto) (
 		log.Error("protoVer: binary.Read() error(%v)", err)
 		return
 	}
-	// TODO check ver
 	log.Debug("protoVer: %d", proto.Ver)
 	if err = binary.Read(rd, binary.BigEndian, &proto.Operation); err != nil {
 		log.Error("Operation: binary.Read() error(%v)", err)

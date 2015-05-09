@@ -8,10 +8,12 @@ import (
 )
 
 const (
+	timerFormat      = "2006-01-02 15:04:05"
 	zeroDuration     = time.Duration(0)
 	infiniteDuration = time.Duration(-1)
 	timerDelay       = 100 * time.Millisecond
 	maxTimerDelay    = 500 * time.Millisecond
+	timerLazyDelay   = 300 * time.Millisecond
 )
 
 type TimerData struct {
@@ -25,8 +27,17 @@ func (td *TimerData) Delay() time.Duration {
 	return td.key.Sub(time.Now())
 }
 
+func (td *TimerData) Lazy(expire time.Duration) bool {
+	key := time.Now().Add(expire)
+	if d := (key.Sub(td.key)); d < timerLazyDelay {
+		log.Debug("lazy timer: %s, old: %s", key.Format(timerFormat), td.String())
+		return true
+	}
+	return false
+}
+
 func (td *TimerData) String() string {
-	return td.key.Format("2006-01-02 15:04:05")
+	return td.key.Format(timerFormat)
 }
 
 type Timer struct {
@@ -205,7 +216,7 @@ func (t *Timer) get() *TimerData {
 		t.used++
 		log.Debug("get timerdata, used: %d", t.used)
 	} else {
-		panic("no free timerdata")
+		td = new(TimerData)
 	}
 	return td
 }
@@ -213,7 +224,8 @@ func (t *Timer) get() *TimerData {
 func (t *Timer) put(td *TimerData) {
 	// if no used channel, free list full, discard it
 	if t.used == 0 {
-		panic("free timerdata full")
+		// use gc free
+		return
 	}
 	t.used--
 	log.Debug("put timerdata, used: %d", t.used)
