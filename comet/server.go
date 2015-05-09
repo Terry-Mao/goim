@@ -14,7 +14,7 @@ import (
 var (
 	defaultOperator = new(IMOperator)
 	aesKeyLen       = 16
-	maxInt          = 2 ^ 31 - 1
+	maxInt          = 1<<31 - 1
 )
 
 type ServerCodec interface {
@@ -46,9 +46,8 @@ func NewServer() *Server {
 // Accept accepts connections on the listener and serves requests
 // for each incoming connection.  Accept blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) Accept(lis net.Listener) {
+func (server *Server) Accept(lis net.Listener, i int) {
 	var (
-		i    = 0
 		conn net.Conn
 		err  error
 	)
