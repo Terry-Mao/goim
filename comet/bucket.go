@@ -1,7 +1,7 @@
 package main
 
 import (
-	// log "code.google.com/p/log4go"
+	//	log "code.google.com/p/log4go"
 	"sync"
 )
 
@@ -18,6 +18,7 @@ type Bucket struct {
 func NewBucket(channel, cliProto, svrProto int) *Bucket {
 	b := new(Bucket)
 	b.chs = make(map[string]*Channel, channel)
+	//log.Debug("create %d bucket for store sub channel, each channel has cli.proto %d, svr.proto %d", channel, cliProto, svrProto)
 	/*
 		// pre alloc channel
 		ch := NewChannel(cliProto, svrProto)

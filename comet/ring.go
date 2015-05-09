@@ -12,19 +12,16 @@ type Ring struct {
 	wn uint
 	wp int
 	// info
-	num  int
 	data []Proto
 }
 
 func NewRing(num int) *Ring {
 	r := new(Ring)
-	r.num = num
 	r.data = make([]Proto, num)
 	return r
 }
 
 func InitRing(r *Ring, num int) {
-	r.num = num
 	r.data = make([]Proto, num)
 }
 
@@ -37,7 +34,7 @@ func (r *Ring) Get() (proto *Proto, err error) {
 }
 
 func (r *Ring) GetAdv() {
-	if r.rp++; r.rp >= r.num {
+	if r.rp++; r.rp >= len(r.data) {
 		r.rp = 0
 	}
 	r.rn++
@@ -45,7 +42,7 @@ func (r *Ring) GetAdv() {
 }
 
 func (r *Ring) Set() (proto *Proto, err error) {
-	if r.wn-r.rn >= uint(r.num) {
+	if r.wn-r.rn >= uint(len(r.data)) {
 		return nil, ErrRingFull
 	}
 	proto = &r.data[r.wp]
@@ -53,7 +50,7 @@ func (r *Ring) Set() (proto *Proto, err error) {
 }
 
 func (r *Ring) SetAdv() {
-	if r.wp++; r.wp >= r.num {
+	if r.wp++; r.wp >= len(r.data) {
 		r.wp = 0
 	}
 	r.wn++

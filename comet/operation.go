@@ -60,7 +60,7 @@ func (operator *IMOperator) Connect(proto *Proto) (subKey string, heartbeat time
 	// TODO call register router
 	// for test
 	subKey = string(proto.Body)
-	heartbeat = 30 * time.Second
+	heartbeat = 60 * time.Second
 	return
 }
 

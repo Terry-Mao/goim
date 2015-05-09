@@ -1,5 +1,9 @@
 package padding
 
+import (
+	"bytes"
+)
+
 var (
 	PKCS5 = &pkcs5{}
 )
@@ -10,13 +14,9 @@ type pkcs5 struct{}
 // Padding implements the Padding interface Padding method.
 func (p *pkcs5) Padding(src []byte, blockSize int) []byte {
 	srcLen := len(src)
-	padLen := byte(blockSize - (srcLen % blockSize))
-	pd := make([]byte, srcLen+int(padLen))
-	copy(pd, src)
-	for i := srcLen; i < len(pd); i++ {
-		pd[i] = padLen
-	}
-	return pd
+	padLen := blockSize - (srcLen % blockSize)
+	padText := bytes.Repeat([]byte{byte(padLen)}, padLen)
+	return append(src, padText...)
 }
 
 // Unpadding implements the Padding interface Unpadding method.

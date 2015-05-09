@@ -17,18 +17,6 @@ var (
 	maxInt          = 2 ^ 31 - 1
 )
 
-// Proto is a request&response written before every goim connect.  It is used internally
-// but documented here as an aid to debugging, such as when analyzing
-// network traffic.
-type Proto struct {
-	PackLen   int32  // package length
-	HeaderLen int16  // header length
-	Ver       int16  // protocol version
-	Operation int32  // operation for request
-	SeqId     int32  // sequence number chosen by client
-	Body      []byte // body
-}
-
 type ServerCodec interface {
 	ReadRequestHeader(*bufio.Reader, *Proto) error
 	ReadRequestBody(*bufio.Reader, *Proto) error
@@ -37,38 +25,21 @@ type ServerCodec interface {
 }
 
 type Server struct {
-	buckets []*Bucket
-	rPool   []*sync.Pool
-	wPool   []*sync.Pool
-	timers  []*Timer
+	buckets []*Bucket // subkey bucket
+	round   *Round    // accept round store
 	codec   ServerCodec
 }
 
 // NewServer returns a new Server.
 func NewServer() *Server {
 	s := new(Server)
-	log.Debug("server: create %d bucket for store sub channel", Conf.Bucket)
+	log.Debug("server: use default server codec")
+	s.codec = new(DefaultServerCodec)
 	s.buckets = make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
 		s.buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
 	}
-	log.Debug("server: create %d reader buffer pool", Conf.ReadBuf)
-	s.rPool = make([]*sync.Pool, Conf.ReadBuf)
-	for i := 0; i < Conf.ReadBuf; i++ {
-		s.rPool[i] = new(sync.Pool)
-	}
-	log.Debug("server: create %d writer buffer pool", Conf.WriteBuf)
-	s.wPool = make([]*sync.Pool, Conf.WriteBuf)
-	for i := 0; i < Conf.WriteBuf; i++ {
-		s.wPool[i] = new(sync.Pool)
-	}
-	log.Debug("server: create %d time", Conf.Timer)
-	s.timers = make([]*Timer, Conf.Timer)
-	for i := 0; i < Conf.Timer; i++ {
-		s.timers[i] = NewTimer(Conf.TimerSize)
-	}
-	log.Debug("server: use default server codec")
-	s.codec = new(DefaultServerCodec)
+	s.round = NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize, Conf.HandshakeProto, Conf.HandshakeProtoSize)
 	return s
 }
 
@@ -103,16 +74,19 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		heartbeat time.Duration
 		bucket    *Bucket
 		channel   *Channel
-		// proto
-		proto *Proto
+		timerd    *TimerData
 		// timer
-		timer  = server.timers[r&(Conf.Timer-1)]
-		timerd *TimerData
-		// bufio&bufpool
-		rp = server.rPool[r&(Conf.ReadBuf-1)]
-		wp = server.wPool[r&(Conf.WriteBuf-1)]
+		timer = server.round.Timer(r)
+		// bufpool
+		rp = server.round.Reader(r)
+		wp = server.round.Writer(r)
+		// free proto
+		fp = server.round.Proto(r)
+		// bufio
 		rd = newBufioReaderSize(rp, conn, Conf.ReadBufSize)
 		wr = newBufioWriterSize(wp, conn, Conf.WriteBufSize)
+		// proto
+		proto = fp.Get()
 		// ip addr
 		lAddr = conn.LocalAddr().String()
 		rAddr = conn.RemoteAddr().String()
@@ -122,12 +96,13 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		log.Error("\"%s\" handshake timer.Add() error(%v)", rAddr, err)
 	} else {
 		log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
-		if aesKey, subKey, heartbeat, bucket, channel, err = server.handshake(rd, wr); err != nil {
+		if aesKey, subKey, heartbeat, bucket, channel, err = server.handshake(rd, wr, proto); err != nil {
 			log.Error("\"%s\"->\"%s\" handshake() error(%v)", lAddr, rAddr, err)
 		}
 		//deltimer
 		timer.Del(timerd)
 	}
+	fp.Free(proto)
 	// failed
 	if err != nil {
 		if err = conn.Close(); err != nil {
@@ -289,11 +264,7 @@ failed:
 }
 
 // handshake for goim handshake with client, use rsa & aes.
-func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer) (aesKey []byte, subKey string, heartbeat time.Duration, bucket *Bucket, channel *Channel, err error) {
-	var (
-		// TODO
-		proto = new(Proto)
-	)
+func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto) (aesKey []byte, subKey string, heartbeat time.Duration, bucket *Bucket, channel *Channel, err error) {
 	// 1. exchange aes key
 	log.Debug("get handshake request protocol")
 	if err = server.readRequest(rd, proto); err != nil {

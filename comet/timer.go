@@ -122,7 +122,6 @@ func (t *Timer) Expire() {
 		// delay put back to free list
 		// someone sleep goroutine may hold the td
 		// first wake up the goroutine then let caller put back
-		//t.put(td)
 	}
 	t.lock.Unlock()
 	return

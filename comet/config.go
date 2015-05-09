@@ -42,17 +42,19 @@ type Config struct {
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	StatBind  []string `goconf:"base:stat.bind:,"`
 	// proto section
-	TCPBind          []string      `goconf:"proto:tcp.bind:,"`
-	Sndbuf           int           `goconf:"proto:sndbuf:memory"`
-	Rcvbuf           int           `goconf:"proto:rcvbuf:memory"`
-	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
-	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
-	ReadBuf          int           `goconf:"proto:readbuf"`
-	WriteBuf         int           `goconf:"proto:writebuf"`
-	ReadBufSize      int           `goconf:"proto:readbuf.size"`
-	WriteBufSize     int           `goconf:"proto:writebuf.size"`
-	Timer            int           `goconf:"proto:timer"`
-	TimerSize        int           `goconf:"proto:timer.size"`
+	TCPBind            []string      `goconf:"proto:tcp.bind:,"`
+	Sndbuf             int           `goconf:"proto:sndbuf:memory"`
+	Rcvbuf             int           `goconf:"proto:rcvbuf:memory"`
+	HandshakeTimeout   time.Duration `goconf:"proto:handshake.timeout:time"`
+	HandshakeProto     int           `goconf:"proto:handshake.proto"`
+	HandshakeProtoSize int           `goconf:"proto:handshake.proto.size"`
+	WriteTimeout       time.Duration `goconf:"proto:write.timeout:time"`
+	ReadBuf            int           `goconf:"proto:readbuf"`
+	WriteBuf           int           `goconf:"proto:writebuf"`
+	ReadBufSize        int           `goconf:"proto:readbuf.size"`
+	WriteBufSize       int           `goconf:"proto:writebuf.size"`
+	Timer              int           `goconf:"proto:timer"`
+	TimerSize          int           `goconf:"proto:timer.size"`
 	// crypto
 	RSAPrivate string `goconf:"crypto:rsa.private"`
 	// bucket
@@ -76,17 +78,19 @@ func NewConfig() *Config {
 		PprofBind: []string{"localhost:6971"},
 		StatBind:  []string{"localhost:6972"},
 		// proto section
-		TCPBind:          []string{"localhost:8080"},
-		Sndbuf:           2048,
-		Rcvbuf:           256,
-		HandshakeTimeout: 5 * time.Second,
-		WriteTimeout:     5 * time.Second,
-		ReadBuf:          1024,
-		WriteBuf:         1024,
-		ReadBufSize:      1024 * 2,
-		WriteBufSize:     1024 * 2,
-		Timer:            1024,
-		TimerSize:        10000,
+		TCPBind:            []string{"localhost:8080"},
+		Sndbuf:             2048,
+		Rcvbuf:             256,
+		HandshakeTimeout:   5 * time.Second,
+		HandshakeProto:     1024,
+		HandshakeProtoSize: 1000,
+		WriteTimeout:       5 * time.Second,
+		ReadBuf:            1024,
+		WriteBuf:           1024,
+		ReadBufSize:        1024 * 2,
+		WriteBufSize:       1024 * 2,
+		Timer:              1024,
+		TimerSize:          1000,
 		// crypto
 		RSAPrivate: "./pri.pem",
 		// bucket
