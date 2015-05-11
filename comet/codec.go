@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	maxPackLen   = 2 << 10
+	maxPackLen   = 1 << 10
 	rawHeaderLen = int16(16)
 )
 

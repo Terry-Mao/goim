@@ -7,7 +7,7 @@ import (
 )
 
 // TODO
-func newBufioReaderSize(pool *sync.Pool, r io.Reader, size int) *bufio.Reader {
+func NewBufioReaderSize(pool *sync.Pool, r io.Reader, size int) *bufio.Reader {
 	if v := pool.Get(); v != nil {
 		br := v.(*bufio.Reader)
 		br.Reset(r)
@@ -16,12 +16,12 @@ func newBufioReaderSize(pool *sync.Pool, r io.Reader, size int) *bufio.Reader {
 	return bufio.NewReaderSize(r, size)
 }
 
-func putBufioReader(pool *sync.Pool, br *bufio.Reader) {
+func PutBufioReader(pool *sync.Pool, br *bufio.Reader) {
 	br.Reset(nil)
 	pool.Put(br)
 }
 
-func newBufioWriterSize(pool *sync.Pool, w io.Writer, size int) *bufio.Writer {
+func NewBufioWriterSize(pool *sync.Pool, w io.Writer, size int) *bufio.Writer {
 	if v := pool.Get(); v != nil {
 		bw := v.(*bufio.Writer)
 		bw.Reset(w)
@@ -30,7 +30,19 @@ func newBufioWriterSize(pool *sync.Pool, w io.Writer, size int) *bufio.Writer {
 	return bufio.NewWriterSize(w, size)
 }
 
-func putBufioWriter(pool *sync.Pool, bw *bufio.Writer) {
+func PutBufioWriter(pool *sync.Pool, bw *bufio.Writer) {
 	bw.Reset(nil)
 	pool.Put(bw)
+}
+
+func NewByteArraySize(pool *sync.Pool, size int) []byte {
+	if v := pool.Get(); v != nil {
+		ba := v.([]byte)
+		return ba
+	}
+	return make([]byte, size)
+}
+
+func PutByteArray(pool *sync.Pool, ba []byte) {
+	pool.Put(ba)
 }

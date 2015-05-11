@@ -2,6 +2,8 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	"crypto/cipher"
+	"github.com/Terry-Mao/goim/libs/crypto/aes"
 	"sync"
 )
 
@@ -16,6 +18,20 @@ type Proto struct {
 	SeqId     int32  // sequence number chosen by client
 	Body      []byte // body
 	next      *Proto // free list
+}
+
+func (p *Proto) Encrypt(block cipher.Block) (err error) {
+	if p.Body != nil {
+		p.Body, err = aes.ECBEncrypt(block, p.Body)
+	}
+	return
+}
+
+func (p *Proto) Decrypt(block cipher.Block) (err error) {
+	if p.Body != nil {
+		p.Body, err = aes.ECBDecrypt(block, p.Body)
+	}
+	return
 }
 
 type FreeProto struct {

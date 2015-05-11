@@ -6,14 +6,18 @@ import (
 )
 
 type Round struct {
-	readers   []*sync.Pool
-	writers   []*sync.Pool
+	readers []*sync.Pool
+	writers []*sync.Pool
+	//encrypters   []*sync.Pool
+	//decrypters   []*sync.Pool
 	timers    []*Timer
 	protos    []*FreeProto
 	readerIdx int
 	writerIdx int
-	timerIdx  int
-	protoIdx  int
+	//encrypterIdx int
+	//decrypterIdx int
+	timerIdx int
+	protoIdx int
 }
 
 func NewRound(readBuf, writeBuf, timer, timerSize, proto, protoSize int) *Round {
@@ -36,6 +40,20 @@ func NewRound(readBuf, writeBuf, timer, timerSize, proto, protoSize int) *Round 
 	for i := 0; i < timer; i++ {
 		r.timers[i] = NewTimer(timerSize)
 	}
+	/*
+		log.Debug("create %d encrypter buffer pool", encrypterBuf)
+		r.encrypterIdx = encrypterBuf - 1
+		r.encrypters = make([]*sync.Pool, encrypterBuf)
+		for i := 0; i < encrypterBuf; i++ {
+			r.encrypters[i] = new(sync.Pool)
+		}
+		log.Debug("create %d decrypter buffer pool", decrypterBuf)
+		r.decrypterIdx = decrypterBuf - 1
+		r.decrypters = make([]*sync.Pool, decrypterBuf)
+		for i := 0; i < encrypterBuf; i++ {
+			r.decrypters[i] = new(sync.Pool)
+		}
+	*/
 	log.Debug("create %d free proto", proto)
 	r.protoIdx = proto - 1
 	r.protos = make([]*FreeProto, proto)
@@ -60,3 +78,13 @@ func (r *Round) Writer(rn int) *sync.Pool {
 func (r *Round) Proto(rn int) *FreeProto {
 	return r.protos[rn&r.protoIdx]
 }
+
+/*
+func (r *Round) Encrypter(rn int) *sync.Pool {
+	return r.encrypters[rn&r.encrypterIdx]
+}
+
+func (r *Round) Decrypter(rn int) *sync.Pool {
+	return r.decrypters[rn&r.decrypterIdx]
+}
+*/

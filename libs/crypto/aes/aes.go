@@ -1,102 +1,55 @@
 package aes
 
 import (
-	iaes "crypto/aes"
-	icipher "crypto/cipher"
+	"crypto/cipher"
 	"errors"
-	"github.com/Terry-Mao/goim/libs/crypto/cipher"
-	"github.com/Terry-Mao/goim/libs/crypto/padding"
 )
 
 var (
-	ErrAesBlockSize = errors.New("plaintext is not a multiple of the block size")
-	ErrAesSrcSize   = errors.New("ciphertext too short")
-	ErrAesIVSize    = errors.New("iv size is not a block size")
+	ErrBlockSize  = errors.New("input not full blocks")
+	ErrOutputSize = errors.New("output smaller than input")
 )
 
-// ECBEncrypt aes ecb encrypt.
-func ECBEncrypt(src, key []byte, p padding.Padding) ([]byte, error) {
-	if p == nil {
-		if len(src) < iaes.BlockSize || len(src)%iaes.BlockSize != 0 {
-			return nil, ErrAesBlockSize
-		}
-	} else {
-		src = p.Padding(src, iaes.BlockSize)
+func encryptBlocks(b cipher.Block, src, dst []byte) error {
+	if len(src)%b.BlockSize() != 0 {
+		return ErrBlockSize
 	}
-	b, err := iaes.NewCipher(key)
-	if err != nil {
-		return nil, err
+	if len(dst) < len(src) {
+		return ErrOutputSize
 	}
-	mode := cipher.NewECBEncrypter(b)
-	encryptText := make([]byte, len(src))
-	mode.CryptBlocks(encryptText, src)
-	return encryptText, nil
+	for len(src) > 0 {
+		b.Encrypt(dst, src[:b.BlockSize()])
+		src = src[b.BlockSize():]
+		dst = dst[b.BlockSize():]
+	}
+	return nil
 }
 
-// ECBDecrypt aes ecb decrypt.
-func ECBDecrypt(src, key []byte, p padding.Padding) ([]byte, error) {
-	if len(src) < iaes.BlockSize || len(src)%iaes.BlockSize != 0 {
-		return nil, ErrAesSrcSize
+func decryptBlocks(b cipher.Block, dst, src []byte) error {
+	if len(src)%b.BlockSize() != 0 {
+		return ErrBlockSize
 	}
-	b, err := iaes.NewCipher(key)
-	if err != nil {
-		return nil, err
+	if len(dst) < len(src) {
+		return ErrOutputSize
 	}
-	mode := cipher.NewECBDecrypter(b)
-	decryptText := make([]byte, len(src))
-	mode.CryptBlocks(decryptText, src)
-	if p == nil {
-		return decryptText, nil
-	} else {
-		return p.Unpadding(decryptText, iaes.BlockSize)
+	for len(src) > 0 {
+		b.Decrypt(dst, src[:b.BlockSize()])
+		src = src[b.BlockSize():]
+		dst = dst[b.BlockSize():]
 	}
+	return nil
 }
 
-// CBCEncrypt aes cbc encrypt.
-func CBCEncrypt(src, key, iv []byte, p padding.Padding) ([]byte, error) {
-	// check iv
-	if len(iv) != iaes.BlockSize {
-		return nil, ErrAesIVSize
-	}
-	if p == nil {
-		// if no padding check src
-		if len(src) < iaes.BlockSize || len(src)%iaes.BlockSize != 0 {
-			return nil, ErrAesSrcSize
-		}
-	} else {
-		// padding
-		src = p.Padding(src, iaes.BlockSize)
-	}
-	block, err := iaes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	mode := icipher.NewCBCEncrypter(block, iv)
-	encryptText := make([]byte, len(src))
-	mode.CryptBlocks(encryptText, src)
-	return encryptText, nil
+func ECBEncrypt(b cipher.Block, src []byte) (dst []byte, err error) {
+	// use same buf
+	dst = src
+	err = encryptBlocks(b, dst, src)
+	return
 }
 
-// CBCDecrypt aes cbc decrypt.
-func CBCDecrypt(src, key, iv []byte, p padding.Padding) ([]byte, error) {
-	// check src
-	if len(src) < iaes.BlockSize || len(src)%iaes.BlockSize != 0 {
-		return nil, ErrAesSrcSize
-	}
-	// check iv
-	if len(iv) != iaes.BlockSize {
-		return nil, ErrAesIVSize
-	}
-	block, err := iaes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	mode := icipher.NewCBCDecrypter(block, iv)
-	decryptText := make([]byte, len(src))
-	mode.CryptBlocks(decryptText, src)
-	if p == nil {
-		return decryptText, nil
-	} else {
-		return p.Unpadding(decryptText, iaes.BlockSize)
-	}
+func ECBDecrypt(b cipher.Block, src []byte) (dst []byte, err error) {
+	// use same buf
+	dst = src
+	err = decryptBlocks(b, dst, src)
+	return
 }
