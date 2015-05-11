@@ -11,6 +11,13 @@ const (
 	rawHeaderLen = int16(16)
 )
 
+type ServerCodec interface {
+	ReadRequestHeader(*bufio.Reader, *Proto) error
+	ReadRequestBody(*bufio.Reader, *Proto) error
+	// WriteResponse must be safe for concurrent use by multiple goroutines.
+	WriteResponse(*bufio.Writer, *Proto) error
+}
+
 type DefaultServerCodec struct {
 }
 

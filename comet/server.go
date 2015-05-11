@@ -12,22 +12,15 @@ import (
 )
 
 var (
-	defaultOperator = new(IMOperator)
-	aesKeyLen       = 16
-	maxInt          = 1<<31 - 1
+	aesKeyLen = 16
+	maxInt    = 1<<31 - 1
 )
 
-type ServerCodec interface {
-	ReadRequestHeader(*bufio.Reader, *Proto) error
-	ReadRequestBody(*bufio.Reader, *Proto) error
-	// WriteResponse must be safe for concurrent use by multiple goroutines.
-	WriteResponse(*bufio.Writer, *Proto) error
-}
-
 type Server struct {
-	buckets []*Bucket // subkey bucket
-	round   *Round    // accept round store
-	codec   ServerCodec
+	buckets  []*Bucket // subkey bucket
+	round    *Round    // accept round store
+	codec    ServerCodec
+	operator Operator
 }
 
 // NewServer returns a new Server.
@@ -35,6 +28,7 @@ func NewServer() *Server {
 	s := new(Server)
 	log.Debug("server: use default server codec")
 	s.codec = new(DefaultServerCodec)
+	s.operator = new(DefaultOperator)
 	s.buckets = make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
 		s.buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
@@ -143,7 +137,7 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 	// return channel to bucket's free list
 	PutBufioReader(rp, rd)
 	bucket.Del(subKey)
-	if err = defaultOperator.Disconnect(subKey); err != nil {
+	if err = server.operator.Disconnect(subKey); err != nil {
 		log.Error("%s[%s] operator do disconnect error(%v)", subKey, rAddr, err)
 	}
 	// may call twice
@@ -210,7 +204,7 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 					goto failed
 				}
 				// process message
-				if err = defaultOperator.Operate(proto); err != nil {
+				if err = server.operator.Operate(proto); err != nil {
 					log.Error("\"%s\" operator.Operate() error(%v)", rAddr, err)
 					goto failed
 				}
@@ -307,7 +301,7 @@ func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto
 		log.Error("auth decrypt client proto error(%v)", err)
 		return
 	}
-	if subKey, heartbeat, err = defaultOperator.Connect(proto); err != nil {
+	if subKey, heartbeat, err = server.operator.Connect(proto); err != nil {
 		log.Error("operator.Connect error(%v)", err)
 		return
 	}

@@ -35,10 +35,10 @@ type Operator interface {
 	Disconnect(string) error
 }
 
-type IMOperator struct {
+type DefaultOperator struct {
 }
 
-func (operator *IMOperator) Operate(proto *Proto) error {
+func (operator *DefaultOperator) Operate(proto *Proto) error {
 	if proto.Operation == OP_SEND_SMS {
 		// call suntao's api
 		// proto.Body = nil
@@ -57,7 +57,7 @@ func (operator *IMOperator) Operate(proto *Proto) error {
 	return nil
 }
 
-func (operator *IMOperator) Connect(proto *Proto) (subKey string, heartbeat time.Duration, err error) {
+func (operator *DefaultOperator) Connect(proto *Proto) (subKey string, heartbeat time.Duration, err error) {
 	// TODO call register router
 	// for test
 	subKey = string(proto.Body)
@@ -65,6 +65,6 @@ func (operator *IMOperator) Connect(proto *Proto) (subKey string, heartbeat time
 	return
 }
 
-func (operator *IMOperator) Disconnect(subKey string) error {
+func (operator *DefaultOperator) Disconnect(subKey string) error {
 	return nil
 }
