@@ -110,10 +110,11 @@ func (c *DefaultServerCodec) WriteResponse(wr *bufio.Writer, proto *Proto) (err 
 		return
 	}
 	if proto.Body != nil {
-		if err = binary.Write(wr, binary.BigEndian, proto.Body); err != nil {
-			log.Error("body: binary.Write() error(%v)", err)
+		if _, err = wr.Write(proto.Body); err != nil {
+			log.Error("body: wr.Write() error(%v)", err)
 			return
 		}
+		// TODO padding
 	}
 	return wr.Flush()
 }

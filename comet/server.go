@@ -355,6 +355,7 @@ func (server *Server) sendResponse(wr *bufio.Writer, proto *Proto) (err error) {
 }
 
 func (server *Server) Bucket(subKey string) *Bucket {
+	// TODO
 	h := NewMurmur3C()
 	h.Write([]byte(subKey))
 	idx := h.Sum32() & uint32(Conf.Bucket-1)

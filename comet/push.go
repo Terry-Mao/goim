@@ -31,14 +31,14 @@ func InitPush(s *Server) error {
 }
 
 func httpListen(mux *http.ServeMux, bind string) {
-	server := &http.Server{Handler: mux, ReadTimeout: Conf.HttpReadTimeout, WriteTimeout: Conf.HttpWriteTimeout}
-	server.SetKeepAlivesEnabled(true)
+	httpServer := &http.Server{Handler: mux, ReadTimeout: Conf.HttpReadTimeout, WriteTimeout: Conf.HttpWriteTimeout}
+	httpServer.SetKeepAlivesEnabled(true)
 	l, err := net.Listen("tcp", bind)
 	if err != nil {
 		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
 		panic(err)
 	}
-	if err := server.Serve(l); err != nil {
+	if err := httpServer.Serve(l); err != nil {
 		log.Error("server.Serve() error(%v)", err)
 		panic(err)
 	}
@@ -52,10 +52,8 @@ func retPWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{
 		return
 	}
 	dataStr := string(data)
-	if n, err := w.Write([]byte(dataStr)); err != nil {
+	if _, err := w.Write([]byte(dataStr)); err != nil {
 		log.Error("w.Write(\"%s\") error(%v)", dataStr, err)
-	} else {
-		log.Debug("w.Write(\"%s\") write %d bytes", dataStr, n)
 	}
 	log.Info("req: \"%s\", post: \"%s\", res:\"%s\", ip:\"%s\", time:\"%fs\"", r.URL.String(), *body, dataStr, r.RemoteAddr, time.Now().Sub(start).Seconds())
 }
@@ -78,8 +76,10 @@ func Push(w http.ResponseWriter, r *http.Request) {
 	}
 	params := r.URL.Query()
 	key := params.Get("key")
+	log.Debug("push key: \"%s\"", key)
 	bucket := server.Bucket(key)
 	if channel := bucket.Get(key); channel != nil {
+		// padding let caller do
 		if err = channel.Push(1, OP_SEND_SMS_REPLY, bodyBytes); err != nil {
 			res["ret"] = InternalErr
 			log.Error("channel.Push() error(%v)", err)

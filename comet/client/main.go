@@ -2,14 +2,18 @@ package main
 
 import (
 	"bufio"
+	log "code.google.com/p/log4go"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
-	"crypto/rsa"
 	"encoding/binary"
-	"fmt"
-	"github.com/Terry-Mao/goim/libs/crypto/aes"
+	"flag"
+	myaes "github.com/Terry-Mao/goim/libs/crypto/aes"
 	"github.com/Terry-Mao/goim/libs/crypto/padding"
 	myrsa "github.com/Terry-Mao/goim/libs/crypto/rsa"
+	"github.com/Terry-Mao/goim/libs/perf"
 	"net"
+	"runtime"
 	"time"
 )
 
@@ -29,25 +33,7 @@ const (
 
 const (
 	rawHeaderLen = uint16(16)
-
-	rsaPubKey = `
------BEGIN PUBLIC KEY-----
-MDcwDQYJKoZIhvcNAQEBBQADJgAwIwIcAN4ev8NwvaxP22fQv/fUGc8/uNnfjHde
-CgqUPQIDAQAB
------END PUBLIC KEY-----
-`
 )
-
-var (
-	RSAPub *rsa.PublicKey
-)
-
-func init() {
-	var err error
-	if RSAPub, err = myrsa.PublicKey([]byte(rsaPubKey)); err != nil {
-		panic(err)
-	}
-}
 
 type Proto struct {
 	PackLen   int32  // package length
@@ -59,9 +45,21 @@ type Proto struct {
 }
 
 func main() {
-	conn, err := net.Dial("tcp", "localhost:8080")
-	if err != nil {
+	flag.Parse()
+	if err := InitConfig(); err != nil {
 		panic(err)
+	}
+	runtime.GOMAXPROCS(Conf.MaxProc)
+	log.LoadConfiguration(Conf.Log)
+	defer log.Close()
+	perf.Init(Conf.PprofBind)
+	if err := InitRSA(); err != nil {
+		panic(err)
+	}
+	conn, err := net.Dial("tcp", Conf.TCPAddr)
+	if err != nil {
+		log.Error("net.Dial(\"%s\") error(%v)", Conf.TCPAddr, err)
+		return
 	}
 	var body []byte
 	seqId := int32(0)
@@ -74,39 +72,50 @@ func main() {
 	if _, err = rand.Read(aesKey); err != nil {
 		panic(err)
 	}
-	fmt.Printf("aes key: %v\n", aesKey)
+	log.Debug("aes key: %v", aesKey)
 	proto.Operation = OP_HANDSHARE
 	proto.SeqId = seqId
 	proto.Body = aesKey
+	var block cipher.Block
+	if block, err = aes.NewCipher(aesKey); err != nil {
+		log.Error("aes.NewCipher() error(%v)", err)
+		return
+	}
 	// use rsa
 	if proto.Body, err = myrsa.Encrypt(proto.Body, RSAPub); err != nil {
-		panic(err)
+		log.Error("myrsa.Encrypt() error(%v)", err)
+		return
 	}
 	if err = WriteProto(wr, proto); err != nil {
-		panic(err)
+		log.Error("WriteProto() error(%v)", err)
+		return
 	}
 	if err = ReadProto(rd, proto); err != nil {
-		panic(err)
+		log.Error("ReadProto() error(%v)", err)
+		return
 	}
-	fmt.Printf("handshake ok, proto: %v\n", proto)
+	log.Debug("handshake ok, proto: %v", proto)
 	seqId++
 	// auth
 	// test handshake timeout
 	// time.Sleep(time.Second * 31)
 	proto.Operation = OP_AUTH
 	proto.SeqId = seqId
-	proto.Body = []byte("Terry-Mao")
+	proto.Body = padding.PKCS7.Padding([]byte(Conf.SubKey), block.BlockSize())
 	// user aes encrypt sub key
-	if proto.Body, err = aes.ECBEncrypt(proto.Body, aesKey, padding.PKCS5); err != nil {
-		panic(err)
+	if proto.Body, err = myaes.ECBEncrypt(block, proto.Body); err != nil {
+		log.Error("aes.ECBEncrypt() error(%v)", err)
+		return
 	}
 	if err = WriteProto(wr, proto); err != nil {
-		panic(err)
+		log.Error("WriteProto() error(%v)", err)
+		return
 	}
 	if err = ReadProto(rd, proto); err != nil {
-		panic(err)
+		log.Error("ReadProto() error(%v)", err)
+		return
 	}
-	fmt.Printf("auth ok, proto: %v\n", proto)
+	log.Debug("auth ok, proto: %v", proto)
 	seqId++
 	// writer
 	go func() {
@@ -117,7 +126,8 @@ func main() {
 			proto1.SeqId = seqId
 			proto1.Body = nil
 			if err = WriteProto(wr, proto1); err != nil {
-				panic(err)
+				log.Error("WriteProto() error(%v)", err)
+				return
 			}
 			// test heartbeat
 			//time.Sleep(time.Second * 31)
@@ -126,35 +136,53 @@ func main() {
 			proto1.Operation = OP_TEST
 			proto1.SeqId = seqId
 			// use aes
-			if body, err = aes.ECBEncrypt([]byte("hello test"), aesKey, padding.PKCS5); err != nil {
-				panic(err)
+			if body, err = myaes.ECBEncrypt(block, padding.PKCS7.Padding([]byte("hello test"), block.BlockSize())); err != nil {
+				log.Error("aes.ECBEncrypt() error(%v)", err)
+				return
 			}
 			proto1.Body = body
 			if err = WriteProto(wr, proto1); err != nil {
-				panic(err)
+				log.Error("WriteProto() error(%v)", err)
+				return
 			}
 			seqId++
-			//time.Sleep(100 * time.Millisecond)
+			time.Sleep(10000 * time.Millisecond)
 		}
 	}()
 	// reader
 	for {
 		if err = ReadProto(rd, proto); err != nil {
-			panic(err)
+			log.Error("ReadProto() error(%v)", err)
+			return
 		}
 		if proto.Body != nil {
-			if proto.Body, err = aes.ECBDecrypt(body, aesKey, padding.PKCS5); err != nil {
-				panic(err)
+			if proto.Body, err = myaes.ECBDecrypt(block, proto.Body); err != nil {
+				log.Error("aes.ECBDecrypt() error(%v)", err)
+				return
 			}
 		}
 		if proto.Operation == OP_HEARTBEAT_REPLY {
 			if err = conn.SetReadDeadline(time.Now().Add(25 * time.Second)); err != nil {
-				panic(err)
+				log.Error("conn.SetReadDeadline() error(%v)", err)
+				return
 			}
-			fmt.Printf("receive heartbeat\n")
+			log.Debug("receive heartbeat")
 		} else if proto.Operation == OP_TEST_REPLY {
-			fmt.Printf("receive test\n")
-			fmt.Printf("body: %s\n", string(proto.Body))
+			log.Debug("receive test")
+			bodyStr, err := padding.PKCS7.Unpadding(proto.Body, block.BlockSize())
+			if err != nil {
+				log.Error("pkcs7.Unpadding() error(%v)", err)
+				return
+			}
+			log.Debug("body: %s", bodyStr)
+		} else if proto.Operation == OP_SEND_SMS_REPLY {
+			log.Debug("receive message")
+			bodyStr, err := padding.PKCS7.Unpadding(proto.Body, block.BlockSize())
+			if err != nil {
+				log.Error("pkcs7.Unpadding() error(%v)", err)
+				return
+			}
+			log.Debug("body: %s", bodyStr)
 		}
 	}
 }
@@ -177,7 +205,7 @@ func WriteProto(wr *bufio.Writer, proto *Proto) (err error) {
 		return
 	}
 	if proto.Body != nil {
-		fmt.Printf("cipher body: %v\n", proto.Body)
+		log.Debug("cipher body: %v", proto.Body)
 		if err = binary.Write(wr, binary.BigEndian, proto.Body); err != nil {
 			return
 		}
@@ -191,23 +219,23 @@ func ReadProto(rd *bufio.Reader, proto *Proto) (err error) {
 	if err = binary.Read(rd, binary.BigEndian, &proto.PackLen); err != nil {
 		return
 	}
-	fmt.Printf("packLen: %d\n", proto.PackLen)
+	log.Debug("packLen: %d", proto.PackLen)
 	if err = binary.Read(rd, binary.BigEndian, &proto.HeaderLen); err != nil {
 		return
 	}
-	fmt.Printf("headerLen: %d\n", proto.HeaderLen)
+	log.Debug("headerLen: %d", proto.HeaderLen)
 	if err = binary.Read(rd, binary.BigEndian, &proto.Ver); err != nil {
 		return
 	}
-	fmt.Printf("ver: %d\n", proto.Ver)
+	log.Debug("ver: %d", proto.Ver)
 	if err = binary.Read(rd, binary.BigEndian, &proto.Operation); err != nil {
 		return
 	}
-	fmt.Printf("operation: %d\n", proto.Operation)
+	log.Debug("operation: %d", proto.Operation)
 	if err = binary.Read(rd, binary.BigEndian, &proto.SeqId); err != nil {
 		return
 	}
-	fmt.Printf("seqId: %d\n", proto.SeqId)
+	log.Debug("seqId: %d", proto.SeqId)
 	if err = ReadBody(rd, proto); err != nil {
 	}
 	return
@@ -219,7 +247,7 @@ func ReadBody(rd *bufio.Reader, proto *Proto) (err error) {
 		t       = int(0)
 		bodyLen = int(proto.PackLen - int32(proto.HeaderLen))
 	)
-	fmt.Printf("read body len: %d\n", bodyLen)
+	log.Debug("read body len: %d", bodyLen)
 	if bodyLen > 0 {
 		proto.Body = make([]byte, bodyLen)
 		for {

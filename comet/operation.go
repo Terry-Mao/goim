@@ -49,8 +49,7 @@ func (operator *DefaultOperator) Operate(proto *Proto) error {
 		// TODO remove
 		log.Debug("test operation: %s", proto.Body)
 		proto.Operation = OP_TEST_REPLY
-		// PKCS7 padding
-		proto.Body = []byte("reply test000000")
+		proto.Body = []byte("reply test")
 	} else {
 		return ErrOperation
 	}

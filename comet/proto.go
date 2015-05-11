@@ -4,6 +4,7 @@ import (
 	log "code.google.com/p/log4go"
 	"crypto/cipher"
 	"github.com/Terry-Mao/goim/libs/crypto/aes"
+	"github.com/Terry-Mao/goim/libs/crypto/padding"
 	"sync"
 )
 
@@ -22,6 +23,9 @@ type Proto struct {
 
 func (p *Proto) Encrypt(block cipher.Block) (err error) {
 	if p.Body != nil {
+		// pkcs7 padding
+		// TODO reuse buffer
+		p.Body = padding.PKCS7.Padding(p.Body, block.BlockSize())
 		p.Body, err = aes.ECBEncrypt(block, p.Body)
 	}
 	return
@@ -29,7 +33,11 @@ func (p *Proto) Encrypt(block cipher.Block) (err error) {
 
 func (p *Proto) Decrypt(block cipher.Block) (err error) {
 	if p.Body != nil {
-		p.Body, err = aes.ECBDecrypt(block, p.Body)
+		if p.Body, err = aes.ECBDecrypt(block, p.Body); err != nil {
+			return
+		}
+		// pkcs7 unpadding
+		p.Body, err = padding.PKCS7.Unpadding(p.Body, block.BlockSize())
 	}
 	return
 }
