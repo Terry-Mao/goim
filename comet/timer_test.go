@@ -48,6 +48,7 @@ func TestTimerProcess(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
+	go TimerProcess([]*Timer{timer})
 	time.Sleep(10 * time.Second)
 	timer.Del(timerd)
 }

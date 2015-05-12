@@ -40,6 +40,8 @@ func NewRound(readBuf, writeBuf, timer, timerSize, proto, protoSize int) *Round 
 	for i := 0; i < timer; i++ {
 		r.timers[i] = NewTimer(timerSize)
 	}
+	// start timer process
+	go TimerProcess(r.timers)
 	/*
 		log.Debug("create %d encrypter buffer pool", encrypterBuf)
 		r.encrypterIdx = encrypterBuf - 1

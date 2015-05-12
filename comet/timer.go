@@ -67,7 +67,6 @@ func NewTimer(num int) *Timer {
 		td.next = new(TimerData)
 		td = td.next
 	}
-	go t.process()
 	return t
 }
 
@@ -232,21 +231,40 @@ func (t *Timer) put(td *TimerData) {
 	t.free = td
 }
 
-func (t *Timer) process() {
-	log.Debug("strat timer process")
-	var d time.Duration
+// TimerProcess one process goroutine handle many timers.
+// range all timers call find the time.Duration
+// sleep
+// range all timers call expire
+func TimerProcess(timers []*Timer) {
+	var (
+		t  *Timer
+		d  time.Duration
+		md = timerDelay
+	)
+	// loop forever
 	for {
-		d = t.Find()
-		if d > zeroDuration {
-			if d > maxTimerDelay {
-				d = maxTimerDelay
+		for _, t = range timers {
+			d = t.Find()
+			if d > zeroDuration {
+				if d > maxTimerDelay {
+					d = maxTimerDelay
+				}
+			} else if d == infiniteDuration {
+				d = timerDelay
+			} else {
+				// if found call expire and calculate again the min timerd
+				t.Expire()
+				d = zeroDuration
+				break
 			}
-		} else if d == infiniteDuration {
-			d = timerDelay
-		} else {
-			t.Expire()
-			continue
+			if md > d {
+				md = d
+			}
 		}
-		time.Sleep(d)
+		if d != zeroDuration {
+			log.Debug("timer process sleep: %s", md.String())
+			time.Sleep(md)
+			md = timerDelay
+		}
 	}
 }
