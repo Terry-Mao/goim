@@ -43,16 +43,28 @@ func NewServer() *Server {
 // Accept accepts connections on the listener and serves requests
 // for each incoming connection.  Accept blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) Accept(lis net.Listener, i int) {
+func (server *Server) AcceptTCP(lis *net.TCPListener, i int) {
 	var (
-		conn net.Conn
+		conn *net.TCPConn
 		err  error
 	)
 	for {
 		log.Debug("server: accept round: %d", i)
-		if conn, err = lis.Accept(); err != nil {
+		if conn, err = lis.AcceptTCP(); err != nil {
 			// if listener close then return
 			log.Error("listener.Accept(\"%s\") error(%v)", lis.Addr().String(), err)
+			return
+		}
+		if err = conn.SetKeepAlive(Conf.TCPKeepalive); err != nil {
+			log.Error("conn.SetKeepAlive() error(%v)", err)
+			return
+		}
+		if err = conn.SetReadBuffer(Conf.TCPSndbuf); err != nil {
+			log.Error("conn.SetReadBuffer() error(%v)", err)
+			return
+		}
+		if err = conn.SetWriteBuffer(Conf.TCPRcvbuf); err != nil {
+			log.Error("conn.SetWriteBuffer() error(%v)", err)
 			return
 		}
 		go server.serveConn(conn, i)

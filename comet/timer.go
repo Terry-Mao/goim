@@ -262,7 +262,7 @@ func TimerProcess(timers []*Timer) {
 			}
 		}
 		if d != zeroDuration {
-			log.Debug("timer process sleep: %s", md.String())
+			//log.Debug("timer process sleep: %s", md.String())
 			time.Sleep(md)
 			md = timerDelay
 		}

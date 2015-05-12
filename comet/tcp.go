@@ -8,17 +8,22 @@ import (
 // InitTCP listen all tcp.bind and start accept connections.
 func InitTCP(server *Server) (err error) {
 	var (
-		listener net.Listener
+		listener *net.TCPListener
+		addr     *net.TCPAddr
 	)
 	for _, bind := range Conf.TCPBind {
-		if listener, err = net.Listen("tcp", bind); err != nil {
+		if addr, err = net.ResolveTCPAddr("tcp4", bind); err != nil {
+			log.Error("net.ResolveTCPAddr(\"tcp4\", \"%s\") error(%v)", bind, err)
+			return
+		}
+		if listener, err = net.ListenTCP("tcp4", addr); err != nil {
 			log.Error("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
 		}
 		// split N core accept
 		for i := 0; i < Conf.MaxProc; i++ {
 			log.Debug("start tcp accept[goroutine %d]: \"%s\"", i, bind)
-			go server.Accept(listener, i)
+			go server.AcceptTCP(listener, i)
 		}
 	}
 	return

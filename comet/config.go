@@ -43,8 +43,9 @@ type Config struct {
 	StatBind  []string `goconf:"base:stat.bind:,"`
 	// proto section
 	TCPBind            []string      `goconf:"proto:tcp.bind:,"`
-	Sndbuf             int           `goconf:"proto:sndbuf:memory"`
-	Rcvbuf             int           `goconf:"proto:rcvbuf:memory"`
+	TCPSndbuf          int           `goconf:"proto:tcp.sndbuf:memory"`
+	TCPRcvbuf          int           `goconf:"proto:tcp.rcvbuf:memory"`
+	TCPKeepalive       bool          `goconf:"proto:tcp.keepalive"`
 	HandshakeTimeout   time.Duration `goconf:"proto:handshake.timeout:time"`
 	HandshakeProto     int           `goconf:"proto:handshake.proto"`
 	HandshakeProtoSize int           `goconf:"proto:handshake.proto.size"`
@@ -83,8 +84,9 @@ func NewConfig() *Config {
 		StatBind:  []string{"localhost:6972"},
 		// proto section
 		TCPBind:            []string{"localhost:8080"},
-		Sndbuf:             2048,
-		Rcvbuf:             256,
+		TCPSndbuf:          1024,
+		TCPRcvbuf:          1024,
+		TCPKeepalive:       false,
 		HandshakeTimeout:   5 * time.Second,
 		HandshakeProto:     1024,
 		HandshakeProtoSize: 1000,
