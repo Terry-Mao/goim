@@ -114,7 +114,6 @@ func (c *DefaultServerCodec) WriteResponse(wr *bufio.Writer, proto *Proto) (err 
 			log.Error("body: wr.Write() error(%v)", err)
 			return
 		}
-		// TODO padding
 	}
 	return wr.Flush()
 }

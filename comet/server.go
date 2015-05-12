@@ -6,6 +6,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"github.com/Terry-Mao/goim/libs/crypto/rsa"
+	"github.com/Terry-Mao/goim/libs/hash/cityhash"
 	"net"
 	"sync"
 	"time"
@@ -17,10 +18,11 @@ var (
 )
 
 type Server struct {
-	buckets  []*Bucket // subkey bucket
-	round    *Round    // accept round store
-	codec    ServerCodec
-	operator Operator
+	buckets   []*Bucket // subkey bucket
+	bucketIdx uint32
+	round     *Round // accept round store
+	codec     ServerCodec
+	operator  Operator
 }
 
 // NewServer returns a new Server.
@@ -30,6 +32,7 @@ func NewServer() *Server {
 	s.codec = new(DefaultServerCodec)
 	s.operator = new(DefaultOperator)
 	s.buckets = make([]*Bucket, Conf.Bucket)
+	s.bucketIdx = uint32(Conf.Bucket - 1)
 	for i := 0; i < Conf.Bucket; i++ {
 		s.buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
 	}
@@ -355,10 +358,15 @@ func (server *Server) sendResponse(wr *bufio.Writer, proto *Proto) (err error) {
 }
 
 func (server *Server) Bucket(subKey string) *Bucket {
-	// TODO
-	h := NewMurmur3C()
-	h.Write([]byte(subKey))
-	idx := h.Sum32() & uint32(Conf.Bucket-1)
-	log.Debug("\"%s\" hit channel bucket index: %d", subKey, idx)
+	/*
+		// use cityhash replaced
+		h := NewMurmur3C()
+		h.Write([]byte(subKey))
+		idx := h.Sum32() & uint32(Conf.Bucket-1)
+		log.Debug("\"%s\" hit channel bucket index: %d", subKey, idx)
+		return server.buckets[idx]
+	*/
+	idx := cityhash.CityHash32([]byte(subKey), uint32(len(subKey))) & server.bucketIdx
+	log.Debug("\"%s\" hit channel bucket index: %d use cityhash", subKey, idx)
 	return server.buckets[idx]
 }
