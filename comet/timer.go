@@ -30,7 +30,7 @@ func (td *TimerData) Delay() time.Duration {
 func (td *TimerData) Lazy(expire time.Duration) bool {
 	key := time.Now().Add(expire)
 	if d := (key.Sub(td.key)); d < timerLazyDelay {
-		log.Debug("lazy timer: %s, old: %s", key.Format(timerFormat), td.String())
+		//log.Debug("lazy timer: %s, old: %s", key.Format(timerFormat), td.String())
 		return true
 	}
 	return false
