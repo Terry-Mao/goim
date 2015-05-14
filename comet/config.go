@@ -68,7 +68,7 @@ type Config struct {
 	SvrProto int `goconf:"bucket:svr.proto.num"`
 	Channel  int `goconf:"bucket:channel.num"`
 	// push
-	HttpPushBind     []string      `goconf:"push:push.bind:,"`
+	HttpPushBind     []string      `goconf:"push:http.push.bind:,"`
 	HttpReadTimeout  time.Duration `goconf:"push:read.timeout:time"`
 	HttpWriteTimeout time.Duration `goconf:"push:write.timeout:time"`
 }
