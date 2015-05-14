@@ -49,7 +49,7 @@ func (operator *DefaultOperator) Operate(proto *Proto) error {
 		// TODO remove
 		log.Debug("test operation: %s", proto.Body)
 		proto.Operation = OP_TEST_REPLY
-		proto.Body = []byte("reply test")
+		proto.Body = proto.Body
 	} else {
 		return ErrOperation
 	}
