@@ -27,6 +27,10 @@ func main() {
 	if err := InitPush(defaultServer); err != nil {
 		panic(err)
 	}
+	// start rpc
+	if err := StartRPC(); err != nil {
+		panic(err)
+	}
 	// block until a signal is received.
 	InitSignal()
 	// listen
