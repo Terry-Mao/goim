@@ -12,13 +12,13 @@ goim is a im server writen by golang.
  * stat
 
 ## Architecture
- ![goim](http://raw.github.com/Terry-Mao/goim/master/arch.png "goim architecture")
+ ![goim](https://raw.githubusercontent.com/Terry-Mao/goim/master/doc/arch.png "goim architecture")
 
 ## Protocol
- ![goim](http://raw.github.com/Terry-Mao/goim/master/protocol.png "goim protocol")
+ ![goim](https://raw.githubusercontent.com/Terry-Mao/goim/master/doc/protocol.png "goim protocol")
 
 ## Handshake
- ![goim](http://raw.github.com/Terry-Mao/goim/master/handshake.png "goim handshake")
+ ![goim](https://raw.githubusercontent.com/Terry-Mao/goim/master/doc/handshake.png "goim handshake")
 
 ## Document
 [English](https://github.com/Terry-Mao/goim/blob/master/README_en.md)
