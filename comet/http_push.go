@@ -14,16 +14,11 @@ const (
 	InternalErr = 65535
 )
 
-var (
-	server *Server
-)
-
-func InitPush(s *Server) error {
-	server = s
+func InitHttpPush() error {
 	// http listen
-	httpServeMux := http.NewServeMux()
-	httpServeMux.HandleFunc("/1/push", Push)
 	for _, bind := range Conf.HttpPushBind {
+		httpServeMux := http.NewServeMux()
+		httpServeMux.HandleFunc("/1/push", Push)
 		log.Info("start http listen addr:\"%s\"", bind)
 		go httpListen(httpServeMux, bind)
 	}
@@ -77,7 +72,7 @@ func Push(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	key := params.Get("key")
 	log.Debug("push key: \"%s\"", key)
-	bucket := server.Bucket(key)
+	bucket := DefaultServer.Bucket(key)
 	if channel := bucket.Get(key); channel != nil {
 		// padding let caller do
 		if err = channel.Push(1, OP_SEND_SMS_REPLY, bodyBytes); err != nil {

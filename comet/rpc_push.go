@@ -11,15 +11,13 @@ type RPCPushMsg struct {
 	Msg []byte
 }
 
-// StartRPC start rpc listen.
-func StartRPC() error {
+func InitRPCPush() error {
 	c := &PushRPC{}
 	rpc.Register(c)
 	for _, bind := range Conf.RPCPushBind {
 		log.Info("start listen rpc addr: \"%s\"", bind)
 		go rpcListen(bind)
 	}
-
 	return nil
 }
 
@@ -50,7 +48,7 @@ func (this *PushRPC) Push(args *RPCPushMsg, ret *int) (err error) {
 		log.Error("PushRPC.Push() args==nil")
 		return
 	}
-	bucket := server.Bucket(args.Key)
+	bucket := DefaultServer.Bucket(args.Key)
 	if channel := bucket.Get(args.Key); channel != nil {
 		// padding let caller do
 		if err = channel.Push(1, OP_SEND_SMS_REPLY, args.Msg); err != nil {

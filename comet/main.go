@@ -7,6 +7,10 @@ import (
 	"runtime"
 )
 
+var (
+	DefaultServer *Server
+)
+
 func main() {
 	flag.Parse()
 	if err := InitConfig(); err != nil {
@@ -20,15 +24,15 @@ func main() {
 	if err := InitRSA(); err != nil {
 		panic(err)
 	}
-	defaultServer := NewServer()
-	if err := InitTCP(defaultServer); err != nil {
+	DefaultServer = NewServer()
+	if err := InitTCP(); err != nil {
 		panic(err)
 	}
-	if err := InitPush(defaultServer); err != nil {
+	if err := InitHttpPush(); err != nil {
 		panic(err)
 	}
 	// start rpc
-	if err := StartRPC(); err != nil {
+	if err := InitRPCPush(); err != nil {
 		panic(err)
 	}
 	// block until a signal is received.

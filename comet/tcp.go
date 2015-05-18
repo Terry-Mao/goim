@@ -6,7 +6,7 @@ import (
 )
 
 // InitTCP listen all tcp.bind and start accept connections.
-func InitTCP(server *Server) (err error) {
+func InitTCP() (err error) {
 	var (
 		listener *net.TCPListener
 		addr     *net.TCPAddr
@@ -23,7 +23,7 @@ func InitTCP(server *Server) (err error) {
 		// split N core accept
 		for i := 0; i < Conf.MaxProc; i++ {
 			log.Debug("start tcp accept[goroutine %d]: \"%s\"", i, bind)
-			go server.AcceptTCP(listener, i)
+			go DefaultServer.AcceptTCP(listener, i)
 		}
 	}
 	return
