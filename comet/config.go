@@ -71,6 +71,7 @@ type Config struct {
 	HttpPushBind     []string      `goconf:"push:http.push.bind:,"`
 	HttpReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
 	HttpWriteTimeout time.Duration `goconf:"push:http.write.timeout:time"`
+	RPCPushBind      []string      `goconf:"push:rpc.push.bind:,"`
 }
 
 func NewConfig() *Config {
@@ -112,6 +113,7 @@ func NewConfig() *Config {
 		HttpPushBind:     []string{"localhost:8082"},
 		HttpReadTimeout:  5 * time.Second,
 		HttpWriteTimeout: 5 * time.Second,
+		RPCPushBind:      []string{"localhost:8082"},
 	}
 }
 
