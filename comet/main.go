@@ -37,8 +37,4 @@ func main() {
 	}
 	// block until a signal is received.
 	InitSignal()
-	// listen
-	// go
-	// protocol
-	// read & write
 }
