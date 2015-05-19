@@ -15,4 +15,5 @@ type Node struct {
 type Bucket struct {
 	tLock  sync.Mutex
 	topics map[string][]Node
+	subs   map[string]int8
 }
