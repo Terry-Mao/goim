@@ -9,11 +9,6 @@ import (
 	"time"
 )
 
-const (
-	OK          = 1
-	InternalErr = 65535
-)
-
 func InitHttpPush() error {
 	// http listen
 	for _, bind := range Conf.HttpPushBind {
