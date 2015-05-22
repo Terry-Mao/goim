@@ -11,9 +11,7 @@ import (
 )
 
 var (
-	aesKeyLen = 16
-	aesIVLen  = 16
-	maxInt    = 1<<31 - 1
+	maxInt = 1<<31 - 1
 )
 
 type Server struct {
@@ -31,7 +29,7 @@ func NewServer() *Server {
 	log.Debug("server: use default server codec")
 	s.codec = new(DefaultServerCodec)
 	s.operator = new(DefaultOperator)
-	s.cryptor = &DefaultCryptor{dataLen: aesKeyLen + aesIVLen, keyLen: aesKeyLen}
+	s.cryptor = NewDefaultCryptor()
 	s.buckets = make([]*Bucket, Conf.Bucket)
 	s.bucketIdx = uint32(Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {

@@ -35,6 +35,11 @@ func InitRSA() (err error) {
 	return
 }
 
+const (
+	aesKeyLen = 16
+	aesIVLen  = 16
+)
+
 type Cryptor interface {
 	Exchange(*rsa.PrivateKey, []byte) (cipher.BlockMode, cipher.BlockMode, error) // use rsa exchange aes key&iv
 	Encrypt(cipher.BlockMode, []byte) ([]byte, error)                             // aes encrypt
@@ -44,6 +49,10 @@ type Cryptor interface {
 type DefaultCryptor struct {
 	dataLen int
 	keyLen  int
+}
+
+func NewDefaultCryptor() *DefaultCryptor {
+	return &DefaultCryptor{dataLen: aesKeyLen + aesIVLen, keyLen: aesKeyLen}
 }
 
 func (c *DefaultCryptor) Exchange(pri *rsa.PrivateKey, cipherText []byte) (encryptor cipher.BlockMode, decryptor cipher.BlockMode, err error) {
