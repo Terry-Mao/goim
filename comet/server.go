@@ -3,9 +3,7 @@ package main
 import (
 	"bufio"
 	log "code.google.com/p/log4go"
-	"crypto/aes"
 	"crypto/cipher"
-	"github.com/Terry-Mao/goim/libs/crypto/rsa"
 	"github.com/Terry-Mao/goim/libs/hash/cityhash"
 	"net"
 	"sync"
@@ -14,6 +12,7 @@ import (
 
 var (
 	aesKeyLen = 16
+	aesIVLen  = 16
 	maxInt    = 1<<31 - 1
 )
 
@@ -23,6 +22,7 @@ type Server struct {
 	round     *Round // accept round store
 	codec     ServerCodec
 	operator  Operator
+	cryptor   Cryptor
 }
 
 // NewServer returns a new Server.
@@ -31,12 +31,13 @@ func NewServer() *Server {
 	log.Debug("server: use default server codec")
 	s.codec = new(DefaultServerCodec)
 	s.operator = new(DefaultOperator)
+	s.cryptor = &DefaultCryptor{dataLen: aesKeyLen + aesIVLen, keyLen: aesKeyLen}
 	s.buckets = make([]*Bucket, Conf.Bucket)
 	s.bucketIdx = uint32(Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
 		s.buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
 	}
-	s.round = NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize, Conf.HandshakeProto, Conf.HandshakeProtoSize)
+	s.round = NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize)
 	return s
 }
 
@@ -76,41 +77,42 @@ func (server *Server) AcceptTCP(lis *net.TCPListener, i int) {
 
 func (server *Server) serveConn(conn net.Conn, r int) {
 	var (
-		block     cipher.Block
+		ebm       cipher.BlockMode
+		dbm       cipher.BlockMode
 		subKey    string
 		err       error
 		heartbeat time.Duration
 		bucket    *Bucket
 		channel   *Channel
 		timerd    *TimerData
+		proto     = new(Proto)
 		// timer
 		timer = server.round.Timer(r)
 		// bufpool
 		rp = server.round.Reader(r) // reader
 		wp = server.round.Writer(r) // writer
-		// free proto
-		fp = server.round.Proto(r)
 		// bufio
 		rd = NewBufioReaderSize(rp, conn, Conf.ReadBufSize)  // read buf
 		wr = NewBufioWriterSize(wp, conn, Conf.WriteBufSize) // write buf
-		// proto
-		proto = fp.Get()
 		// ip addr
 		lAddr = conn.LocalAddr().String()
 		rAddr = conn.RemoteAddr().String()
 	)
-	// handshake
+	// handshake & auth
 	if timerd, err = timer.Add(Conf.HandshakeTimeout, conn); err != nil {
 		log.Error("\"%s\" handshake timer.Add() error(%v)", rAddr, err)
 	} else {
 		log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
-		if block, subKey, heartbeat, bucket, channel, err = server.handshake(rd, wr, proto); err != nil {
+		if ebm, dbm, err = server.handshake(rd, wr, proto); err != nil {
 			log.Error("\"%s\"->\"%s\" handshake() error(%v)", lAddr, rAddr, err)
+		} else {
+			if subKey, heartbeat, bucket, channel, err = server.auth(rd, wr, dbm, proto); err != nil {
+				log.Error("\"%s\"->\"%s\" auth() error(%v)", lAddr, rAddr, err)
+			}
 		}
 		//deltimer
 		timer.Del(timerd)
 	}
-	fp.Free(proto)
 	// failed
 	if err != nil {
 		if err = conn.Close(); err != nil {
@@ -122,7 +124,7 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 	}
 	// hanshake ok start dispatch goroutine
 	log.Debug("%s[%s] serverconn goroutine start", subKey, rAddr)
-	go server.dispatch(conn, wr, wp, channel, block, heartbeat, timer, rAddr)
+	go server.dispatch(conn, wr, wp, channel, ebm, dbm, heartbeat, timer, rAddr)
 	for {
 		// fetch a proto from channel free list
 		if proto, err = channel.CliProto.Set(); err != nil {
@@ -174,7 +176,7 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, block cipher.Block, heartbeat time.Duration, timer *Timer, rAddr string) {
+func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, ebm, dbm cipher.BlockMode, heartbeat time.Duration, timer *Timer, rAddr string) {
 	var (
 		err    error
 		proto  *Proto
@@ -214,7 +216,7 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 				log.Debug("\"%s\" heartbeat proto: %v", rAddr, proto)
 			} else {
 				// aes decrypt body
-				if err = proto.Decrypt(block); err != nil {
+				if proto.Body, err = server.cryptor.Decrypt(dbm, proto.Body); err != nil {
 					log.Error("\"%s\" decrypt client proto error(%v)", rAddr, err)
 					goto failed
 				}
@@ -223,7 +225,7 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 					log.Error("\"%s\" operator.Operate() error(%v)", rAddr, err)
 					goto failed
 				}
-				if err = proto.Encrypt(block); err != nil {
+				if proto.Body, err = server.cryptor.Encrypt(ebm, proto.Body); err != nil {
 					log.Error("\"%s\" encrypt client proto error(%v)", rAddr, err)
 					goto failed
 				}
@@ -240,7 +242,7 @@ func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, c
 				log.Debug("\"%s\" channel no more server message, wait signal", rAddr)
 				break
 			}
-			if err = proto.Encrypt(block); err != nil {
+			if proto.Body, err = server.cryptor.Encrypt(ebm, proto.Body); err != nil {
 				log.Error("\"%s\" encrypt server proto error(%v)", rAddr, err)
 				goto failed
 			}
@@ -266,11 +268,8 @@ failed:
 }
 
 // handshake for goim handshake with client, use rsa & aes.
-func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto) (block cipher.Block, subKey string, heartbeat time.Duration, bucket *Bucket, channel *Channel, err error) {
-	var (
-		aesKey []byte
-	)
-	// 1. exchange aes key
+func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto) (ebm, dbm cipher.BlockMode, err error) {
+	// exchange key
 	log.Debug("get handshake request protocol")
 	if err = server.readRequest(rd, proto); err != nil {
 		return
@@ -281,18 +280,8 @@ func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto
 		return
 	}
 	log.Debug("handshake cipher body : %v", proto.Body)
-	if aesKey, err = rsa.Decrypt(proto.Body, RSAPri); err != nil {
-		log.Error("rsa.Decrypt() error(%v)", err)
-		return
-	}
-	log.Debug("handshake aesKey : 0x%x", aesKey)
-	if len(aesKey) != aesKeyLen {
-		log.Warn("handshake aes key size not valid: %d", len(aesKey))
-		err = ErrHandshake
-		return
-	}
-	if block, err = aes.NewCipher(aesKey); err != nil {
-		log.Error("handshake aes.NewCipher() error(%v)", err)
+	if ebm, dbm, err = server.cryptor.Exchange(RSAPri, proto.Body); err != nil {
+		log.Error("server.cryptor.Exchange() error(%v)", err)
 		return
 	}
 	log.Debug("send handshake response protocol")
@@ -300,9 +289,12 @@ func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto
 	proto.Operation = OP_HANDSHAKE_REPLY
 	if err = server.sendResponse(wr, proto); err != nil {
 		log.Error("handshake reply server.SendResponse() error(%v)", err)
-		return
 	}
-	// 2. auth token
+	return
+}
+
+// auth for goim handshake with client, use rsa & aes.
+func (server *Server) auth(rd *bufio.Reader, wr *bufio.Writer, dbm cipher.BlockMode, proto *Proto) (subKey string, heartbeat time.Duration, bucket *Bucket, channel *Channel, err error) {
 	log.Debug("get auth request protocol")
 	if err = server.readRequest(rd, proto); err != nil {
 		return
@@ -312,7 +304,7 @@ func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto
 		err = ErrOperation
 		return
 	}
-	if err = proto.Decrypt(block); err != nil {
+	if proto.Body, err = server.cryptor.Decrypt(dbm, proto.Body); err != nil {
 		log.Error("auth decrypt client proto error(%v)", err)
 		return
 	}

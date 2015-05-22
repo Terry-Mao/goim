@@ -10,17 +10,17 @@ type Round struct {
 	writers []*sync.Pool
 	//encrypters   []*sync.Pool
 	//decrypters   []*sync.Pool
-	timers    []*Timer
-	protos    []*FreeProto
+	timers []*Timer
+	// protos    []*FreeProto
 	readerIdx int
 	writerIdx int
 	//encrypterIdx int
 	//decrypterIdx int
 	timerIdx int
-	protoIdx int
+	// protoIdx int
 }
 
-func NewRound(readBuf, writeBuf, timer, timerSize, proto, protoSize int) *Round {
+func NewRound(readBuf, writeBuf, timer, timerSize int) *Round {
 	r := new(Round)
 	log.Debug("create %d reader buffer pool", readBuf)
 	r.readerIdx = readBuf
@@ -55,13 +55,13 @@ func NewRound(readBuf, writeBuf, timer, timerSize, proto, protoSize int) *Round 
 		for i := 0; i < encrypterBuf; i++ {
 			r.decrypters[i] = new(sync.Pool)
 		}
+		log.Debug("create %d free proto", proto)
+		r.protoIdx = proto
+		r.protos = make([]*FreeProto, proto)
+		for i := 0; i < proto; i++ {
+			r.protos[i] = NewFreeProto(protoSize)
+		}
 	*/
-	log.Debug("create %d free proto", proto)
-	r.protoIdx = proto
-	r.protos = make([]*FreeProto, proto)
-	for i := 0; i < proto; i++ {
-		r.protos[i] = NewFreeProto(protoSize)
-	}
 	return r
 }
 
@@ -77,11 +77,11 @@ func (r *Round) Writer(rn int) *sync.Pool {
 	return r.writers[rn%r.writerIdx]
 }
 
+/*
 func (r *Round) Proto(rn int) *FreeProto {
 	return r.protos[rn%r.protoIdx]
 }
 
-/*
 func (r *Round) Encrypter(rn int) *sync.Pool {
 	return r.encrypters[rn&r.encrypterIdx]
 }
