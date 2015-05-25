@@ -11,6 +11,12 @@ type RPCPushMsg struct {
 	Msg []byte
 }
 
+type RPCPushsMsg struct {
+	Key        string
+	Operations []int32
+	Msgs       [][]byte
+}
+
 func InitRPCPush() error {
 	c := &PushRPC{}
 	rpc.Register(c)
@@ -41,7 +47,7 @@ func rpcListen(bind string) {
 type PushRPC struct {
 }
 
-// New expored a method for creating new channel.
+// Push push a message to a specified sub key, must goroutine safe.
 func (this *PushRPC) Push(args *RPCPushMsg, ret *int) (err error) {
 	if args == nil {
 		*ret = InternalErr
@@ -54,6 +60,26 @@ func (this *PushRPC) Push(args *RPCPushMsg, ret *int) (err error) {
 		if err = channel.Push(1, OP_SEND_SMS_REPLY, args.Msg); err != nil {
 			*ret = InternalErr
 			log.Error("channel.Push() error(%v)", err)
+			return
+		}
+	}
+	*ret = OK
+	return
+}
+
+// Pushs push multiple messages to a specified sub key, must goroutine safe.
+func (this *PushRPC) Pushs(args *RPCPushsMsg, ret *int) (err error) {
+	if args == nil {
+		*ret = InternalErr
+		log.Error("PushRPC.Pushs() args==nil")
+		return
+	}
+	bucket := DefaultServer.Bucket(args.Key)
+	if channel := bucket.Get(args.Key); channel != nil {
+		// padding let caller do
+		if _, err = channel.Pushs(1, args.Operations, args.Msgs); err != nil {
+			*ret = InternalErr
+			log.Error("channel.Pushs() error(%v)", err)
 			return
 		}
 	}

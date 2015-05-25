@@ -1,13 +1,5 @@
 package main
 
-import (
-	log "code.google.com/p/log4go"
-	"crypto/cipher"
-	"github.com/Terry-Mao/goim/libs/crypto/aes"
-	"github.com/Terry-Mao/goim/libs/crypto/padding"
-	"sync"
-)
-
 // Proto is a request&response written before every goim connect.  It is used internally
 // but documented here as an aid to debugging, such as when analyzing
 // network traffic.
@@ -18,9 +10,10 @@ type Proto struct {
 	Operation int32  // operation for request
 	SeqId     int32  // sequence number chosen by client
 	Body      []byte // body
-	next      *Proto // free list
+	//next      *Proto // free list
 }
 
+/*
 func (p *Proto) Encrypt(block cipher.Block) (err error) {
 	if p.Body != nil {
 		// pkcs7 padding
@@ -88,3 +81,4 @@ func (f *FreeProto) Free(p *Proto) {
 	f.lock.Unlock()
 	log.Debug("put timerdata, used: %d", f.used)
 }
+*/

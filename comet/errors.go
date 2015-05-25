@@ -20,4 +20,6 @@ var (
 	ErrTimerNoItem = errors.New("timer item not exist")
 	// channel
 	ErrPushArgs = errors.New("channel pushs args error")
+	// crypto
+	ErrInputTextSize = errors.New("input not full blocks")
 )

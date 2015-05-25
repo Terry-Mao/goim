@@ -6,11 +6,11 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
 	"encoding/binary"
 	"flag"
-	myaes "github.com/Terry-Mao/goim/libs/crypto/aes"
 	"github.com/Terry-Mao/goim/libs/crypto/padding"
-	myrsa "github.com/Terry-Mao/goim/libs/crypto/rsa"
 	"github.com/Terry-Mao/goim/libs/perf"
 	"net"
 	"runtime"
@@ -61,29 +61,32 @@ func main() {
 		log.Error("net.Dial(\"%s\") error(%v)", Conf.TCPAddr, err)
 		return
 	}
-	var body []byte
 	seqId := int32(0)
 	wr := bufio.NewWriter(conn)
 	rd := bufio.NewReader(conn)
 	proto := new(Proto)
 	proto.Ver = 1
-	aesKey := make([]byte, 16)
+	key := make([]byte, 32)
 	// handshake
-	if _, err = rand.Read(aesKey); err != nil {
+	if _, err = rand.Read(key); err != nil {
 		panic(err)
 	}
-	log.Debug("aes key: %v", aesKey)
 	proto.Operation = OP_HANDSHARE
 	proto.SeqId = seqId
-	proto.Body = aesKey
-	var block cipher.Block
-	if block, err = aes.NewCipher(aesKey); err != nil {
+	proto.Body = key
+	// aes
+	var (
+		block cipher.Block
+	)
+	if block, err = aes.NewCipher(key[:16]); err != nil {
 		log.Error("aes.NewCipher() error(%v)", err)
 		return
 	}
-	// use rsa
-	if proto.Body, err = myrsa.Encrypt(proto.Body, RSAPub); err != nil {
-		log.Error("myrsa.Encrypt() error(%v)", err)
+	log.Debug("aes key: %x, iv: %x", key[:16], key[16:])
+	ebm := cipher.NewCBCEncrypter(block, key[16:])
+	dbm := cipher.NewCBCDecrypter(block, key[16:])
+	// rsa
+	if proto.Body, err = rsa.EncryptOAEP(sha256.New(), rand.Reader, RSAPub, proto.Body, nil); err != nil {
 		return
 	}
 	if err = WriteProto(wr, proto); err != nil {
@@ -95,18 +98,21 @@ func main() {
 		return
 	}
 	log.Debug("handshake ok, proto: %v", proto)
+	dbm.CryptBlocks(proto.Body, proto.Body)
+	if proto.Body, err = padding.PKCS7.Unpadding(proto.Body, dbm.BlockSize()); err != nil {
+		log.Error("Unpadding() error(%v)", err)
+		return
+	}
+	log.Debug("handshake sessionid : %s", string(proto.Body))
 	seqId++
 	// auth
 	// test handshake timeout
 	// time.Sleep(time.Second * 31)
 	proto.Operation = OP_AUTH
 	proto.SeqId = seqId
-	proto.Body = padding.PKCS7.Padding([]byte(Conf.SubKey), block.BlockSize())
+	proto.Body = padding.PKCS7.Padding([]byte(Conf.SubKey), ebm.BlockSize())
 	// user aes encrypt sub key
-	if proto.Body, err = myaes.ECBEncrypt(block, proto.Body); err != nil {
-		log.Error("aes.ECBEncrypt() error(%v)", err)
-		return
-	}
+	ebm.CryptBlocks(proto.Body, proto.Body)
 	if err = WriteProto(wr, proto); err != nil {
 		log.Error("WriteProto() error(%v)", err)
 		return
@@ -136,11 +142,8 @@ func main() {
 			proto1.Operation = OP_TEST
 			proto1.SeqId = seqId
 			// use aes
-			if body, err = myaes.ECBEncrypt(block, padding.PKCS7.Padding([]byte("hello test"), block.BlockSize())); err != nil {
-				log.Error("aes.ECBEncrypt() error(%v)", err)
-				return
-			}
-			proto1.Body = body
+			proto1.Body = padding.PKCS7.Padding([]byte("hello test"), block.BlockSize())
+			ebm.CryptBlocks(proto1.Body, proto1.Body)
 			if err = WriteProto(wr, proto1); err != nil {
 				log.Error("WriteProto() error(%v)", err)
 				return
@@ -156,10 +159,7 @@ func main() {
 			return
 		}
 		if proto.Body != nil {
-			if proto.Body, err = myaes.ECBDecrypt(block, proto.Body); err != nil {
-				log.Error("aes.ECBDecrypt() error(%v)", err)
-				return
-			}
+			dbm.CryptBlocks(proto.Body, proto.Body)
 		}
 		if proto.Operation == OP_HEARTBEAT_REPLY {
 			if err = conn.SetReadDeadline(time.Now().Add(25 * time.Second)); err != nil {

@@ -2,6 +2,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/libs/crypto/padding"
 	"time"
 )
 
@@ -20,6 +21,9 @@ const (
 	// auth user
 	OP_AUTH       = int32(7)
 	OP_AUTH_REPLY = int32(8)
+	// handshake with sid
+	OP_HANDSHAKE_SID       = int32(9)
+	OP_HANDSHAKE_SID_REPLY = int32(10)
 
 	// for test
 	OP_TEST       = int32(254)
@@ -39,6 +43,10 @@ type DefaultOperator struct {
 }
 
 func (operator *DefaultOperator) Operate(proto *Proto) error {
+	var (
+		err  error
+		body []byte
+	)
 	if proto.Operation == OP_SEND_SMS {
 		// call suntao's api
 		// proto.Body = nil
@@ -47,9 +55,11 @@ func (operator *DefaultOperator) Operate(proto *Proto) error {
 		log.Info("send sms proto: %v", proto)
 	} else if proto.Operation == OP_TEST {
 		// TODO remove
-		log.Debug("test operation: %s", proto.Body)
+		if body, err = padding.PKCS7.Unpadding(proto.Body, 16); err != nil {
+			return err
+		}
+		log.Debug("test operation: %s", body)
 		proto.Operation = OP_TEST_REPLY
-		proto.Body = proto.Body
 	} else {
 		return ErrOperation
 	}

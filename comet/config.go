@@ -42,24 +42,24 @@ type Config struct {
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	StatBind  []string `goconf:"base:stat.bind:,"`
 	// proto section
-	TCPBind            []string      `goconf:"proto:tcp.bind:,"`
-	TCPSndbuf          int           `goconf:"proto:tcp.sndbuf:memory"`
-	TCPRcvbuf          int           `goconf:"proto:tcp.rcvbuf:memory"`
-	TCPKeepalive       bool          `goconf:"proto:tcp.keepalive"`
-	HandshakeTimeout   time.Duration `goconf:"proto:handshake.timeout:time"`
-	HandshakeProto     int           `goconf:"proto:handshake.proto"`
-	HandshakeProtoSize int           `goconf:"proto:handshake.proto.size"`
-	WriteTimeout       time.Duration `goconf:"proto:write.timeout:time"`
-	ReadBuf            int           `goconf:"proto:readbuf"`
-	WriteBuf           int           `goconf:"proto:writebuf"`
-	ReadBufSize        int           `goconf:"proto:readbuf.size"`
-	WriteBufSize       int           `goconf:"proto:writebuf.size"`
+	TCPBind          []string      `goconf:"proto:tcp.bind:,"`
+	TCPSndbuf        int           `goconf:"proto:tcp.sndbuf:memory"`
+	TCPRcvbuf        int           `goconf:"proto:tcp.rcvbuf:memory"`
+	TCPKeepalive     bool          `goconf:"proto:tcp.keepalive"`
+	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
+	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
+	ReadBuf          int           `goconf:"proto:readbuf"`
+	WriteBuf         int           `goconf:"proto:writebuf"`
+	ReadBufSize      int           `goconf:"proto:readbuf.size"`
+	WriteBufSize     int           `goconf:"proto:writebuf.size"`
 	//EncrypterBuf       int           `goconf:"proto:encrypterbuf"`
 	//DecrypterBuf       int           `goconf:"proto:decrypterbuf"`
 	//EncrypterBufSize   int           `goconf:"proto:encrypterbuf.size"`
 	//DecrypterBufSize   int           `goconf:"proto:decrypterbuf.size"`
-	Timer     int `goconf:"proto:timer"`
-	TimerSize int `goconf:"proto:timer.size"`
+	Timer       int `goconf:"proto:timer"`
+	TimerSize   int `goconf:"proto:timer.size"`
+	Session     int `goconf:"proto:session"`
+	SessionSize int `goconf:"proto:session.size"`
 	// crypto
 	RSAPrivate string `goconf:"crypto:rsa.private"`
 	// bucket
@@ -84,24 +84,24 @@ func NewConfig() *Config {
 		PprofBind: []string{"localhost:6971"},
 		StatBind:  []string{"localhost:6972"},
 		// proto section
-		TCPBind:            []string{"localhost:8080"},
-		TCPSndbuf:          1024,
-		TCPRcvbuf:          1024,
-		TCPKeepalive:       false,
-		HandshakeTimeout:   5 * time.Second,
-		HandshakeProto:     1024,
-		HandshakeProtoSize: 1000,
-		WriteTimeout:       5 * time.Second,
-		ReadBuf:            1024,
-		WriteBuf:           1024,
-		ReadBufSize:        1024,
-		WriteBufSize:       1024,
+		TCPBind:          []string{"localhost:8080"},
+		TCPSndbuf:        1024,
+		TCPRcvbuf:        1024,
+		TCPKeepalive:     false,
+		HandshakeTimeout: 5 * time.Second,
+		WriteTimeout:     5 * time.Second,
+		ReadBuf:          1024,
+		WriteBuf:         1024,
+		ReadBufSize:      1024,
+		WriteBufSize:     1024,
 		//EncrypterBuf:       1024,
 		//DecrypterBuf:       1024,
 		//EncrypterBufSize:   1024,
 		//DecrypterBufSize:   1024,
-		Timer:     1024,
-		TimerSize: 1000,
+		Timer:       1024,
+		TimerSize:   1000,
+		Session:     1024,
+		SessionSize: 1024,
 		// crypto
 		RSAPrivate: "./pri.pem",
 		// bucket
