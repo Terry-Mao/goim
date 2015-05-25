@@ -2,6 +2,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	pbcodec "github.com/felixhao/goim/router/protobuf"
 	"net"
 	"net/rpc"
 )
@@ -40,7 +41,14 @@ func rpcListen(bind string) {
 			log.Error("listener.Close() error(%v)", err)
 		}
 	}()
-	rpc.Accept(l)
+	// rpc.Accept(l)
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			continue
+		}
+		go rpc.ServeCodec(pbcodec.NewPbServerCodec(conn))
+	}
 }
 
 // Router RPC
@@ -48,27 +56,52 @@ type RouterRPC struct {
 }
 
 // Sub let client get sub info by sub key.
-func (this *RouterRPC) Sub(key *string, ret *RPCSubMsg) (err error) {
-	ret = new(RPCSubMsg)
+func (this *RouterRPC) Sub(key *string, ret *int64) (err error) {
 	if key == nil {
 		log.Error("RouterRPC.Push() key==nil")
-		ret.Ret = ParamterErr
+		*ret = ParamterErr
 		return
 	}
 	sb := DefaultBuckets.SubBucket(*key)
 	if sb == nil {
 		log.Error("DefaultBuckets get subbucket error key(%s)", *key)
-		ret.Ret = InternalErr
+		*ret = InternalErr
 		return
 	}
 	n := sb.Get(*key)
 	if n == nil {
+		*ret = NoExistKey
+		return
+	}
+	*ret |= (int64(n.server) << 48)
+	*ret |= (int64(n.state) << 32)
+	*ret |= OK
+	return
+}
+
+// PbSub let client get sub info by sub key.
+func (this *RouterRPC) PbSub(key *PbRPCSubKey, ret *PbRPCSubRet) (err error) {
+	if key == nil {
+		log.Error("RouterRPC.Push() key==nil")
+		ret.Ret = ParamterErr
+		return
+	}
+	log.Info("PbSub key(%s)", key.Key)
+	sb := DefaultBuckets.SubBucket(key.Key)
+	if sb == nil {
+		log.Error("DefaultBuckets get subbucket error key(%s)", key.Key)
+		ret.Ret = InternalErr
+		return
+	}
+	n := sb.Get(key.Key)
+	log.Info("PbSub node(%v)", n)
+	if n == nil {
 		ret.Ret = NoExistKey
 		return
 	}
-	ret.State = n.state
-	ret.Server = n.server
-	ret.Ret = OK
+	ret.Ret |= (int64(n.server) << 48)
+	ret.Ret |= (int64(n.state) << 32)
+	ret.Ret |= OK
 	return
 }
 
@@ -155,11 +188,25 @@ type RPCSubArg struct {
 // SetSub let client set sub key.
 func (this *RouterRPC) SetSub(key *RPCSubArg, ret *int) (err error) {
 	if key == nil {
-		log.Error("RouterRPC.SetTopic() key==nil")
+		log.Error("RouterRPC.SetSub() key==nil")
 		*ret = ParamterErr
 		return
 	}
+	log.Info("SetSub key(%s)", key)
 	DefaultBuckets.SubBucket(key.Subkey).SetStateAndServer(key.Subkey, key.State, key.Server)
 	*ret = OK
+	return
+}
+
+// PbSetSub let client set sub key.
+func (this *RouterRPC) PbSetSub(key *PbRPCSetSubArg, ret *PbRPCSubRet) (err error) {
+	if key == nil {
+		log.Error("RouterRPC.PbSetSub() key==nil")
+		ret.Ret = ParamterErr
+		return
+	}
+	log.Info("PbSetSub key(%v)", key)
+	DefaultBuckets.SubBucket(key.Subkey).SetStateAndServer(key.Subkey, int8(key.State), int16(key.Server))
+	ret.Ret = OK
 	return
 }

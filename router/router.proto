@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package main;
+
+message PbRPCSubKey { 
+    string     key = 1;
+}
+
+message PbRPCSubRet {
+    int64     ret = 1;
+}
+
+message PbRPCSetSubArg {
+    string     subkey = 1;
+    int32      state = 2;
+    int32      server = 3;
+}

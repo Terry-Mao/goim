@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package protobuf;
+
+message RequestHeader { 
+    string     Method = 1;
+    uint64     Seq = 2;
+    uint32     MethodId = 3;
+}
+
+message ResponseHeader { 
+    string     Method = 1;
+    uint64     Seq = 2;
+    string     Error = 3;
+    uint32     MethodId = 4;
+}

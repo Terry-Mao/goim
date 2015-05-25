@@ -179,7 +179,7 @@ func initData() {
 	for i := 0; i < TOPIC_DATA_NUM; i++ {
 		topic := fmt.Sprintf(TOPIC_KEY, i)
 		ts.Topic = topic
-		for j := 0; j < TOPIC_DATA_NUM*(i+1); j++ {
+		for j := 0; j < i/2; j++ {
 			ts.Subkey = fmt.Sprintf(SUB_KEY, j)
 			c.Call("RouterRPC.SetTopic", ts, &reply)
 		}

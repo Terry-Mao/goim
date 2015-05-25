@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	pbcodec "github.com/felixhao/goim/router/protobuf"
 	"io"
 	"testing"
 )
@@ -12,7 +13,9 @@ const (
 )
 
 func TestRouter(t *testing.T) {
-	testBucket(t)
+	// testBucket(t)
+	testSetClient(t)
+	testGetClient(t)
 }
 
 func testBucket(t *testing.T) {
@@ -30,9 +33,9 @@ func testBucket(t *testing.T) {
 		topics[i] = topic
 
 		if i%2 == 0 {
-			DefaultBuckets.SubBucket(subkey).SerStateAndServer(subkey, 1, 1)
+			DefaultBuckets.SubBucket(subkey).SetStateAndServer(subkey, 1, 1)
 		} else {
-			DefaultBuckets.SubBucket(subkey).SerStateAndServer(subkey, 1, 1)
+			DefaultBuckets.SubBucket(subkey).SetStateAndServer(subkey, 1, 1)
 			DefaultBuckets.PutToTopic(topic, subkey)
 		}
 		if i%3 == 0 {
@@ -50,4 +53,30 @@ func testBucket(t *testing.T) {
 		ss := DefaultBuckets.TopicBucket(topic).Get(topic)
 		t.Log("topic", topic, ss)
 	}
+}
+
+func testSetClient(t *testing.T) {
+	c, err := pbcodec.Dial("tcp", "127.0.0.1:9090")
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+	key := &PbRPCSetSubArg{Subkey: "47234636491364", State: 1, Server: 1}
+	ret := &PbRPCSubRet{}
+	err = c.Call("RouterRPC.PbSetSub", key, ret)
+	t.Log(err, ret)
+	c.Close()
+}
+
+func testGetClient(t *testing.T) {
+	c, err := pbcodec.Dial("tcp", "127.0.0.1:9090")
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+	key := &PbRPCSubKey{"47234636491364"}
+	ret := &PbRPCSubRet{}
+	c.Call("RouterRPC.PbSub", key, ret)
+	t.Log(ret.Ret)
+	c.Close()
 }
