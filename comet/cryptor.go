@@ -41,9 +41,10 @@ const (
 )
 
 type Cryptor interface {
-	Exchange(*rsa.PrivateKey, []byte) (cipher.BlockMode, cipher.BlockMode, error) // use rsa exchange aes key&iv
-	Encrypt(cipher.BlockMode, []byte) ([]byte, error)                             // aes encrypt
-	Decrypt(cipher.BlockMode, []byte) ([]byte, error)                             // aes decrypt
+	Exchange(*rsa.PrivateKey, []byte) ([]byte, error) // use rsa exchange aes key&iv
+	Cryptor([]byte) (cipher.BlockMode, cipher.BlockMode, error)
+	Encrypt(cipher.BlockMode, []byte) ([]byte, error) // aes encrypt
+	Decrypt(cipher.BlockMode, []byte) ([]byte, error) // aes decrypt
 }
 
 type DefaultCryptor struct {
@@ -55,31 +56,31 @@ func NewDefaultCryptor() *DefaultCryptor {
 	return &DefaultCryptor{dataLen: aesKeyLen + aesIVLen, keyLen: aesKeyLen}
 }
 
-func (c *DefaultCryptor) Exchange(pri *rsa.PrivateKey, cipherText []byte) (encryptor cipher.BlockMode, decryptor cipher.BlockMode, err error) {
-	var (
-		d     []byte
-		key   []byte
-		iv    []byte
-		block cipher.Block
-	)
-	if d, err = rsa.DecryptOAEP(sha256.New(), nil, pri, cipherText, nil); err != nil {
+func (c *DefaultCryptor) Exchange(pri *rsa.PrivateKey, cipherText []byte) (ki []byte, err error) {
+	if ki, err = rsa.DecryptOAEP(sha256.New(), nil, pri, cipherText, nil); err != nil {
 		log.Error("rsa.DecryptOAEP() error(%v)", err)
 		return
 	}
-	if len(d) != c.dataLen {
-		log.Warn("handshake aes key size not valid: %d", len(d))
+	if len(ki) != c.dataLen {
+		log.Warn("handshake aes key size not valid: %d", len(ki))
 		err = ErrHandshake
-		return
 	}
-	key = d[:c.keyLen]
+	return
+}
+
+func (c *DefaultCryptor) Cryptor(ki []byte) (ebm cipher.BlockMode, dbm cipher.BlockMode, err error) {
+	var (
+		block cipher.Block
+		key   = ki[:c.keyLen]
+		iv    = ki[c.keyLen:]
+	)
 	if block, err = aes.NewCipher(key); err != nil {
 		log.Error("aes.NewCipher() error(%v)", err)
 		return
 	}
-	iv = d[c.keyLen:]
 	log.Debug("aes key: %x, iv: %x", key, iv)
-	encryptor = cipher.NewCBCEncrypter(block, iv)
-	decryptor = cipher.NewCBCDecrypter(block, iv)
+	ebm = cipher.NewCBCEncrypter(block, iv)
+	dbm = cipher.NewCBCDecrypter(block, iv)
 	return
 }
 

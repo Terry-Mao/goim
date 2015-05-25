@@ -8,8 +8,8 @@ import (
 // Bucket is a channel holder.
 type Bucket struct {
 	cLock sync.Mutex          // protect the free list of channel
-	bLock sync.Mutex          // protect the channels for chs
 	chs   map[string]*Channel // map sub key to a channel
+	//bLock sync.Mutex          // protect the channels for chs
 	//free  *Channel            // channel free list, reuse channel for everyone
 	//used  int                 // count the used channl
 }

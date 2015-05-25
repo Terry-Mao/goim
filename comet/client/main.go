@@ -98,6 +98,12 @@ func main() {
 		return
 	}
 	log.Debug("handshake ok, proto: %v", proto)
+	dbm.CryptBlocks(proto.Body, proto.Body)
+	if proto.Body, err = padding.PKCS7.Unpadding(proto.Body, dbm.BlockSize()); err != nil {
+		log.Error("Unpadding() error(%v)", err)
+		return
+	}
+	log.Debug("handshake sessionid : %s", string(proto.Body))
 	seqId++
 	// auth
 	// test handshake timeout

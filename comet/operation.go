@@ -21,6 +21,9 @@ const (
 	// auth user
 	OP_AUTH       = int32(7)
 	OP_AUTH_REPLY = int32(8)
+	// handshake with sid
+	OP_HANDSHAKE_SID       = int32(9)
+	OP_HANDSHAKE_SID_REPLY = int32(10)
 
 	// for test
 	OP_TEST       = int32(254)

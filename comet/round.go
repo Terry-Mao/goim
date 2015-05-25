@@ -10,17 +10,19 @@ type Round struct {
 	writers []*sync.Pool
 	//encrypters   []*sync.Pool
 	//decrypters   []*sync.Pool
-	timers []*Timer
+	timers   []*Timer
+	sessions []*Session
 	// protos    []*FreeProto
 	readerIdx int
 	writerIdx int
 	//encrypterIdx int
 	//decrypterIdx int
-	timerIdx int
+	timerIdx   int
+	sessionIdx int
 	// protoIdx int
 }
 
-func NewRound(readBuf, writeBuf, timer, timerSize int) *Round {
+func NewRound(readBuf, writeBuf, timer, timerSize, session, sessionSize int) *Round {
 	r := new(Round)
 	log.Debug("create %d reader buffer pool", readBuf)
 	r.readerIdx = readBuf
@@ -42,6 +44,12 @@ func NewRound(readBuf, writeBuf, timer, timerSize int) *Round {
 	}
 	// start timer process
 	go TimerProcess(r.timers)
+	log.Debug("create %d session", session)
+	r.sessionIdx = session
+	r.sessions = make([]*Session, session)
+	for i := 0; i < session; i++ {
+		r.sessions[i] = NewSession(sessionSize)
+	}
 	/*
 		log.Debug("create %d encrypter buffer pool", encrypterBuf)
 		r.encrypterIdx = encrypterBuf - 1
@@ -75,6 +83,10 @@ func (r *Round) Reader(rn int) *sync.Pool {
 
 func (r *Round) Writer(rn int) *sync.Pool {
 	return r.writers[rn%r.writerIdx]
+}
+
+func (r *Round) Session(rn int) *Session {
+	return r.sessions[rn%r.sessionIdx]
 }
 
 /*

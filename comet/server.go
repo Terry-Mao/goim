@@ -4,6 +4,7 @@ import (
 	"bufio"
 	log "code.google.com/p/log4go"
 	"crypto/cipher"
+	"github.com/Terry-Mao/goim/libs/crypto/padding"
 	"github.com/Terry-Mao/goim/libs/hash/cityhash"
 	"net"
 	"sync"
@@ -35,7 +36,7 @@ func NewServer() *Server {
 	for i := 0; i < Conf.Bucket; i++ {
 		s.buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
 	}
-	s.round = NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize)
+	s.round = NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize, Conf.Session, Conf.SessionSize)
 	return s
 }
 
@@ -92,6 +93,8 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		// bufio
 		rd = NewBufioReaderSize(rp, conn, Conf.ReadBufSize)  // read buf
 		wr = NewBufioWriterSize(wp, conn, Conf.WriteBufSize) // write buf
+		// session
+		session = server.round.Session(r)
 		// ip addr
 		lAddr = conn.LocalAddr().String()
 		rAddr = conn.RemoteAddr().String()
@@ -101,7 +104,7 @@ func (server *Server) serveConn(conn net.Conn, r int) {
 		log.Error("\"%s\" handshake timer.Add() error(%v)", rAddr, err)
 	} else {
 		log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
-		if ebm, dbm, err = server.handshake(rd, wr, proto); err != nil {
+		if ebm, dbm, err = server.handshake(rd, wr, session, proto); err != nil {
 			log.Error("\"%s\"->\"%s\" handshake() error(%v)", lAddr, rAddr, err)
 		} else {
 			if subKey, heartbeat, bucket, channel, err = server.auth(rd, wr, dbm, proto); err != nil {
@@ -266,25 +269,46 @@ failed:
 }
 
 // handshake for goim handshake with client, use rsa & aes.
-func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, proto *Proto) (ebm, dbm cipher.BlockMode, err error) {
+func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, session *Session, proto *Proto) (ebm, dbm cipher.BlockMode, err error) {
+	var (
+		ki, sidBytes []byte
+	)
+
 	// exchange key
 	log.Debug("get handshake request protocol")
 	if err = server.readRequest(rd, proto); err != nil {
 		return
 	}
-	if proto.Operation != OP_HANDSHAKE {
+	if proto.Operation == OP_HANDSHAKE {
+		log.Debug("handshake cipher body : %v", proto.Body)
+		if ki, err = server.cryptor.Exchange(RSAPri, proto.Body); err != nil {
+			log.Error("server.cryptor.Exchange() error(%v)", err)
+			return
+		}
+		proto.Operation = OP_HANDSHAKE_REPLY
+		sidBytes = []byte(session.Put(ki, SessionExpire))
+		log.Debug("session id: \"%s\"", sidBytes)
+	} else if proto.Operation == OP_HANDSHAKE_SID {
+		if ki = session.Get(string(proto.Body)); ki == nil {
+			log.Error("session.Get(\"%s\") not exists", string(proto.Body))
+			return
+		}
+		proto.Operation = OP_HANDSHAKE_SID_REPLY
+	} else {
 		log.Warn("handshake operation not valid: %d", proto.Operation)
 		err = ErrOperation
 		return
 	}
-	log.Debug("handshake cipher body : %v", proto.Body)
-	if ebm, dbm, err = server.cryptor.Exchange(RSAPri, proto.Body); err != nil {
-		log.Error("server.cryptor.Exchange() error(%v)", err)
+	if ebm, dbm, err = server.cryptor.Cryptor(ki); err != nil {
+		log.Error("server.cryptor.Cryptor() error(%v)", err)
+		return
+	}
+	sidBytes = padding.PKCS7.Padding(sidBytes, ebm.BlockSize())
+	if proto.Body, err = server.cryptor.Encrypt(ebm, sidBytes); err != nil {
+		log.Error("server.cryptor.Encrypt() sessionid error(%v)", err)
 		return
 	}
 	log.Debug("send handshake response protocol")
-	proto.Body = nil
-	proto.Operation = OP_HANDSHAKE_REPLY
 	if err = server.sendResponse(wr, proto); err != nil {
 		log.Error("handshake reply server.SendResponse() error(%v)", err)
 	}
