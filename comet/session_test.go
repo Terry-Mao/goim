@@ -25,3 +25,14 @@ func TestSession(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func TestSessionProcess(t *testing.T) {
+	// process test
+	session := NewSession(3)
+	session.Put([]byte("test"), time.Second)
+	go SessionProcess([]*Session{session})
+	time.Sleep(5 * time.Second)
+	if len(session.sessions) != 0 {
+		t.FailNow()
+	}
+}

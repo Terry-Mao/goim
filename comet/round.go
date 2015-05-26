@@ -50,6 +50,7 @@ func NewRound(readBuf, writeBuf, timer, timerSize, session, sessionSize int) *Ro
 	for i := 0; i < session; i++ {
 		r.sessions[i] = NewSession(sessionSize)
 	}
+	go SessionProcess(r.sessions)
 	/*
 		log.Debug("create %d encrypter buffer pool", encrypterBuf)
 		r.encrypterIdx = encrypterBuf - 1
