@@ -182,7 +182,7 @@ func testPbSub() {
 			ci++
 		}
 	}
-	stop("topic", counts)
+	stop("pbsub", counts)
 }
 
 func initData() {
