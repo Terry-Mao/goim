@@ -30,7 +30,6 @@ func (c *commConn) sendFrame(data []byte) error {
 		n := binary.PutUvarint(size, uint64(0))
 		return c.write(c.w, size[:n])
 	}
-
 	// Write the size and data
 	n := binary.PutUvarint(size, uint64(len(data)))
 	if err := c.write(c.w, size[:n]); err != nil {
@@ -44,6 +43,7 @@ func (c *commConn) write(w io.Writer, data []byte) error {
 		n, err := w.Write(data[index:])
 		if err != nil {
 			if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
+				c.Close()
 				return err
 			}
 		}

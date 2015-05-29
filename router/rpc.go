@@ -34,7 +34,7 @@ func InitRPC() error {
 }
 
 func rpcListen(bind string) {
-	l, err := net.Listen("tcp", bind)
+	l, err := net.ListenTCP("tcp", bind)
 	if err != nil {
 		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
 		panic(err)
@@ -46,13 +46,15 @@ func rpcListen(bind string) {
 			log.Error("listener.Close() error(%v)", err)
 		}
 	}()
-	// rpc.Accept(l)
 	for {
-		conn, err := l.Accept()
+		conn, err := l.AcceptTCP()
 		if err != nil {
 			continue
 		}
-		conn.SetDeadline(time.Now().Add(DEAD_LINE))
+		if err = conn.SetDeadline(time.Now().Add(DEAD_LINE)); err != nil {
+			log.Error("conn.SetDeadline error(%v)", err)
+			continue
+		}
 		go rpc.ServeCodec(pbcodec.NewPbServerCodec(conn))
 	}
 }
