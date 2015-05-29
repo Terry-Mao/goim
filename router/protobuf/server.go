@@ -42,10 +42,7 @@ func (c *commConn) write(w io.Writer, data []byte) error {
 	for index := 0; index < len(data); {
 		n, err := w.Write(data[index:])
 		if err != nil {
-			if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
-				c.Close()
-				return err
-			}
+			c.Close()
 		}
 		index += n
 	}
