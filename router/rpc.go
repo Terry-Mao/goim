@@ -5,11 +5,6 @@ import (
 	pbcodec "github.com/felixhao/goim/router/protobuf"
 	"net"
 	"net/rpc"
-	"time"
-)
-
-var (
-	DEAD_LINE = 5 * time.Minute
 )
 
 type RPCSubMsg struct {
@@ -34,7 +29,7 @@ func InitRPC() error {
 }
 
 func rpcListen(bind string) {
-	l, err := net.ListenTCP("tcp", bind)
+	l, err := net.Listen("tcp", bind)
 	if err != nil {
 		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
 		panic(err)
@@ -47,12 +42,8 @@ func rpcListen(bind string) {
 		}
 	}()
 	for {
-		conn, err := l.AcceptTCP()
+		conn, err := l.Accept()
 		if err != nil {
-			continue
-		}
-		if err = conn.SetDeadline(time.Now().Add(DEAD_LINE)); err != nil {
-			log.Error("conn.SetDeadline error(%v)", err)
 			continue
 		}
 		go rpc.ServeCodec(pbcodec.NewPbServerCodec(conn))
