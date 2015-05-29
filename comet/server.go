@@ -289,6 +289,8 @@ func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, session *Ses
 		sidBytes = []byte(session.Put(ki, SessionExpire))
 		log.Debug("session id: \"%s\"", sidBytes)
 	} else if proto.Operation == OP_HANDSHAKE_SID {
+		// raw message for find session -> aes key & iv
+		// if sniffed by somebody, it's safe here
 		if ki = session.Get(string(proto.Body)); ki == nil {
 			log.Error("session.Get(\"%s\") not exists", string(proto.Body))
 			return
