@@ -8,14 +8,17 @@ import (
 
 var (
 	SessionExpire = time.Hour * 24 * 7
+	SessionDelay  = 1 * time.Second
 )
 
 const (
-	sessionIdLen = 16
+	sessionIdLen       = 16
+	sessionBatchExpire = 100
 )
 
 // use hashmap + double linked list(LRU) + lazy drop
 type SessionData struct {
+	sid        string
 	ki         []byte
 	expireTime time.Time
 	next, prev *SessionData
@@ -56,7 +59,7 @@ func (l *SessionLRU) PushFront(e *SessionData) {
 	l.len++
 }
 
-func (l *SessionLRU) Remove(e *SessionData) {
+func (l *SessionLRU) remove(e *SessionData) {
 	e.prev.next = e.next
 	e.next.prev = e.prev
 	e.next = nil // avoid memory leaks
@@ -77,6 +80,13 @@ func (l *SessionLRU) MoveToFront(e *SessionData) {
 	e.prev = at
 	e.next = n
 	n.prev = e
+}
+
+func (l *SessionLRU) Back() *SessionData {
+	if l.len == 0 {
+		return nil
+	}
+	return l.root.prev
 }
 
 func (s *Session) SessionId() string {
@@ -121,6 +131,7 @@ func (s *Session) Put(ki []byte, expire time.Duration) (sid string) {
 		}
 		if _, ok = s.sessions[sid]; !ok {
 			sd.expireTime = time.Now().Add(expire)
+			sd.sid = sid
 			s.sessions[sid] = sd
 			// insert lru
 			s.lru.PushFront(sd)
@@ -144,7 +155,7 @@ func (s *Session) Get(sid string) (ki []byte) {
 	if sd.Expire() {
 		// lazy-drop
 		delete(s.sessions, sid)
-		s.lru.Remove(sd)
+		s.lru.remove(sd)
 		s.lock.Unlock()
 		return
 	}
@@ -156,5 +167,31 @@ func (s *Session) Get(sid string) (ki []byte) {
 }
 
 func (s *Session) clean() {
-	// TODO lru
+	var i int
+	s.lock.Lock()
+	for {
+		e := s.lru.Back()
+		if e == nil {
+			s.lock.Unlock()
+			return
+		}
+		if e.Expire() {
+			s.lru.remove(e)
+			delete(s.sessions, e.sid)
+		}
+		if i++; i >= sessionBatchExpire {
+			// next time
+			s.lock.Unlock()
+			return
+		}
+	}
+}
+
+func SessionProcess(sessions []*Session) {
+	for {
+		for _, s := range sessions {
+			s.clean()
+		}
+		time.Sleep(SessionDelay)
+	}
 }
