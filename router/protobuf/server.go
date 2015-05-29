@@ -131,10 +131,7 @@ func (c *pbServerCodec) ReadRequestBody(x interface{}) error {
 	}
 	request, ok := x.(proto.Message)
 	if !ok {
-		return fmt.Errorf(
-			"protorpc.pbServerCodec.ReadRequestBody: %T does not implement proto.Message",
-			x,
-		)
+		return fmt.Errorf("protorpc.pbServerCodec.ReadRequestBody: %T does not implement proto.Message", x)
 	}
 	err := c.recvProto(request)
 	if err != nil {
