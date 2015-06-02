@@ -2,16 +2,22 @@ syntax = "proto3";
 
 package main;
 
-message PbRPCSubKey { 
-    string     key = 1;
+import "gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+
+message PbRPCSubKey {
+    string     key = 1 [(gogoproto.nullable) = false];
 }
 
 message PbRPCSubRet {
-    int64     ret = 1;
+    int64     ret = 1 [(gogoproto.nullable) = false];
 }
 
 message PbRPCSetSubArg {
-    string     subkey = 1;
-    int32      state = 2;
-    int32      server = 3;
+    string     subkey = 1 [(gogoproto.nullable) = false];
+    int32      state = 2 [(gogoproto.nullable) = false];
+    int32      server = 3 [(gogoproto.nullable) = false];
 }

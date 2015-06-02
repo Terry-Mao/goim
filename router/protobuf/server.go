@@ -2,13 +2,13 @@ package protobuf
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
-	"net"
 	"net/rpc"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 )
 
 type commConn struct {
@@ -86,8 +86,11 @@ type pbServerCodec struct {
 
 	methods []string
 
-	respHeader ResponseHeader
 	reqHeader  RequestHeader
+	respHeader ResponseHeader
+
+	respHeaderBuf bytes.Buffer
+	respBodyBuf   bytes.Buffer
 }
 
 // NewpbServerCodec returns a pbServerCodec that communicates with the ClientCodec
@@ -150,8 +153,9 @@ func (c *pbServerCodec) WriteResponse(r *rpc.Response, x interface{}) error {
 	}
 	header := &c.respHeader
 	header.Seq = r.Seq
-	header.Error = r.Error
-	bs, err := proto.Marshal(header)
+	*header.Error = r.Error
+	// bs, err := proto.Marshal(header)
+	bs, err := marshal(&c.respHeaderBuf, header)
 	if err != nil {
 		return err
 	}
@@ -161,7 +165,8 @@ func (c *pbServerCodec) WriteResponse(r *rpc.Response, x interface{}) error {
 	if r.Error != "" {
 		bs = nil
 	} else {
-		bs, err = proto.Marshal(response)
+		// bs, err = proto.Marshal(response)
+		bs, err = marshal(&c.respBodyBuf, response)
 		if err != nil {
 			return err
 		}
@@ -170,4 +175,24 @@ func (c *pbServerCodec) WriteResponse(r *rpc.Response, x interface{}) error {
 		return err
 	}
 	return c.w.Flush()
+}
+
+type marshalTo interface {
+	Size() int
+	MarshalTo([]byte) (int, error)
+}
+
+func marshal(buf *bytes.Buffer, m proto.Message) ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	if mt, ok := m.(marshalTo); ok {
+		buf.Reset()
+		size := mt.Size()
+		buf.Grow(size)
+		b := buf.Bytes()[:size]
+		n, err := mt.MarshalTo(b)
+		return b[:n], err
+	}
+	return proto.Marshal(m)
 }

@@ -2,13 +2,14 @@ package protobuf
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net"
 	"net/rpc"
 	"time"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 )
 
 type clientCodec struct {
@@ -18,6 +19,9 @@ type clientCodec struct {
 
 	reqHeader  RequestHeader
 	respHeader ResponseHeader
+
+	reqHeaderBuf bytes.Buffer
+	reqBodyBuf   bytes.Buffer
 }
 
 // NewClientCodec returns a new rpc.ClientCodec using Protobuf-RPC on conn.
@@ -49,14 +53,16 @@ func (c *clientCodec) WriteRequest(r *rpc.Request, param interface{}) error {
 		header.MethodId = uint32(len(c.methods))
 		c.methods[r.ServiceMethod] = header.MethodId
 	}
-	bs, err := proto.Marshal(header)
+	// bs, err := proto.Marshal(header)
+	bs, err := marshal(&c.reqHeaderBuf, header)
 	if err != nil {
 		return err
 	}
 	if err = c.sendFrame(bs); err != nil {
 		return err
 	}
-	bs, err = proto.Marshal(request)
+	// bs, err = proto.Marshal(request)
+	bs, err = marshal(&c.reqBodyBuf, request)
 	if err != nil {
 		return err
 	}
@@ -71,7 +77,7 @@ func (c *clientCodec) ReadResponseHeader(r *rpc.Response) error {
 		return err
 	}
 	r.Seq = c.respHeader.Seq
-	r.Error = c.respHeader.Error
+	r.Error = *c.respHeader.Error
 	return nil
 }
 
