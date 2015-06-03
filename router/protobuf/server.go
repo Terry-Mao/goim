@@ -153,7 +153,7 @@ func (c *pbServerCodec) WriteResponse(r *rpc.Response, x interface{}) error {
 	}
 	header := &c.respHeader
 	header.Seq = r.Seq
-	*header.Error = r.Error
+	header.Error = &r.Error
 	// bs, err := proto.Marshal(header)
 	bs, err := marshal(&c.respHeaderBuf, header)
 	if err != nil {
