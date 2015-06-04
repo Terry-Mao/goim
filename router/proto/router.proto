@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package proto;
+
+import "gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+
+message Ret {
+    int64     ret = 1 [(gogoproto.nullable) = false];
+}
+
+message ArgKey {
+    string     key = 1 [(gogoproto.nullable) = false];
+}
+
+message ArgTopic {
+    string     topic = 1 [(gogoproto.nullable) = false];
+}
+
+message ArgSub {
+    string     key = 1 [(gogoproto.nullable) = false];
+    int32      state = 2 [(gogoproto.nullable) = false];
+    int32      server = 3 [(gogoproto.nullable) = false];
+}
+
+message ArgBatchKey {
+    repeated string     keys = 1 [(gogoproto.nullable) = false];
+}
+
+message RetBatchSub {
+    int64     ret = 1 [(gogoproto.nullable) = false];
+    repeated ArgSub	   subs = 2 [(gogoproto.nullable) = true];
+}
+
+message ArgTopicKey {
+    string     key = 1 [(gogoproto.nullable) = false];
+    string     topic = 2 [(gogoproto.nullable) = false];
+}

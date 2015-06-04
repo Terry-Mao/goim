@@ -2,21 +2,17 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	pbcodec "github.com/felixhao/goim/router/protobuf"
+	rpc "github.com/felixhao/goim/protorpc"
+	"github.com/felixhao/goim/router/proto"
 	"net"
-	"net/rpc"
 )
 
-type RPCSubMsg struct {
-	Ret    int
-	State  int8
-	Server int16
-}
-
-type RPCBatchSubMsg struct {
-	Ret  int
-	Subs []*Sub
-}
+const (
+	OK          = 1
+	NoExistKey  = 65531
+	ParamterErr = 65532
+	InternalErr = 65535
+)
 
 func InitRPC() error {
 	c := &RouterRPC{}
@@ -41,13 +37,7 @@ func rpcListen(bind string) {
 			log.Error("listener.Close() error(%v)", err)
 		}
 	}()
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			continue
-		}
-		go rpc.ServeCodec(pbcodec.NewPbServerCodec(conn))
-	}
+	rpc.Accept(l)
 }
 
 // Router RPC
@@ -55,33 +45,9 @@ type RouterRPC struct {
 }
 
 // Sub let client get sub info by sub key.
-func (this *RouterRPC) Sub(key *string, ret *int64) (err error) {
+func (this *RouterRPC) Sub(key *proto.ArgKey, ret *proto.Ret) (err error) {
 	if key == nil {
-		log.Error("RouterRPC.Push() key==nil")
-		*ret = ParamterErr
-		return
-	}
-	sb := DefaultBuckets.SubBucket(*key)
-	if sb == nil {
-		log.Error("DefaultBuckets get subbucket error key(%s)", *key)
-		*ret = InternalErr
-		return
-	}
-	n := sb.Get(*key)
-	if n == nil {
-		*ret = NoExistKey
-		return
-	}
-	*ret |= (int64(n.server) << 48)
-	*ret |= (int64(n.state) << 32)
-	*ret |= OK
-	return
-}
-
-// PbSub let client get sub info by sub key.
-func (this *RouterRPC) PbSub(key *PbRPCSubKey, ret *PbRPCSubRet) (err error) {
-	if key == nil {
-		log.Error("RouterRPC.Push() key==nil")
+		log.Error("RouterRPC.Sub() key==nil")
 		ret.Ret = ParamterErr
 		return
 	}
@@ -93,7 +59,6 @@ func (this *RouterRPC) PbSub(key *PbRPCSubKey, ret *PbRPCSubRet) (err error) {
 		return
 	}
 	n := sb.Get(key.Key)
-	log.Info("PbSub node(%v)", n)
 	if n == nil {
 		ret.Ret = NoExistKey
 		return
@@ -105,21 +70,21 @@ func (this *RouterRPC) PbSub(key *PbRPCSubKey, ret *PbRPCSubRet) (err error) {
 }
 
 // BatchSub let client batch get sub info by sub keys.
-func (this *RouterRPC) BatchSub(key *[]string, ret *RPCBatchSubMsg) (err error) {
-	ret = new(RPCBatchSubMsg)
+func (this *RouterRPC) BatchSub(key *proto.ArgBatchKey, ret *proto.RetBatchSub) (err error) {
+	ret = new(proto.RetBatchSub)
 	if key == nil {
 		log.Error("RouterRPC.Push() key==nil")
 		ret.Ret = ParamterErr
 		return
 	}
-	l := len(*key)
+	l := len(key.Keys)
 	if l == 0 {
 		ret.Ret = OK
 		return
 	}
-	ret.Subs = make([]*Sub, l)
+	ret.Subs = make([]*proto.ArgSub, l)
 	i := 0
-	for _, v := range *key {
+	for _, v := range key.Keys {
 		sb := DefaultBuckets.SubBucket(v)
 		if sb == nil {
 			log.Error("DefaultBuckets batch get subbucket error key(%s)", v)
@@ -130,10 +95,10 @@ func (this *RouterRPC) BatchSub(key *[]string, ret *RPCBatchSubMsg) (err error) 
 			log.Error("DefaultBuckets batch get subbucket nil error key(%s)", v)
 			continue
 		}
-		sub := &Sub{}
+		sub := &proto.ArgSub{}
 		sub.Key = v
-		sub.State = n.state
-		sub.Server = n.server
+		sub.State = int32(n.state)
+		sub.Server = int32(n.server)
 		ret.Subs[i] = sub
 		i++
 	}
@@ -143,69 +108,68 @@ func (this *RouterRPC) BatchSub(key *[]string, ret *RPCBatchSubMsg) (err error) 
 }
 
 // Topic let client get all sub key in topic.
-func (this *RouterRPC) Topic(key *string, ret *RPCBatchSubMsg) (err error) {
-	ret = new(RPCBatchSubMsg)
+func (this *RouterRPC) Topic(key *proto.ArgTopic, ret *proto.RetBatchSub) (err error) {
+	ret = new(proto.RetBatchSub)
 	if key == nil {
 		log.Error("RouterRPC.Topic() key==nil")
 		ret.Ret = ParamterErr
 		return
 	}
-	tb := DefaultBuckets.TopicBucket(*key)
+	tb := DefaultBuckets.TopicBucket(key.Topic)
 	if tb == nil {
-		log.Error("DefaultBuckets get topicbucket error key(%s)", *key)
+		log.Error("DefaultBuckets get topicbucket error key(%s)", key)
 		ret.Ret = InternalErr
 		return
 	}
-	ret.Subs = tb.Get(*key)
+	m := tb.Get(key.Topic)
+	l := len(m)
+	if l > 0 {
+		ret.Subs = make([]*proto.ArgSub, l)
+		i := 0
+		for k, _ := range m {
+			ts := &proto.ArgSub{}
+			ts.Key = k
+			sb := DefaultBuckets.SubBucket(k)
+			if sb == nil {
+				continue
+			}
+			n := sb.Get(k)
+			if n == nil {
+				// TODO is or not delete from topics
+				tb.del(key.Topic, k)
+				continue
+			}
+			ts.State = int32(n.state)
+			ts.Server = int32(n.server)
+			ret.Subs[i] = ts
+			i++
+		}
+		ret.Subs = ret.Subs[:i]
+	}
 	ret.Ret = OK
 	return
 }
 
-type RPCTopicSubArg struct {
-	Topic  string
-	Subkey string
-}
-
-// SetTopic let client set topic.
-func (this *RouterRPC) SetTopic(key *RPCTopicSubArg, ret *int) (err error) {
-	if key == nil {
-		log.Error("RouterRPC.SetTopic() key==nil")
-		*ret = ParamterErr
-		return
-	}
-	DefaultBuckets.PutToTopic(key.Topic, key.Subkey)
-	*ret = OK
-	return
-}
-
-type RPCSubArg struct {
-	Subkey string
-	State  int8
-	Server int16
-}
-
-// SetSub let client set sub key.
-func (this *RouterRPC) SetSub(key *RPCSubArg, ret *int) (err error) {
+// PbSetSub let client set sub key.
+func (this *RouterRPC) SetSub(key *proto.ArgSub, ret *proto.Ret) (err error) {
 	if key == nil {
 		log.Error("RouterRPC.SetSub() key==nil")
-		*ret = ParamterErr
-		return
-	}
-	log.Info("SetSub key(%s)", key)
-	DefaultBuckets.SubBucket(key.Subkey).SetStateAndServer(key.Subkey, key.State, key.Server)
-	*ret = OK
-	return
-}
-
-// PbSetSub let client set sub key.
-func (this *RouterRPC) PbSetSub(key *PbRPCSetSubArg, ret *PbRPCSubRet) (err error) {
-	if key == nil {
-		log.Error("RouterRPC.PbSetSub() key==nil")
 		ret.Ret = ParamterErr
 		return
 	}
-	log.Info("PbSetSub key(%v)", key)
-	DefaultBuckets.SubBucket(key.Subkey).SetStateAndServer(key.Subkey, int8(key.State), int16(key.Server))
+	DefaultBuckets.SubBucket(key.Key).SetStateAndServer(key.Key, int8(key.State), int16(key.Server))
+	ret.Ret = OK
+	return
+}
+
+// SetTopic let client set topic.
+func (this *RouterRPC) SetTopic(key *proto.ArgTopicKey, ret *proto.Ret) (err error) {
+	if key == nil {
+		log.Error("RouterRPC.SetTopic() key==nil")
+		ret.Ret = ParamterErr
+		return
+	}
+	DefaultBuckets.PutToTopic(key.Topic, key.Key)
 	ret.Ret = OK
 	return
 }

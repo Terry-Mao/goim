@@ -8,13 +8,6 @@ import (
 	"time"
 )
 
-const (
-	OK          = 1
-	NoExistKey  = 65531
-	ParamterErr = 65532
-	InternalErr = 65535
-)
-
 func InitHttp() error {
 	// http listen
 	for _, bind := range Conf.HttpBind {

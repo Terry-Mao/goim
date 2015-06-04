@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package protobuf;
+package protorpc;
 
 import "gogo/protobuf/gogoproto/gogo.proto";
 
@@ -8,15 +8,15 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
-message RequestHeader { 
-    string     Method = 1 [(gogoproto.nullable) = false];
+message Request { 
+    string     ServiceMethod = 1 [(gogoproto.nullable) = false];
     uint64     Seq = 2 [(gogoproto.nullable) = false];
     uint32     MethodId = 3 [(gogoproto.nullable) = false];
 }
 
-message ResponseHeader { 
-    string     Method = 1 [(gogoproto.nullable) = true];
+message Response { 
+    string     ServiceMethod = 1 [(gogoproto.nullable) = false];
     uint64     Seq = 2 [(gogoproto.nullable) = false];
-    string     Error = 3 [(gogoproto.nullable) = true];
+    string     Error = 3 [(gogoproto.nullable) = false];
     uint32     MethodId = 4 [(gogoproto.nullable) = false];
 }

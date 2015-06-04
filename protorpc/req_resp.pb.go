@@ -3,16 +3,16 @@
 // DO NOT EDIT!
 
 /*
-	Package protobuf is a generated protocol buffer package.
+	Package protorpc is a generated protocol buffer package.
 
 	It is generated from these files:
 		req_resp.proto
 
 	It has these top-level messages:
-		RequestHeader
-		ResponseHeader
+		Request
+		Response
 */
-package protobuf
+package protorpc
 
 import proto "github.com/gogo/protobuf/proto"
 import math "math"
@@ -27,72 +27,72 @@ import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
 var _ = proto.Marshal
 var _ = math.Inf
 
-type RequestHeader struct {
-	Method           string `protobuf:"bytes,1,opt" json:"Method"`
+type Request struct {
+	ServiceMethod    string `protobuf:"bytes,1,opt" json:"ServiceMethod"`
 	Seq              uint64 `protobuf:"varint,2,opt" json:"Seq"`
 	MethodId         uint32 `protobuf:"varint,3,opt" json:"MethodId"`
 	XXX_unrecognized []byte `json:"-"`
 }
 
-func (m *RequestHeader) Reset()         { *m = RequestHeader{} }
-func (m *RequestHeader) String() string { return proto.CompactTextString(m) }
-func (*RequestHeader) ProtoMessage()    {}
+func (m *Request) Reset()         { *m = Request{} }
+func (m *Request) String() string { return proto.CompactTextString(m) }
+func (*Request) ProtoMessage()    {}
 
-func (m *RequestHeader) GetMethod() string {
+func (m *Request) GetServiceMethod() string {
 	if m != nil {
-		return m.Method
+		return m.ServiceMethod
 	}
 	return ""
 }
 
-func (m *RequestHeader) GetSeq() uint64 {
+func (m *Request) GetSeq() uint64 {
 	if m != nil {
 		return m.Seq
 	}
 	return 0
 }
 
-func (m *RequestHeader) GetMethodId() uint32 {
+func (m *Request) GetMethodId() uint32 {
 	if m != nil {
 		return m.MethodId
 	}
 	return 0
 }
 
-type ResponseHeader struct {
-	Method           *string `protobuf:"bytes,1,opt" json:"Method,omitempty"`
-	Seq              uint64  `protobuf:"varint,2,opt" json:"Seq"`
-	Error            *string `protobuf:"bytes,3,opt" json:"Error,omitempty"`
-	MethodId         uint32  `protobuf:"varint,4,opt" json:"MethodId"`
-	XXX_unrecognized []byte  `json:"-"`
+type Response struct {
+	ServiceMethod    string `protobuf:"bytes,1,opt" json:"ServiceMethod"`
+	Seq              uint64 `protobuf:"varint,2,opt" json:"Seq"`
+	Error            string `protobuf:"bytes,3,opt" json:"Error"`
+	MethodId         uint32 `protobuf:"varint,4,opt" json:"MethodId"`
+	XXX_unrecognized []byte `json:"-"`
 }
 
-func (m *ResponseHeader) Reset()         { *m = ResponseHeader{} }
-func (m *ResponseHeader) String() string { return proto.CompactTextString(m) }
-func (*ResponseHeader) ProtoMessage()    {}
+func (m *Response) Reset()         { *m = Response{} }
+func (m *Response) String() string { return proto.CompactTextString(m) }
+func (*Response) ProtoMessage()    {}
 
-func (m *ResponseHeader) GetMethod() string {
-	if m != nil && m.Method != nil {
-		return *m.Method
+func (m *Response) GetServiceMethod() string {
+	if m != nil {
+		return m.ServiceMethod
 	}
 	return ""
 }
 
-func (m *ResponseHeader) GetSeq() uint64 {
+func (m *Response) GetSeq() uint64 {
 	if m != nil {
 		return m.Seq
 	}
 	return 0
 }
 
-func (m *ResponseHeader) GetError() string {
-	if m != nil && m.Error != nil {
-		return *m.Error
+func (m *Response) GetError() string {
+	if m != nil {
+		return m.Error
 	}
 	return ""
 }
 
-func (m *ResponseHeader) GetMethodId() uint32 {
+func (m *Response) GetMethodId() uint32 {
 	if m != nil {
 		return m.MethodId
 	}
@@ -101,7 +101,7 @@ func (m *ResponseHeader) GetMethodId() uint32 {
 
 func init() {
 }
-func (m *RequestHeader) Unmarshal(data []byte) error {
+func (m *Request) Unmarshal(data []byte) error {
 	l := len(data)
 	index := 0
 	for index < l {
@@ -122,7 +122,7 @@ func (m *RequestHeader) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Method", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceMethod", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -140,7 +140,7 @@ func (m *RequestHeader) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Method = string(data[index:postIndex])
+			m.ServiceMethod = string(data[index:postIndex])
 			index = postIndex
 		case 2:
 			if wireType != 0 {
@@ -196,7 +196,7 @@ func (m *RequestHeader) Unmarshal(data []byte) error {
 
 	return nil
 }
-func (m *ResponseHeader) Unmarshal(data []byte) error {
+func (m *Response) Unmarshal(data []byte) error {
 	l := len(data)
 	index := 0
 	for index < l {
@@ -217,7 +217,7 @@ func (m *ResponseHeader) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Method", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceMethod", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -235,8 +235,7 @@ func (m *ResponseHeader) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			s := string(data[index:postIndex])
-			m.Method = &s
+			m.ServiceMethod = string(data[index:postIndex])
 			index = postIndex
 		case 2:
 			if wireType != 0 {
@@ -273,8 +272,7 @@ func (m *ResponseHeader) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			s := string(data[index:postIndex])
-			m.Error = &s
+			m.Error = string(data[index:postIndex])
 			index = postIndex
 		case 4:
 			if wireType != 0 {
@@ -315,10 +313,10 @@ func (m *ResponseHeader) Unmarshal(data []byte) error {
 
 	return nil
 }
-func (m *RequestHeader) Size() (n int) {
+func (m *Request) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Method)
+	l = len(m.ServiceMethod)
 	n += 1 + l + sovReqResp(uint64(l))
 	n += 1 + sovReqResp(uint64(m.Seq))
 	n += 1 + sovReqResp(uint64(m.MethodId))
@@ -328,18 +326,14 @@ func (m *RequestHeader) Size() (n int) {
 	return n
 }
 
-func (m *ResponseHeader) Size() (n int) {
+func (m *Response) Size() (n int) {
 	var l int
 	_ = l
-	if m.Method != nil {
-		l = len(*m.Method)
-		n += 1 + l + sovReqResp(uint64(l))
-	}
+	l = len(m.ServiceMethod)
+	n += 1 + l + sovReqResp(uint64(l))
 	n += 1 + sovReqResp(uint64(m.Seq))
-	if m.Error != nil {
-		l = len(*m.Error)
-		n += 1 + l + sovReqResp(uint64(l))
-	}
+	l = len(m.Error)
+	n += 1 + l + sovReqResp(uint64(l))
 	n += 1 + sovReqResp(uint64(m.MethodId))
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -360,7 +354,7 @@ func sovReqResp(x uint64) (n int) {
 func sozReqResp(x uint64) (n int) {
 	return sovReqResp(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *RequestHeader) Marshal() (data []byte, err error) {
+func (m *Request) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -370,15 +364,15 @@ func (m *RequestHeader) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *RequestHeader) MarshalTo(data []byte) (n int, err error) {
+func (m *Request) MarshalTo(data []byte) (n int, err error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	data[i] = 0xa
 	i++
-	i = encodeVarintReqResp(data, i, uint64(len(m.Method)))
-	i += copy(data[i:], m.Method)
+	i = encodeVarintReqResp(data, i, uint64(len(m.ServiceMethod)))
+	i += copy(data[i:], m.ServiceMethod)
 	data[i] = 0x10
 	i++
 	i = encodeVarintReqResp(data, i, uint64(m.Seq))
@@ -391,7 +385,7 @@ func (m *RequestHeader) MarshalTo(data []byte) (n int, err error) {
 	return i, nil
 }
 
-func (m *ResponseHeader) Marshal() (data []byte, err error) {
+func (m *Response) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -401,26 +395,22 @@ func (m *ResponseHeader) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *ResponseHeader) MarshalTo(data []byte) (n int, err error) {
+func (m *Response) MarshalTo(data []byte) (n int, err error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.Method != nil {
-		data[i] = 0xa
-		i++
-		i = encodeVarintReqResp(data, i, uint64(len(*m.Method)))
-		i += copy(data[i:], *m.Method)
-	}
+	data[i] = 0xa
+	i++
+	i = encodeVarintReqResp(data, i, uint64(len(m.ServiceMethod)))
+	i += copy(data[i:], m.ServiceMethod)
 	data[i] = 0x10
 	i++
 	i = encodeVarintReqResp(data, i, uint64(m.Seq))
-	if m.Error != nil {
-		data[i] = 0x1a
-		i++
-		i = encodeVarintReqResp(data, i, uint64(len(*m.Error)))
-		i += copy(data[i:], *m.Error)
-	}
+	data[i] = 0x1a
+	i++
+	i = encodeVarintReqResp(data, i, uint64(len(m.Error)))
+	i += copy(data[i:], m.Error)
 	data[i] = 0x20
 	i++
 	i = encodeVarintReqResp(data, i, uint64(m.MethodId))

@@ -170,12 +170,6 @@ func (b *SubBucket) Get(subkey string) *Node {
 	return n
 }
 
-type Sub struct {
-	Key    string
-	State  int8
-	Server int16
-}
-
 type TopicBucket struct {
 	tLock  sync.Mutex
 	topics map[string]map[string]struct{}
@@ -217,33 +211,10 @@ func (tb *TopicBucket) remove(topic string) map[string]struct{} {
 	return m
 }
 
-func (tb *TopicBucket) Get(topic string) []*Sub {
-	var ret []*Sub
+func (tb *TopicBucket) Get(topic string) map[string]struct{} {
+	var m map[string]struct{}
 	tb.tLock.Lock()
-	m := tb.topics[topic]
-	l := len(m)
-	if l > 0 {
-		ret = make([]*Sub, l)
-		i := 0
-		for k, _ := range m {
-			ts := &Sub{}
-			ts.Key = k
-			sb := DefaultBuckets.SubBucket(k)
-			if sb == nil {
-				continue
-			}
-			n := sb.Get(k)
-			if n == nil {
-				// TODO is or not delete from topics
-				tb.del(topic, k)
-				continue
-			}
-			ts.State = n.state
-			ts.Server = n.server
-			ret[i] = ts
-			i++
-		}
-	}
+	m = tb.topics[topic]
 	tb.tLock.Unlock()
-	return ret
+	return m
 }

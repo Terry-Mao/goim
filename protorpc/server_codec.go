@@ -1,4 +1,4 @@
-package protobuf
+package protorpc
 
 import (
 	"bufio"
@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"net/rpc"
 
 	"github.com/gogo/protobuf/proto"
 )
@@ -86,16 +85,13 @@ type pbServerCodec struct {
 
 	methods []string
 
-	reqHeader  RequestHeader
-	respHeader ResponseHeader
-
 	respHeaderBuf bytes.Buffer
 	respBodyBuf   bytes.Buffer
 }
 
 // NewpbServerCodec returns a pbServerCodec that communicates with the ClientCodec
 // on the other end of the given conn.
-func NewPbServerCodec(conn io.ReadWriteCloser) rpc.ServerCodec {
+func NewPbServerCodec(conn io.ReadWriteCloser) ServerCodec {
 	return &pbServerCodec{
 		commConn: commConn{
 			r: bufio.NewReader(conn),
@@ -105,22 +101,20 @@ func NewPbServerCodec(conn io.ReadWriteCloser) rpc.ServerCodec {
 	}
 }
 
-func (c *pbServerCodec) ReadRequestHeader(r *rpc.Request) error {
-	err := c.recvProto(&c.reqHeader)
+func (c *pbServerCodec) ReadRequestHeader(r *Request) error {
+	err := c.recvProto(r)
 	if err != nil {
 		return err
 	}
-	r.Seq = c.reqHeader.Seq
-	if c.reqHeader.Method == "" {
-		if int(c.reqHeader.MethodId) >= len(c.methods) {
-			return fmt.Errorf("unexpected method-id: %d >= %d", c.reqHeader.MethodId, len(c.methods))
+	if r.ServiceMethod == "" {
+		if int(r.MethodId) >= len(c.methods) {
+			return fmt.Errorf("unexpected method-id: %d >= %d", r.MethodId, len(c.methods))
 		}
-		r.ServiceMethod = c.methods[c.reqHeader.MethodId]
-	} else if int(c.reqHeader.MethodId) > len(c.methods) {
-		return fmt.Errorf("unexpected method-id: %d > %d", c.reqHeader.MethodId, len(c.methods))
-	} else if int(c.reqHeader.MethodId) == len(c.methods) {
-		c.methods = append(c.methods, c.reqHeader.Method)
-		r.ServiceMethod = c.reqHeader.Method
+		r.ServiceMethod = c.methods[r.MethodId]
+	} else if int(r.MethodId) > len(c.methods) {
+		return fmt.Errorf("unexpected method-id: %d > %d", r.MethodId, len(c.methods))
+	} else if int(r.MethodId) == len(c.methods) {
+		c.methods = append(c.methods, r.ServiceMethod)
 	}
 	return nil
 }
@@ -129,19 +123,18 @@ func (c *pbServerCodec) ReadRequestBody(x interface{}) error {
 	if x == nil {
 		return nil
 	}
-	request, ok := x.(proto.Message)
+	body, ok := x.(proto.Message)
 	if !ok {
 		return fmt.Errorf("protorpc.pbServerCodec.ReadRequestBody: %T does not implement proto.Message", x)
 	}
-	err := c.recvProto(request)
+	err := c.recvProto(body)
 	if err != nil {
 		return err
 	}
-	c.reqHeader.Reset()
 	return nil
 }
 
-func (c *pbServerCodec) WriteResponse(r *rpc.Response, x interface{}) error {
+func (c *pbServerCodec) WriteResponse(r *Response, x interface{}) error {
 	var response proto.Message
 	if x != nil {
 		var ok bool
@@ -151,11 +144,8 @@ func (c *pbServerCodec) WriteResponse(r *rpc.Response, x interface{}) error {
 			}
 		}
 	}
-	header := &c.respHeader
-	header.Seq = r.Seq
-	header.Error = &r.Error
 	// bs, err := proto.Marshal(header)
-	bs, err := marshal(&c.respHeaderBuf, header)
+	bs, err := marshal(&c.respHeaderBuf, r)
 	if err != nil {
 		return err
 	}

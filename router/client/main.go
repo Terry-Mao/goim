@@ -4,10 +4,11 @@ import (
 	log "code.google.com/p/log4go"
 	"flag"
 	"fmt"
-	pbcodec "github.com/felixhao/goim/router/protobuf"
+	rpc "github.com/felixhao/goim/protorpc"
+	"github.com/felixhao/goim/router/proto"
 	"math"
-	"net/rpc"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -24,47 +25,30 @@ const (
 )
 
 var (
+	isID  bool
 	addrs string
 
 	addrArr []string
 
-	stopCh = make(chan struct{}, 4)
+	stopCh = make(chan struct{}, 3)
 )
 
-type RPCTopicSubArg struct {
-	Topic  string
-	Subkey string
-}
-
-type RPCSubArg struct {
-	Subkey string
-	State  int8
-	Server int16
-}
-
-type RPCSubMsg struct {
-	Ret    int
-	State  int8
-	Server int16
-}
-
 func init() {
-	flag.StringVar(&addrs, "a", "10.57.65.26:9090,10.57.65.26:9091,10.57.65.26:9092,10.57.65.26:9093", "rpc address")
+	flag.BoolVar(&isID, "i", false, "is or not init data")
+	flag.StringVar(&addrs, "a", "127.0.0.1:9090", "rpc address")
 }
 
 func main() {
 	flag.Parse()
 	addrArr = strings.Split(addrs, ",")
-
-	// initData()
-	initPbData()
-	// testSub()
+	if isID {
+		initData()
+	}
+	testSub()
 	// testBatchSub()
 	// testTopic()
-	testPbSub()
 	time.Sleep(10 * time.Second)
 	<-stopCh
-	// <-stopCh
 	// <-stopCh
 	// <-stopCh
 }
@@ -91,10 +75,11 @@ func testSub() {
 					log.Error("rpc.Dial error(%v)", err)
 					return
 				}
-				ret := &RPCSubMsg{}
+				key := &proto.ArgKey{}
+				ret := &proto.Ret{}
 				for i := 0; i < math.MaxInt64; i++ {
-					key := fmt.Sprintf(SUB_KEY, i)
-					c.Call("RouterRPC.Sub", &key, ret)
+					key.Key = fmt.Sprintf(TOPIC_KEY, i)
+					c.Call("RouterRPC.Sub", key, ret)
 					*count++
 				}
 			}(&counts[ci])
@@ -118,15 +103,15 @@ func testBatchSub() {
 					log.Error("rpc.Dial error(%v)", err)
 					return
 				}
-				ret := &RPCSubMsg{}
-				keys := make([]string, keys_num)
+				key := &proto.ArgBatchKey{Keys: make([]string, keys_num)}
+				ret := &proto.RetBatchSub{}
 				for i := 0; i < math.MaxInt64; i++ {
 					k := 0
 					for j := i; j < i+keys_num; j++ {
-						keys[k] = fmt.Sprintf(SUB_KEY, j)
+						key.Keys[k] = fmt.Sprintf(SUB_KEY, j)
 						k++
 					}
-					c.Call("RouterRPC.BatchSub", &keys, ret)
+					c.Call("RouterRPC.BatchSub", key, ret)
 					*count++
 				}
 			}(&counts[ci])
@@ -147,10 +132,11 @@ func testTopic() {
 					log.Error("rpc.Dial error(%v)", err)
 					return
 				}
-				ret := &RPCSubMsg{}
+				key := &proto.ArgTopic{}
+				ret := &proto.RetBatchSub{}
 				for i := 0; i < math.MaxInt64; i++ {
-					key := fmt.Sprintf(TOPIC_KEY, i)
-					c.Call("RouterRPC.Topic", &key, ret)
+					key.Topic = fmt.Sprintf(TOPIC_KEY, i)
+					c.Call("RouterRPC.Topic", key, ret)
 					*count++
 				}
 			}(&counts[ci])
@@ -160,79 +146,33 @@ func testTopic() {
 	stop("topic", counts)
 }
 
-func testPbSub() {
-	counts := make([]int64, len(addrArr)*TEST_NUM)
-	ci := 0
-	for _, v := range addrArr {
-		for i := 0; i < TEST_NUM; i++ {
-			go func(count *int64) {
-				c, err := pbcodec.Dial("tcp", v)
-				if err != nil {
-					log.Error("rpc.Dial error(%v)", err)
-					return
-				}
-				key := &PbRPCSubKey{}
-				ret := &PbRPCSubRet{}
-				for i := 0; i < math.MaxInt64; i++ {
-					key.Key = fmt.Sprintf(TOPIC_KEY, i)
-					c.Call("RouterRPC.PbSub", key, ret)
-					*count++
-				}
-			}(&counts[ci])
-			ci++
-		}
-	}
-	stop("pbsub", counts)
-}
-
 func initData() {
-	if len(addrArr) == 0 {
+	al := len(addrArr)
+	if al == 0 {
 		panic("addrs is empty")
 	}
-	c, err := rpc.Dial("tcp", addrArr[0])
-	if err != nil {
-		log.Error("rpc.Dial error(%v)", err)
-		return
+	var wg sync.WaitGroup
+	for i := 0; i < al; i++ {
+		wg.Add(1)
+		go func(n int) {
+			c, err := rpc.Dial("tcp", addrArr[n])
+			if err != nil {
+				log.Error("rpc.Dial error(%v)", err)
+				return
+			}
+			sb := &proto.ArgSub{}
+			sb.State = 1
+			sb.Server = 1
+			ret := &proto.Ret{}
+			e := SUB_DATA_NUM / al
+			s := n * e
+			for i := s; i < s+e; i++ {
+				sb.Key = fmt.Sprintf(SUB_KEY, i)
+				c.Call("RouterRPC.SetSub", sb, ret)
+			}
+			c.Close()
+			wg.Done()
+		}(i)
 	}
-	reply := 0
-	sb := &RPCSubArg{}
-	sb.State = 1
-	sb.Server = 1
-	for i := 0; i < SUB_DATA_NUM; i++ {
-		subkey := fmt.Sprintf(SUB_KEY, i)
-		sb.Subkey = subkey
-		c.Call("RouterRPC.SetSub", sb, &reply)
-	}
-
-	ts := &RPCTopicSubArg{}
-	for i := 0; i < TOPIC_DATA_NUM; i++ {
-		topic := fmt.Sprintf(TOPIC_KEY, i)
-		ts.Topic = topic
-		for j := 0; j < i/2; j++ {
-			ts.Subkey = fmt.Sprintf(SUB_KEY, j)
-			c.Call("RouterRPC.SetTopic", ts, &reply)
-		}
-	}
-	c.Close()
-}
-
-func initPbData() {
-	if len(addrArr) == 0 {
-		panic("addrs is empty")
-	}
-	c, err := pbcodec.Dial("tcp", addrArr[0])
-	if err != nil {
-		log.Error("rpc.Dial error(%v)", err)
-		return
-	}
-	sb := &PbRPCSetSubArg{}
-	sb.State = 1
-	sb.Server = 1
-	ret := &PbRPCSubRet{}
-	for i := 0; i < SUB_DATA_NUM; i++ {
-		subkey := fmt.Sprintf(SUB_KEY, i)
-		sb.Subkey = subkey
-		c.Call("RouterRPC.PbSetSub", sb, ret)
-	}
-	c.Close()
+	wg.Wait()
 }
