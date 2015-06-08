@@ -198,12 +198,12 @@ func NewServer() *Server {
 		serviceMap: make(map[string]*service),
 		reqPool: sync.Pool{
 			New: func() interface{} {
-				return new(*Request)
+				return new(Request)
 			},
 		},
 		respPool: sync.Pool{
 			New: func() interface{} {
-				return new(*Response)
+				return new(Response)
 			},
 		},
 	}
