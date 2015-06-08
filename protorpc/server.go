@@ -557,7 +557,7 @@ func (server *Server) getResponse() *Response {
 	// }
 	// server.respLock.Unlock()
 	// return resp
-	return server.reqPool.Get().(*Response)
+	return server.respPool.Get().(*Response)
 }
 
 func (server *Server) freeResponse(resp *Response) {
@@ -566,7 +566,7 @@ func (server *Server) freeResponse(resp *Response) {
 	// server.freeResp = resp
 	// server.respLock.Unlock()
 	resp.Reset()
-	server.reqPool.Put(resp)
+	server.respPool.Put(resp)
 }
 
 func (server *Server) readRequest(codec ServerCodec) (service *service, mtype *methodType, req *Request, argv, replyv reflect.Value, keepReading bool, err error) {
