@@ -40,6 +40,9 @@ type Call struct {
 // multiple goroutines simultaneously.
 type Client struct {
 	codec ClientCodec
+	c     io.Closer
+	r     *bufio.Reader
+	w     *bufio.Writer
 
 	reqMutex sync.Mutex // protects following
 	request  Request
@@ -61,11 +64,9 @@ type Client struct {
 // discarded.
 type ClientCodec interface {
 	// WriteRequest must be safe for concurrent use by multiple goroutines.
-	WriteRequest(*Request, interface{}) error
-	ReadResponseHeader(*Response) error
-	ReadResponseBody(interface{}) error
-
-	Close() error
+	WriteRequest(*bufio.Writer, *Request, interface{}) error
+	ReadResponseHeader(*bufio.Reader, *Response) error
+	ReadResponseBody(*bufio.Reader, interface{}) error
 }
 
 func (client *Client) send(call *Call) {
@@ -88,7 +89,7 @@ func (client *Client) send(call *Call) {
 	// Encode and send the request.
 	client.request.Seq = seq
 	client.request.ServiceMethod = call.ServiceMethod
-	err := client.codec.WriteRequest(&client.request, call.Args)
+	err := client.codec.WriteRequest(client.w, &client.request, call.Args)
 	if err != nil {
 		client.mutex.Lock()
 		call = client.pending[seq]
@@ -106,7 +107,7 @@ func (client *Client) input() {
 	var response Response
 	for err == nil {
 		response = Response{}
-		err = client.codec.ReadResponseHeader(&response)
+		err = client.codec.ReadResponseHeader(client.r, &response)
 		if err != nil {
 			break
 		}
@@ -123,7 +124,7 @@ func (client *Client) input() {
 			// removed; response is a server telling us about an
 			// error reading request body. We should still attempt
 			// to read error body, but there's no one to give it to.
-			err = client.codec.ReadResponseBody(nil)
+			err = client.codec.ReadResponseBody(client.r, nil)
 			if err != nil {
 				err = errors.New("reading error body: " + err.Error())
 			}
@@ -132,13 +133,13 @@ func (client *Client) input() {
 			// any subsequent requests will get the ReadResponseBody
 			// error if there is one.
 			call.Error = ServerError(response.Error)
-			err = client.codec.ReadResponseBody(nil)
+			err = client.codec.ReadResponseBody(client.r, nil)
 			if err != nil {
 				err = errors.New("reading error body: " + err.Error())
 			}
 			call.done()
 		default:
-			err = client.codec.ReadResponseBody(call.Reply)
+			err = client.codec.ReadResponseBody(client.r, call.Reply)
 			if err != nil {
 				call.Error = errors.New("reading body " + err.Error())
 			}
@@ -192,21 +193,16 @@ func (call *Call) done() {
 // }
 
 func NewClient(conn io.ReadWriteCloser) *Client {
-	codec := &pbClientCodec{
-		commConn: commConn{
-			r: bufio.NewReader(conn),
-			w: bufio.NewWriter(conn),
-			c: conn,
-		},
-		methods: make(map[string]uint32),
-	}
-	return NewClientWithCodec(codec)
+	return NewClientWithCodec(conn, NewPbClientCodec())
 }
 
 // NewClientWithCodec is like NewClient but uses the specified
 // codec to encode requests and decode responses.
-func NewClientWithCodec(codec ClientCodec) *Client {
+func NewClientWithCodec(conn io.ReadWriteCloser, codec ClientCodec) *Client {
 	client := &Client{
+		c:       conn,
+		r:       bufio.NewReader(conn),
+		w:       bufio.NewWriter(conn),
 		codec:   codec,
 		pending: make(map[uint64]*Call),
 	}
@@ -294,7 +290,7 @@ func (client *Client) Close() error {
 	}
 	client.closing = true
 	client.mutex.Unlock()
-	return client.codec.Close()
+	return client.c.Close()
 }
 
 // Go invokes the function asynchronously.  It returns the Call structure representing

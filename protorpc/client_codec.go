@@ -4,33 +4,27 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 
 	"github.com/gogo/protobuf/proto"
+	"sync"
 )
 
 type pbClientCodec struct {
-	commConn
-
+	mLock   sync.Mutex
 	methods map[string]uint32
 
 	reqHeaderBuf bytes.Buffer
 	reqBodyBuf   bytes.Buffer
 }
 
-// NewClientCodec returns a new ClientCodec using Protobuf-RPC on conn.
-func NewClientCodec(conn io.ReadWriteCloser) ClientCodec {
+// NewPbClientCodec returns a new ClientCodec using Protobuf-RPC on conn.
+func NewPbClientCodec() ClientCodec {
 	return &pbClientCodec{
-		commConn: commConn{
-			r: bufio.NewReader(conn),
-			w: bufio.NewWriter(conn),
-			c: conn,
-		},
 		methods: make(map[string]uint32),
 	}
 }
 
-func (c *pbClientCodec) WriteRequest(r *Request, param interface{}) error {
+func (c *pbClientCodec) WriteRequest(w *bufio.Writer, r *Request, param interface{}) error {
 	var request proto.Message
 	if param != nil {
 		var ok bool
@@ -42,15 +36,17 @@ func (c *pbClientCodec) WriteRequest(r *Request, param interface{}) error {
 		r.MethodId = mid
 		r.ServiceMethod = ""
 	} else {
+		c.mLock.Lock()
 		r.MethodId = uint32(len(c.methods))
 		c.methods[r.ServiceMethod] = r.MethodId
+		c.mLock.Unlock()
 	}
 	// bs, err := proto.Marshal(header)
 	bs, err := marshal(&c.reqHeaderBuf, r)
 	if err != nil {
 		return err
 	}
-	if err = c.sendFrame(bs); err != nil {
+	if err = sendFrame(w, bs); err != nil {
 		return err
 	}
 	// bs, err = proto.Marshal(request)
@@ -58,17 +54,17 @@ func (c *pbClientCodec) WriteRequest(r *Request, param interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err = c.sendFrame(bs); err != nil {
+	if err = sendFrame(w, bs); err != nil {
 		return err
 	}
-	return c.w.Flush()
+	return w.Flush()
 }
 
-func (c *pbClientCodec) ReadResponseHeader(r *Response) error {
-	return c.recvProto(r)
+func (c *pbClientCodec) ReadResponseHeader(rd *bufio.Reader, r *Response) error {
+	return recvProto(rd, r)
 }
 
-func (c *pbClientCodec) ReadResponseBody(x interface{}) error {
+func (c *pbClientCodec) ReadResponseBody(rd *bufio.Reader, x interface{}) error {
 	var response proto.Message
 	if x != nil {
 		var ok bool
@@ -77,7 +73,7 @@ func (c *pbClientCodec) ReadResponseBody(x interface{}) error {
 			return fmt.Errorf("protorpc.ClientCodec.ReadResponseBody: %T does not implement proto.Message", x)
 		}
 	}
-	if err := c.recvProto(response); err != nil {
+	if err := recvProto(rd, response); err != nil {
 		return err
 	}
 	return nil

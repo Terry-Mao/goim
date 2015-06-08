@@ -190,6 +190,11 @@ type Server struct {
 	// respLock   sync.Mutex // protects freeResp
 	// freeResp   *Response
 	respPool sync.Pool
+
+	rdBuf sync.Pool
+	wrBuf sync.Pool
+
+	codec ServerCodec
 }
 
 // NewServer returns a new Server.
@@ -206,6 +211,17 @@ func NewServer() *Server {
 				return new(Response)
 			},
 		},
+		rdBuf: sync.Pool{
+			New: func() interface{} {
+				return &bufio.Reader{}
+			},
+		},
+		wrBuf: sync.Pool{
+			New: func() interface{} {
+				return &bufio.Writer{}
+			},
+		},
+		codec: NewPbServerCodec(),
 	}
 }
 
@@ -362,7 +378,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 // contains an error when it is used.
 var invalidRequest = struct{}{}
 
-func (server *Server) sendResponse(sending *sync.Mutex, req *Request, reply interface{}, codec ServerCodec, errmsg string) {
+func (server *Server) sendResponse(sending *sync.Mutex, req *Request, reply interface{}, w *bufio.Writer, c io.Closer, errmsg string) {
 	resp := server.getResponse()
 	// Encode the response header
 	resp.ServiceMethod = req.ServiceMethod
@@ -372,7 +388,7 @@ func (server *Server) sendResponse(sending *sync.Mutex, req *Request, reply inte
 	}
 	resp.Seq = req.Seq
 	sending.Lock()
-	err := codec.WriteResponse(resp, reply)
+	err := server.codec.WriteResponse(w, c, resp, reply)
 	if debugLog && err != nil {
 		log.Println("rpc: writing response:", err)
 	}
@@ -387,7 +403,7 @@ func (m *methodType) NumCalls() (n uint) {
 	return n
 }
 
-func (s *service) call(server *Server, sending *sync.Mutex, mtype *methodType, req *Request, argv, replyv reflect.Value, codec ServerCodec) {
+func (s *service) call(server *Server, sending *sync.Mutex, mtype *methodType, req *Request, argv, replyv reflect.Value, w *bufio.Writer, c io.Closer) {
 	mtype.Lock()
 	mtype.numCalls++
 	mtype.Unlock()
@@ -400,7 +416,7 @@ func (s *service) call(server *Server, sending *sync.Mutex, mtype *methodType, r
 	if errInter != nil {
 		errmsg = errInter.(error).Error()
 	}
-	server.sendResponse(sending, req, replyv.Interface(), codec, errmsg)
+	server.sendResponse(sending, req, replyv.Interface(), w, c, errmsg)
 	server.freeRequest(req)
 }
 
@@ -468,22 +484,19 @@ func (s *service) call(server *Server, sending *sync.Mutex, mtype *methodType, r
 // }
 
 func (server *Server) ServeConn(conn io.ReadWriteCloser) {
-	codec := &pbServerCodec{
-		commConn: commConn{
-			r: bufio.NewReader(conn),
-			w: bufio.NewWriter(conn),
-			c: conn,
-		},
-	}
-	server.ServeCodec(codec)
+	r := server.rdBuf.Get().(*bufio.Reader)
+	w := server.wrBuf.Get().(*bufio.Writer)
+	r.Reset(conn)
+	w.Reset(conn)
+	server.ServeCodec(r, w, conn)
 }
 
 // ServeCodec is like ServeConn but uses the specified codec to
 // decode requests and encode responses.
-func (server *Server) ServeCodec(codec ServerCodec) {
+func (server *Server) ServeCodec(r *bufio.Reader, w *bufio.Writer, c io.Closer) {
 	sending := new(sync.Mutex)
 	for {
-		service, mtype, req, argv, replyv, keepReading, err := server.readRequest(codec)
+		service, mtype, req, argv, replyv, keepReading, err := server.readRequest(r)
 		if err != nil {
 			if debugLog && err != io.EOF {
 				log.Println("rpc:", err)
@@ -493,33 +506,45 @@ func (server *Server) ServeCodec(codec ServerCodec) {
 			}
 			// send a response if we actually managed to read a header.
 			if req != nil {
-				server.sendResponse(sending, req, invalidRequest, codec, err.Error())
+				server.sendResponse(sending, req, invalidRequest, w, c, err.Error())
 				server.freeRequest(req)
 			}
 			continue
 		}
-		go service.call(server, sending, mtype, req, argv, replyv, codec)
+		go service.call(server, sending, mtype, req, argv, replyv, w, c)
 	}
-	codec.Close()
+	server.rdBuf.Put(r)
+	server.wrBuf.Put(w)
+	//	c.Close()
 }
 
 // ServeRequest is like ServeCodec but synchronously serves a single request.
 // It does not close the codec upon completion.
-func (server *Server) ServeRequest(codec ServerCodec) error {
+func (server *Server) ServeRequest(conn io.ReadWriter) error {
+	r := server.rdBuf.Get().(*bufio.Reader)
+	w := server.wrBuf.Get().(*bufio.Writer)
+	r.Reset(conn)
+	w.Reset(conn)
 	sending := new(sync.Mutex)
-	service, mtype, req, argv, replyv, keepReading, err := server.readRequest(codec)
+	service, mtype, req, argv, replyv, keepReading, err := server.readRequest(r)
 	if err != nil {
 		if !keepReading {
+			server.rdBuf.Put(r)
+			server.wrBuf.Put(w)
 			return err
 		}
 		// send a response if we actually managed to read a header.
 		if req != nil {
-			server.sendResponse(sending, req, invalidRequest, codec, err.Error())
+			server.sendResponse(sending, req, invalidRequest, w, nil, err.Error())
 			server.freeRequest(req)
 		}
+		server.rdBuf.Put(r)
+		server.wrBuf.Put(w)
 		return err
 	}
-	service.call(server, sending, mtype, req, argv, replyv, codec)
+	service.call(server, sending, mtype, req, argv, replyv, w, nil)
+	server.rdBuf.Put(r)
+	server.wrBuf.Put(w)
 	return nil
 }
 
@@ -569,14 +594,15 @@ func (server *Server) freeResponse(resp *Response) {
 	server.respPool.Put(resp)
 }
 
-func (server *Server) readRequest(codec ServerCodec) (service *service, mtype *methodType, req *Request, argv, replyv reflect.Value, keepReading bool, err error) {
-	service, mtype, req, keepReading, err = server.readRequestHeader(codec)
+func (server *Server) readRequest(r *bufio.Reader) (service *service, mtype *methodType, req *Request, argv, replyv reflect.Value, keepReading bool, err error) {
+	service, mtype, req, keepReading, err = server.readRequestHeader(r)
 	if err != nil {
 		if !keepReading {
 			return
 		}
 		// discard body
-		codec.ReadRequestBody(nil)
+		//		codec.ReadRequestBody(nil)
+		server.codec.ReadRequestBody(r, nil)
 		return
 	}
 
@@ -589,7 +615,7 @@ func (server *Server) readRequest(codec ServerCodec) (service *service, mtype *m
 		argIsValue = true
 	}
 	// argv guaranteed to be a pointer now.
-	if err = codec.ReadRequestBody(argv.Interface()); err != nil {
+	if err = server.codec.ReadRequestBody(r, argv.Interface()); err != nil {
 		return
 	}
 	if argIsValue {
@@ -600,10 +626,10 @@ func (server *Server) readRequest(codec ServerCodec) (service *service, mtype *m
 	return
 }
 
-func (server *Server) readRequestHeader(codec ServerCodec) (service *service, mtype *methodType, req *Request, keepReading bool, err error) {
+func (server *Server) readRequestHeader(r *bufio.Reader) (service *service, mtype *methodType, req *Request, keepReading bool, err error) {
 	// Grab the request header.
 	req = server.getRequest()
-	err = codec.ReadRequestHeader(req)
+	err = server.codec.ReadRequestHeader(r, req)
 	if err != nil {
 		req = nil
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -670,12 +696,10 @@ func RegisterName(name string, rcvr interface{}) error {
 // connection. ReadRequestBody may be called with a nil
 // argument to force the body of the request to be read and discarded.
 type ServerCodec interface {
-	ReadRequestHeader(*Request) error
-	ReadRequestBody(interface{}) error
+	ReadRequestHeader(*bufio.Reader, *Request) error
+	ReadRequestBody(*bufio.Reader, interface{}) error
 	// WriteResponse must be safe for concurrent use by multiple goroutines.
-	WriteResponse(*Response, interface{}) error
-
-	Close() error
+	WriteResponse(*bufio.Writer, io.Closer, *Response, interface{}) error
 }
 
 // ServeConn runs the DefaultServer on a single connection.
@@ -689,14 +713,14 @@ func ServeConn(conn io.ReadWriteCloser) {
 
 // ServeCodec is like ServeConn but uses the specified codec to
 // decode requests and encode responses.
-func ServeCodec(codec ServerCodec) {
-	DefaultServer.ServeCodec(codec)
-}
+//func ServeCodec(codec ServerCodec) {
+//	DefaultServer.ServeCodec(codec)
+//}
 
 // ServeRequest is like ServeCodec but synchronously serves a single request.
 // It does not close the codec upon completion.
-func ServeRequest(codec ServerCodec) error {
-	return DefaultServer.ServeRequest(codec)
+func ServeRequest(conn io.ReadWriter) error {
+	return DefaultServer.ServeRequest(conn)
 }
 
 // Accept accepts connections on the listener and serves requests
