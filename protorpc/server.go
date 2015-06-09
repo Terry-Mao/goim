@@ -211,16 +211,6 @@ func NewServer() *Server {
 				return new(Response)
 			},
 		},
-		rdBuf: sync.Pool{
-			New: func() interface{} {
-				return &bufio.Reader{}
-			},
-		},
-		wrBuf: sync.Pool{
-			New: func() interface{} {
-				return &bufio.Writer{}
-			},
-		},
 		codec: NewPbServerCodec(),
 	}
 }
@@ -467,6 +457,38 @@ func (s *service) call(server *Server, sending *sync.Mutex, mtype *methodType, r
 // 	return c.rwc.Close()
 // }
 
+// getReadBuf return a bufio.Reader whit connection.
+func (server *Server) getReadBuf(conn io.ReadWriter) *bufio.Reader {
+	if v := server.rdBuf.Get(); v != nil {
+		r := v.(*bufio.Reader)
+		r.Reset(conn)
+		return r
+	}
+	return bufio.NewReader(conn)
+}
+
+// getReadBuf return a bufio.Write whit connection.
+func (server *Server) getWriteBuf(conn io.ReadWriter) *bufio.Writer {
+	if v := server.wrBuf.Get(); v != nil {
+		r := v.(*bufio.Writer)
+		r.Reset(conn)
+		return r
+	}
+	return bufio.NewWriter(conn)
+}
+
+// putReadBuf put a bufio.Reader into pool.
+func (server *Server) putReadBuf(r *bufio.Reader) {
+	r.Reset(nil)
+	server.rdBuf.Put(r)
+}
+
+// putWriteBuf put a bufio.Write into pool.
+func (server *Server) putWriteBuf(w *bufio.Writer) {
+	w.Reset(nil)
+	server.wrBuf.Put(w)
+}
+
 // ServeConn runs the server on a single connection.
 // ServeConn blocks, serving the connection until the client hangs up.
 // The caller typically invokes ServeConn in a go statement.
@@ -484,11 +506,7 @@ func (s *service) call(server *Server, sending *sync.Mutex, mtype *methodType, r
 // }
 
 func (server *Server) ServeConn(conn io.ReadWriteCloser) {
-	r := server.rdBuf.Get().(*bufio.Reader)
-	w := server.wrBuf.Get().(*bufio.Writer)
-	r.Reset(conn)
-	w.Reset(conn)
-	server.ServeCodec(r, w, conn)
+	server.ServeCodec(server.getReadBuf(conn), server.getWriteBuf(conn), conn)
 }
 
 // ServeCodec is like ServeConn but uses the specified codec to
@@ -513,24 +531,22 @@ func (server *Server) ServeCodec(r *bufio.Reader, w *bufio.Writer, c io.Closer) 
 		}
 		go service.call(server, sending, mtype, req, argv, replyv, w, c)
 	}
-	server.rdBuf.Put(r)
-	server.wrBuf.Put(w)
+	server.putReadBuf(r)
+	server.putWriteBuf(w)
 	//	c.Close()
 }
 
 // ServeRequest is like ServeCodec but synchronously serves a single request.
 // It does not close the codec upon completion.
 func (server *Server) ServeRequest(conn io.ReadWriter) error {
-	r := server.rdBuf.Get().(*bufio.Reader)
-	w := server.wrBuf.Get().(*bufio.Writer)
-	r.Reset(conn)
-	w.Reset(conn)
+	r := server.getReadBuf(conn)
+	w := server.getWriteBuf(conn)
 	sending := new(sync.Mutex)
 	service, mtype, req, argv, replyv, keepReading, err := server.readRequest(r)
 	if err != nil {
 		if !keepReading {
-			server.rdBuf.Put(r)
-			server.wrBuf.Put(w)
+			server.putReadBuf(r)
+			server.putWriteBuf(w)
 			return err
 		}
 		// send a response if we actually managed to read a header.
@@ -538,13 +554,13 @@ func (server *Server) ServeRequest(conn io.ReadWriter) error {
 			server.sendResponse(sending, req, invalidRequest, w, nil, err.Error())
 			server.freeRequest(req)
 		}
-		server.rdBuf.Put(r)
-		server.wrBuf.Put(w)
+		server.putReadBuf(r)
+		server.putWriteBuf(w)
 		return err
 	}
 	service.call(server, sending, mtype, req, argv, replyv, w, nil)
-	server.rdBuf.Put(r)
-	server.wrBuf.Put(w)
+	server.putReadBuf(r)
+	server.putWriteBuf(w)
 	return nil
 }
 
