@@ -12,6 +12,7 @@ message Request {
     string     ServiceMethod = 1 [(gogoproto.nullable) = false];
     uint64     Seq = 2 [(gogoproto.nullable) = false];
     uint32     MethodId = 3 [(gogoproto.nullable) = false];
+    Request    next = 4 [(gogoproto.nullable) = true];
 }
 
 message Response { 
@@ -19,4 +20,5 @@ message Response {
     uint64     Seq = 2 [(gogoproto.nullable) = false];
     string     Error = 3 [(gogoproto.nullable) = false];
     uint32     MethodId = 4 [(gogoproto.nullable) = false];
+    Response   next = 5 [(gogoproto.nullable) = true];
 }

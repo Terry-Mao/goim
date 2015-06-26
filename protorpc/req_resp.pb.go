@@ -28,10 +28,11 @@ var _ = proto.Marshal
 var _ = math.Inf
 
 type Request struct {
-	ServiceMethod    string `protobuf:"bytes,1,opt" json:"ServiceMethod"`
-	Seq              uint64 `protobuf:"varint,2,opt" json:"Seq"`
-	MethodId         uint32 `protobuf:"varint,3,opt" json:"MethodId"`
-	XXX_unrecognized []byte `json:"-"`
+	ServiceMethod    string   `protobuf:"bytes,1,opt" json:"ServiceMethod"`
+	Seq              uint64   `protobuf:"varint,2,opt" json:"Seq"`
+	MethodId         uint32   `protobuf:"varint,3,opt" json:"MethodId"`
+	Next             *Request `protobuf:"bytes,4,opt,name=next" json:"next,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
 }
 
 func (m *Request) Reset()         { *m = Request{} }
@@ -59,12 +60,20 @@ func (m *Request) GetMethodId() uint32 {
 	return 0
 }
 
+func (m *Request) GetNext() *Request {
+	if m != nil {
+		return m.Next
+	}
+	return nil
+}
+
 type Response struct {
-	ServiceMethod    string `protobuf:"bytes,1,opt" json:"ServiceMethod"`
-	Seq              uint64 `protobuf:"varint,2,opt" json:"Seq"`
-	Error            string `protobuf:"bytes,3,opt" json:"Error"`
-	MethodId         uint32 `protobuf:"varint,4,opt" json:"MethodId"`
-	XXX_unrecognized []byte `json:"-"`
+	ServiceMethod    string    `protobuf:"bytes,1,opt" json:"ServiceMethod"`
+	Seq              uint64    `protobuf:"varint,2,opt" json:"Seq"`
+	Error            string    `protobuf:"bytes,3,opt" json:"Error"`
+	MethodId         uint32    `protobuf:"varint,4,opt" json:"MethodId"`
+	Next             *Response `protobuf:"bytes,5,opt,name=next" json:"next,omitempty"`
+	XXX_unrecognized []byte    `json:"-"`
 }
 
 func (m *Response) Reset()         { *m = Response{} }
@@ -97,6 +106,13 @@ func (m *Response) GetMethodId() uint32 {
 		return m.MethodId
 	}
 	return 0
+}
+
+func (m *Response) GetNext() *Response {
+	if m != nil {
+		return m.Next
+	}
+	return nil
 }
 
 func init() {
@@ -172,6 +188,33 @@ func (m *Request) Unmarshal(data []byte) error {
 					break
 				}
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Next", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if index >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[index]
+				index++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := index + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Next == nil {
+				m.Next = &Request{}
+			}
+			if err := m.Next.Unmarshal(data[index:postIndex]); err != nil {
+				return err
+			}
+			index = postIndex
 		default:
 			var sizeOfWire int
 			for {
@@ -289,6 +332,33 @@ func (m *Response) Unmarshal(data []byte) error {
 					break
 				}
 			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Next", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if index >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[index]
+				index++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := index + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Next == nil {
+				m.Next = &Response{}
+			}
+			if err := m.Next.Unmarshal(data[index:postIndex]); err != nil {
+				return err
+			}
+			index = postIndex
 		default:
 			var sizeOfWire int
 			for {
@@ -320,6 +390,10 @@ func (m *Request) Size() (n int) {
 	n += 1 + l + sovReqResp(uint64(l))
 	n += 1 + sovReqResp(uint64(m.Seq))
 	n += 1 + sovReqResp(uint64(m.MethodId))
+	if m.Next != nil {
+		l = m.Next.Size()
+		n += 1 + l + sovReqResp(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -335,6 +409,10 @@ func (m *Response) Size() (n int) {
 	l = len(m.Error)
 	n += 1 + l + sovReqResp(uint64(l))
 	n += 1 + sovReqResp(uint64(m.MethodId))
+	if m.Next != nil {
+		l = m.Next.Size()
+		n += 1 + l + sovReqResp(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -379,6 +457,16 @@ func (m *Request) MarshalTo(data []byte) (n int, err error) {
 	data[i] = 0x18
 	i++
 	i = encodeVarintReqResp(data, i, uint64(m.MethodId))
+	if m.Next != nil {
+		data[i] = 0x22
+		i++
+		i = encodeVarintReqResp(data, i, uint64(m.Next.Size()))
+		n1, err := m.Next.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n1
+	}
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
 	}
@@ -414,6 +502,16 @@ func (m *Response) MarshalTo(data []byte) (n int, err error) {
 	data[i] = 0x20
 	i++
 	i = encodeVarintReqResp(data, i, uint64(m.MethodId))
+	if m.Next != nil {
+		data[i] = 0x2a
+		i++
+		i = encodeVarintReqResp(data, i, uint64(m.Next.Size()))
+		n2, err := m.Next.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n2
+	}
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
 	}

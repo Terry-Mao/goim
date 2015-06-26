@@ -184,12 +184,14 @@ type service struct {
 type Server struct {
 	mu         sync.RWMutex // protects the serviceMap
 	serviceMap map[string]*service
-	// reqLock    sync.Mutex // protects freeReq
-	// freeReq    *Request
-	reqPool sync.Pool
-	// respLock   sync.Mutex // protects freeResp
-	// freeResp   *Response
-	respPool sync.Pool
+	reqLocks   map[io.Reader]*sync.Mutex // protects freeReq
+	freeReqs   map[io.Reader]*Request
+	reqPool    sync.Pool
+	respLocks  map[io.Writer]*sync.Mutex // protects freeResp
+	freeResps  map[io.Writer]*Response
+	respPool   sync.Pool
+
+	lockPool sync.Pool
 
 	rdBuf sync.Pool
 	wrBuf sync.Pool
@@ -211,7 +213,16 @@ func NewServer() *Server {
 				return new(Response)
 			},
 		},
-		codec: NewPbServerCodec(),
+		lockPool: sync.Pool{
+			New: func() interface{} {
+				return new(sync.Mutex)
+			},
+		},
+		reqLocks:  make(map[io.Reader]*sync.Mutex),
+		freeReqs:  make(map[io.Reader]*Request),
+		respLocks: make(map[io.Writer]*sync.Mutex),
+		freeResps: make(map[io.Writer]*Response),
+		codec:     NewPbServerCodec(),
 	}
 }
 
@@ -368,8 +379,8 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 // contains an error when it is used.
 var invalidRequest = struct{}{}
 
-func (server *Server) sendResponse(sending *sync.Mutex, req *Request, reply interface{}, w *bufio.Writer, c io.Closer, errmsg string) {
-	resp := server.getResponse()
+func (server *Server) sendResponse(wg *sync.WaitGroup, sending *sync.Mutex, req *Request, reply interface{}, w *bufio.Writer, c io.Closer, errmsg string) {
+	resp := server.getResponse(w)
 	// Encode the response header
 	resp.ServiceMethod = req.ServiceMethod
 	if errmsg != "" {
@@ -383,7 +394,8 @@ func (server *Server) sendResponse(sending *sync.Mutex, req *Request, reply inte
 		log.Println("rpc: writing response:", err)
 	}
 	sending.Unlock()
-	server.freeResponse(resp)
+	wg.Done()
+	server.freeResponse(w, resp)
 }
 
 func (m *methodType) NumCalls() (n uint) {
@@ -393,7 +405,7 @@ func (m *methodType) NumCalls() (n uint) {
 	return n
 }
 
-func (s *service) call(server *Server, sending *sync.Mutex, mtype *methodType, req *Request, argv, replyv reflect.Value, w *bufio.Writer, c io.Closer) {
+func (s *service) call(server *Server, wg *sync.WaitGroup, sending *sync.Mutex, mtype *methodType, req *Request, argv, replyv reflect.Value, r *bufio.Reader, w *bufio.Writer, c io.Closer) {
 	mtype.Lock()
 	mtype.numCalls++
 	mtype.Unlock()
@@ -406,8 +418,8 @@ func (s *service) call(server *Server, sending *sync.Mutex, mtype *methodType, r
 	if errInter != nil {
 		errmsg = errInter.(error).Error()
 	}
-	server.sendResponse(sending, req, replyv.Interface(), w, c, errmsg)
-	server.freeRequest(req)
+	server.sendResponse(wg, sending, req, replyv.Interface(), w, c, errmsg)
+	server.freeRequest(r, req)
 }
 
 // type gobServerCodec struct {
@@ -489,6 +501,42 @@ func (server *Server) putWriteBuf(w *bufio.Writer) {
 	server.wrBuf.Put(w)
 }
 
+// initRead init a Request and request lock.
+func (server *Server) initRequest(r io.Reader) {
+	server.reqLocks[r] = server.lockPool.Get().(*sync.Mutex)
+	server.freeReqs[r] = server.reqPool.Get().(*Request)
+}
+
+// initWrite init a Response and response lock.
+func (server *Server) initResponse(w io.Writer) {
+	server.respLocks[w] = server.lockPool.Get().(*sync.Mutex)
+	server.freeResps[w] = server.respPool.Get().(*Response)
+}
+
+// delRead delete a Request and request lock.
+func (server *Server) delRequest(r io.Reader) {
+	// put req lock in pool
+	reql := server.reqLocks[r]
+	delete(server.reqLocks, r)
+	server.lockPool.Put(reql)
+	// put req in pool
+	req := server.freeReqs[r]
+	delete(server.freeReqs, r)
+	server.reqPool.Put(req)
+}
+
+// delWrite delete a Response and response lock.
+func (server *Server) delResponse(w io.Writer) {
+	// put resp lock in pool
+	respl := server.respLocks[w]
+	delete(server.respLocks, w)
+	server.lockPool.Put(respl)
+	// put resp in pool
+	resp := server.freeResps[w]
+	delete(server.freeResps, w)
+	server.reqPool.Put(resp)
+}
+
 // ServeConn runs the server on a single connection.
 // ServeConn blocks, serving the connection until the client hangs up.
 // The caller typically invokes ServeConn in a go statement.
@@ -506,15 +554,15 @@ func (server *Server) putWriteBuf(w *bufio.Writer) {
 // }
 
 func (server *Server) ServeConn(conn io.ReadWriteCloser) {
-	server.ServeCodec(server.getReadBuf(conn), server.getWriteBuf(conn), conn)
-}
-
-// ServeCodec is like ServeConn but uses the specified codec to
-// decode requests and encode responses.
-func (server *Server) ServeCodec(r *bufio.Reader, w *bufio.Writer, c io.Closer) {
+	r := server.getReadBuf(conn)
+	w := server.getWriteBuf(conn)
+	server.initRequest(r)
+	server.initResponse(w)
 	sending := new(sync.Mutex)
+	wg := new(sync.WaitGroup)
 	for {
 		service, mtype, req, argv, replyv, keepReading, err := server.readRequest(r)
+		wg.Add(1)
 		if err != nil {
 			if debugLog && err != io.EOF {
 				log.Println("rpc:", err)
@@ -524,17 +572,45 @@ func (server *Server) ServeCodec(r *bufio.Reader, w *bufio.Writer, c io.Closer) 
 			}
 			// send a response if we actually managed to read a header.
 			if req != nil {
-				server.sendResponse(sending, req, invalidRequest, w, c, err.Error())
-				server.freeRequest(req)
+				server.sendResponse(wg, sending, req, invalidRequest, w, conn, err.Error())
+				server.freeRequest(r, req)
 			}
 			continue
 		}
-		go service.call(server, sending, mtype, req, argv, replyv, w, c)
+		go service.call(server, wg, sending, mtype, req, argv, replyv, r, w, conn)
 	}
 	server.putReadBuf(r)
+	server.delRequest(r)
+	wg.Wait()
 	server.putWriteBuf(w)
-	//	c.Close()
+	server.delResponse(w)
 }
+
+// ServeCodec is like ServeConn but uses the specified codec to
+// decode requests and encode responses.
+//func (server *Server) ServeCodec(r *bufio.Reader, w *bufio.Writer, c io.Closer) {
+//	sending := new(sync.Mutex)
+//	for {
+//		service, mtype, req, argv, replyv, keepReading, err := server.readRequest(r)
+//		if err != nil {
+//			if debugLog && err != io.EOF {
+//				log.Println("rpc:", err)
+//			}
+//			if !keepReading {
+//				break
+//			}
+//			// send a response if we actually managed to read a header.
+//			if req != nil {
+//				server.sendResponse(sending, req, invalidRequest, w, c, err.Error())
+//				server.freeRequest(req)
+//			}
+//			continue
+//		}
+//		go service.call(server, sending, mtype, req, argv, replyv, w, c)
+//	}
+//	server.putReadBuf(r)
+//	server.putWriteBuf(w)
+//}
 
 // ServeRequest is like ServeCodec but synchronously serves a single request.
 // It does not close the codec upon completion.
@@ -542,7 +618,9 @@ func (server *Server) ServeRequest(conn io.ReadWriter) error {
 	r := server.getReadBuf(conn)
 	w := server.getWriteBuf(conn)
 	sending := new(sync.Mutex)
+	wg := new(sync.WaitGroup)
 	service, mtype, req, argv, replyv, keepReading, err := server.readRequest(r)
+	wg.Add(1)
 	if err != nil {
 		if !keepReading {
 			server.putReadBuf(r)
@@ -551,20 +629,21 @@ func (server *Server) ServeRequest(conn io.ReadWriter) error {
 		}
 		// send a response if we actually managed to read a header.
 		if req != nil {
-			server.sendResponse(sending, req, invalidRequest, w, nil, err.Error())
-			server.freeRequest(req)
+			server.sendResponse(wg, sending, req, invalidRequest, w, nil, err.Error())
+			server.freeRequest(r, req)
 		}
 		server.putReadBuf(r)
 		server.putWriteBuf(w)
 		return err
 	}
-	service.call(server, sending, mtype, req, argv, replyv, w, nil)
+	service.call(server, wg, sending, mtype, req, argv, replyv, r, w, nil)
 	server.putReadBuf(r)
+	wg.Done()
 	server.putWriteBuf(w)
 	return nil
 }
 
-func (server *Server) getRequest() *Request {
+func (server *Server) getRequest(r io.Reader) *Request {
 	// server.reqLock.Lock()
 	// req := server.freeReq
 	// if req == nil {
@@ -575,19 +654,41 @@ func (server *Server) getRequest() *Request {
 	// }
 	// server.reqLock.Unlock()
 	// return req
-	return server.reqPool.Get().(*Request)
+	var req *Request
+	reql, ok := server.reqLocks[r]
+	if ok {
+		reql.Lock()
+		req = server.freeReqs[r]
+		if req == nil {
+			req = new(Request)
+		} else {
+			server.freeReqs[r] = req.Next
+			*req = Request{}
+		}
+		reql.Unlock()
+	} else {
+		req = server.reqPool.Get().(*Request)
+	}
+	return req
 }
 
-func (server *Server) freeRequest(req *Request) {
+func (server *Server) freeRequest(r io.Reader, req *Request) {
 	// server.reqLock.Lock()
 	// req.next = server.freeReq
 	// server.freeReq = req
 	// server.reqLock.Unlock()
-	req.Reset()
-	server.reqPool.Put(req)
+	reql, ok := server.reqLocks[r]
+	if ok {
+		reql.Lock()
+		req.Next = server.freeReqs[r]
+		server.freeReqs[r] = req
+		reql.Unlock()
+	} else {
+		server.reqPool.Put(req)
+	}
 }
 
-func (server *Server) getResponse() *Response {
+func (server *Server) getResponse(w io.Writer) *Response {
 	// server.respLock.Lock()
 	// resp := server.freeResp
 	// if resp == nil {
@@ -598,16 +699,38 @@ func (server *Server) getResponse() *Response {
 	// }
 	// server.respLock.Unlock()
 	// return resp
-	return server.respPool.Get().(*Response)
+	var resp *Response
+	respl, ok := server.respLocks[w]
+	if ok {
+		respl.Lock()
+		resp = server.freeResps[w]
+		if resp == nil {
+			resp = new(Response)
+		} else {
+			server.freeResps[w] = resp.Next
+			*resp = Response{}
+		}
+		respl.Unlock()
+	} else {
+		resp = server.respPool.Get().(*Response)
+	}
+	return resp
 }
 
-func (server *Server) freeResponse(resp *Response) {
+func (server *Server) freeResponse(w io.Writer, resp *Response) {
 	// server.respLock.Lock()
 	// resp.next = server.freeResp
 	// server.freeResp = resp
 	// server.respLock.Unlock()
-	resp.Reset()
-	server.respPool.Put(resp)
+	respl, ok := server.respLocks[w]
+	if ok {
+		respl.Lock()
+		resp.Next = server.freeResps[w]
+		server.freeResps[w] = resp
+		respl.Unlock()
+	} else {
+		server.respPool.Put(resp)
+	}
 }
 
 func (server *Server) readRequest(r *bufio.Reader) (service *service, mtype *methodType, req *Request, argv, replyv reflect.Value, keepReading bool, err error) {
@@ -644,7 +767,7 @@ func (server *Server) readRequest(r *bufio.Reader) (service *service, mtype *met
 
 func (server *Server) readRequestHeader(r *bufio.Reader) (service *service, mtype *methodType, req *Request, keepReading bool, err error) {
 	// Grab the request header.
-	req = server.getRequest()
+	req = server.getRequest(r)
 	err = server.codec.ReadRequestHeader(r, req)
 	if err != nil {
 		req = nil
