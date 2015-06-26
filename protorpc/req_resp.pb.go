@@ -15,50 +15,25 @@
 package protorpc
 
 import proto "github.com/gogo/protobuf/proto"
-import math "math"
 
 // discarding unused import gogoproto "gogo/protobuf/gogoproto/gogo.pb"
 
 import io "io"
 import fmt "fmt"
-import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
-var _ = math.Inf
 
 type Request struct {
-	ServiceMethod    string   `protobuf:"bytes,1,opt" json:"ServiceMethod"`
-	Seq              uint64   `protobuf:"varint,2,opt" json:"Seq"`
-	MethodId         uint32   `protobuf:"varint,3,opt" json:"MethodId"`
-	Next             *Request `protobuf:"bytes,4,opt,name=next" json:"next,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
+	ServiceMethod string   `protobuf:"bytes,1,opt,proto3" json:"ServiceMethod,omitempty"`
+	Seq           uint64   `protobuf:"varint,2,opt,proto3" json:"Seq,omitempty"`
+	MethodId      uint32   `protobuf:"varint,3,opt,proto3" json:"MethodId,omitempty"`
+	Next          *Request `protobuf:"bytes,4,opt,name=next" json:"next,omitempty"`
 }
 
 func (m *Request) Reset()         { *m = Request{} }
 func (m *Request) String() string { return proto.CompactTextString(m) }
 func (*Request) ProtoMessage()    {}
-
-func (m *Request) GetServiceMethod() string {
-	if m != nil {
-		return m.ServiceMethod
-	}
-	return ""
-}
-
-func (m *Request) GetSeq() uint64 {
-	if m != nil {
-		return m.Seq
-	}
-	return 0
-}
-
-func (m *Request) GetMethodId() uint32 {
-	if m != nil {
-		return m.MethodId
-	}
-	return 0
-}
 
 func (m *Request) GetNext() *Request {
 	if m != nil {
@@ -68,45 +43,16 @@ func (m *Request) GetNext() *Request {
 }
 
 type Response struct {
-	ServiceMethod    string    `protobuf:"bytes,1,opt" json:"ServiceMethod"`
-	Seq              uint64    `protobuf:"varint,2,opt" json:"Seq"`
-	Error            string    `protobuf:"bytes,3,opt" json:"Error"`
-	MethodId         uint32    `protobuf:"varint,4,opt" json:"MethodId"`
-	Next             *Response `protobuf:"bytes,5,opt,name=next" json:"next,omitempty"`
-	XXX_unrecognized []byte    `json:"-"`
+	ServiceMethod string    `protobuf:"bytes,1,opt,proto3" json:"ServiceMethod,omitempty"`
+	Seq           uint64    `protobuf:"varint,2,opt,proto3" json:"Seq,omitempty"`
+	Error         string    `protobuf:"bytes,3,opt,proto3" json:"Error,omitempty"`
+	MethodId      uint32    `protobuf:"varint,4,opt,proto3" json:"MethodId,omitempty"`
+	Next          *Response `protobuf:"bytes,5,opt,name=next" json:"next,omitempty"`
 }
 
 func (m *Response) Reset()         { *m = Response{} }
 func (m *Response) String() string { return proto.CompactTextString(m) }
 func (*Response) ProtoMessage()    {}
-
-func (m *Response) GetServiceMethod() string {
-	if m != nil {
-		return m.ServiceMethod
-	}
-	return ""
-}
-
-func (m *Response) GetSeq() uint64 {
-	if m != nil {
-		return m.Seq
-	}
-	return 0
-}
-
-func (m *Response) GetError() string {
-	if m != nil {
-		return m.Error
-	}
-	return ""
-}
-
-func (m *Response) GetMethodId() uint32 {
-	if m != nil {
-		return m.MethodId
-	}
-	return 0
-}
 
 func (m *Response) GetNext() *Response {
 	if m != nil {
@@ -119,15 +65,15 @@ func init() {
 }
 func (m *Request) Unmarshal(data []byte) error {
 	l := len(data)
-	index := 0
-	for index < l {
+	iNdEx := 0
+	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
-			if index >= l {
+			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[index]
-			index++
+			b := data[iNdEx]
+			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
 				break
@@ -142,32 +88,32 @@ func (m *Request) Unmarshal(data []byte) error {
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + int(stringLen)
+			postIndex := iNdEx + int(stringLen)
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ServiceMethod = string(data[index:postIndex])
-			index = postIndex
+			m.ServiceMethod = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Seq", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Seq |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -178,11 +124,11 @@ func (m *Request) Unmarshal(data []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field MethodId", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.MethodId |= (uint32(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -194,27 +140,27 @@ func (m *Request) Unmarshal(data []byte) error {
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + msglen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Next == nil {
 				m.Next = &Request{}
 			}
-			if err := m.Next.Unmarshal(data[index:postIndex]); err != nil {
+			if err := m.Next.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			index = postIndex
+			iNdEx = postIndex
 		default:
 			var sizeOfWire int
 			for {
@@ -224,16 +170,15 @@ func (m *Request) Unmarshal(data []byte) error {
 					break
 				}
 			}
-			index -= sizeOfWire
-			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
+			iNdEx -= sizeOfWire
+			skippy, err := skipReqResp(data[iNdEx:])
 			if err != nil {
 				return err
 			}
-			if (index + skippy) > l {
+			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
-			index += skippy
+			iNdEx += skippy
 		}
 	}
 
@@ -241,15 +186,15 @@ func (m *Request) Unmarshal(data []byte) error {
 }
 func (m *Response) Unmarshal(data []byte) error {
 	l := len(data)
-	index := 0
-	for index < l {
+	iNdEx := 0
+	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
-			if index >= l {
+			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[index]
-			index++
+			b := data[iNdEx]
+			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
 				break
@@ -264,32 +209,32 @@ func (m *Response) Unmarshal(data []byte) error {
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + int(stringLen)
+			postIndex := iNdEx + int(stringLen)
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ServiceMethod = string(data[index:postIndex])
-			index = postIndex
+			m.ServiceMethod = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Seq", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Seq |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -301,32 +246,32 @@ func (m *Response) Unmarshal(data []byte) error {
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + int(stringLen)
+			postIndex := iNdEx + int(stringLen)
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Error = string(data[index:postIndex])
-			index = postIndex
+			m.Error = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MethodId", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.MethodId |= (uint32(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -338,27 +283,27 @@ func (m *Response) Unmarshal(data []byte) error {
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + msglen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Next == nil {
 				m.Next = &Response{}
 			}
-			if err := m.Next.Unmarshal(data[index:postIndex]); err != nil {
+			if err := m.Next.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			index = postIndex
+			iNdEx = postIndex
 		default:
 			var sizeOfWire int
 			for {
@@ -368,34 +313,120 @@ func (m *Response) Unmarshal(data []byte) error {
 					break
 				}
 			}
-			index -= sizeOfWire
-			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
+			iNdEx -= sizeOfWire
+			skippy, err := skipReqResp(data[iNdEx:])
 			if err != nil {
 				return err
 			}
-			if (index + skippy) > l {
+			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
-			index += skippy
+			iNdEx += skippy
 		}
 	}
 
 	return nil
 }
+func skipReqResp(data []byte) (n int, err error) {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return 0, io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		wireType := int(wire & 0x7)
+		switch wireType {
+		case 0:
+			for {
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				iNdEx++
+				if data[iNdEx-1] < 0x80 {
+					break
+				}
+			}
+			return iNdEx, nil
+		case 1:
+			iNdEx += 8
+			return iNdEx, nil
+		case 2:
+			var length int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				length |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			iNdEx += length
+			return iNdEx, nil
+		case 3:
+			for {
+				var wire uint64
+				var start int = iNdEx
+				for shift := uint(0); ; shift += 7 {
+					if iNdEx >= l {
+						return 0, io.ErrUnexpectedEOF
+					}
+					b := data[iNdEx]
+					iNdEx++
+					wire |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				wireType := int(wire & 0x7)
+				if wireType == 4 {
+					break
+				}
+				next, err := skipReqResp(data[start:])
+				if err != nil {
+					return 0, err
+				}
+				iNdEx = start + next
+			}
+			return iNdEx, nil
+		case 4:
+			return iNdEx, nil
+		case 5:
+			iNdEx += 4
+			return iNdEx, nil
+		default:
+			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
+		}
+	}
+	panic("unreachable")
+}
 func (m *Request) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.ServiceMethod)
-	n += 1 + l + sovReqResp(uint64(l))
-	n += 1 + sovReqResp(uint64(m.Seq))
-	n += 1 + sovReqResp(uint64(m.MethodId))
+	if l > 0 {
+		n += 1 + l + sovReqResp(uint64(l))
+	}
+	if m.Seq != 0 {
+		n += 1 + sovReqResp(uint64(m.Seq))
+	}
+	if m.MethodId != 0 {
+		n += 1 + sovReqResp(uint64(m.MethodId))
+	}
 	if m.Next != nil {
 		l = m.Next.Size()
 		n += 1 + l + sovReqResp(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
 	}
 	return n
 }
@@ -404,17 +435,22 @@ func (m *Response) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.ServiceMethod)
-	n += 1 + l + sovReqResp(uint64(l))
-	n += 1 + sovReqResp(uint64(m.Seq))
+	if l > 0 {
+		n += 1 + l + sovReqResp(uint64(l))
+	}
+	if m.Seq != 0 {
+		n += 1 + sovReqResp(uint64(m.Seq))
+	}
 	l = len(m.Error)
-	n += 1 + l + sovReqResp(uint64(l))
-	n += 1 + sovReqResp(uint64(m.MethodId))
+	if l > 0 {
+		n += 1 + l + sovReqResp(uint64(l))
+	}
+	if m.MethodId != 0 {
+		n += 1 + sovReqResp(uint64(m.MethodId))
+	}
 	if m.Next != nil {
 		l = m.Next.Size()
 		n += 1 + l + sovReqResp(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
 	}
 	return n
 }
@@ -447,16 +483,22 @@ func (m *Request) MarshalTo(data []byte) (n int, err error) {
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
-	i++
-	i = encodeVarintReqResp(data, i, uint64(len(m.ServiceMethod)))
-	i += copy(data[i:], m.ServiceMethod)
-	data[i] = 0x10
-	i++
-	i = encodeVarintReqResp(data, i, uint64(m.Seq))
-	data[i] = 0x18
-	i++
-	i = encodeVarintReqResp(data, i, uint64(m.MethodId))
+	if len(m.ServiceMethod) > 0 {
+		data[i] = 0xa
+		i++
+		i = encodeVarintReqResp(data, i, uint64(len(m.ServiceMethod)))
+		i += copy(data[i:], m.ServiceMethod)
+	}
+	if m.Seq != 0 {
+		data[i] = 0x10
+		i++
+		i = encodeVarintReqResp(data, i, uint64(m.Seq))
+	}
+	if m.MethodId != 0 {
+		data[i] = 0x18
+		i++
+		i = encodeVarintReqResp(data, i, uint64(m.MethodId))
+	}
 	if m.Next != nil {
 		data[i] = 0x22
 		i++
@@ -466,9 +508,6 @@ func (m *Request) MarshalTo(data []byte) (n int, err error) {
 			return 0, err
 		}
 		i += n1
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(data[i:], m.XXX_unrecognized)
 	}
 	return i, nil
 }
@@ -488,20 +527,28 @@ func (m *Response) MarshalTo(data []byte) (n int, err error) {
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
-	i++
-	i = encodeVarintReqResp(data, i, uint64(len(m.ServiceMethod)))
-	i += copy(data[i:], m.ServiceMethod)
-	data[i] = 0x10
-	i++
-	i = encodeVarintReqResp(data, i, uint64(m.Seq))
-	data[i] = 0x1a
-	i++
-	i = encodeVarintReqResp(data, i, uint64(len(m.Error)))
-	i += copy(data[i:], m.Error)
-	data[i] = 0x20
-	i++
-	i = encodeVarintReqResp(data, i, uint64(m.MethodId))
+	if len(m.ServiceMethod) > 0 {
+		data[i] = 0xa
+		i++
+		i = encodeVarintReqResp(data, i, uint64(len(m.ServiceMethod)))
+		i += copy(data[i:], m.ServiceMethod)
+	}
+	if m.Seq != 0 {
+		data[i] = 0x10
+		i++
+		i = encodeVarintReqResp(data, i, uint64(m.Seq))
+	}
+	if len(m.Error) > 0 {
+		data[i] = 0x1a
+		i++
+		i = encodeVarintReqResp(data, i, uint64(len(m.Error)))
+		i += copy(data[i:], m.Error)
+	}
+	if m.MethodId != 0 {
+		data[i] = 0x20
+		i++
+		i = encodeVarintReqResp(data, i, uint64(m.MethodId))
+	}
 	if m.Next != nil {
 		data[i] = 0x2a
 		i++
@@ -511,9 +558,6 @@ func (m *Response) MarshalTo(data []byte) (n int, err error) {
 			return 0, err
 		}
 		i += n2
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(data[i:], m.XXX_unrecognized)
 	}
 	return i, nil
 }
