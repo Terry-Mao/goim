@@ -509,8 +509,11 @@ func (server *Server) initRequest(r *bufio.Reader) {
 
 // initWrite init a Response and response lock.
 func (server *Server) initResponse(w *bufio.Writer) {
-	server.respLocks[w] = server.lockPool.Get().(*sync.Mutex)
-	server.freeResps[w] = server.respPool.Get().(*Response)
+	l := server.lockPool.Get()
+	server.respLocks[w] = l.(*sync.Mutex)
+	resp := server.respPool.Get()
+	log.Print(resp)
+	server.freeResps[w] = resp.(*Response)
 }
 
 // delRead delete a Request and request lock.
