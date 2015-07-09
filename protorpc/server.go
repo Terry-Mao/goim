@@ -503,50 +503,54 @@ func (server *Server) putWriteBuf(w *bufio.Writer) {
 
 // initRead init a Request and request lock.
 func (server *Server) initRequest(r *bufio.Reader) {
+	server.mu.Lock()
 	server.reqLocks[r] = server.lockPool.Get().(*sync.Mutex)
 	req := server.reqPool.Get()
 	log.Print("request:", req)
 	server.freeReqs[r] = req.(*Request)
+	server.mu.Unlock()
 }
 
 // initWrite init a Response and response lock.
 func (server *Server) initResponse(w *bufio.Writer) {
+	server.mu.Lock()
 	l := server.lockPool.Get()
 	server.respLocks[w] = l.(*sync.Mutex)
 	resp := server.respPool.Get()
 	log.Print("response:", resp)
 	server.freeResps[w] = resp.(*Response)
+	server.mu.Unlock()
 }
 
 // delRead delete a Request and request lock.
 func (server *Server) delRequest(r *bufio.Reader) {
-	reql := server.reqLocks[r]
-	reql.Lock()
+	server.mu.Lock()
 	// pur reader in pool
 	server.putReadBuf(r)
 	// put req in pool
 	req := server.freeReqs[r]
 	delete(server.freeReqs, r)
 	server.reqPool.Put(req)
-	reql.Unlock()
 	// put req lock in pool
+	reql := server.reqLocks[r]
 	delete(server.reqLocks, r)
 	server.lockPool.Put(reql)
+	server.mu.Unlock()
 }
 
 // delWrite delete a Response and response lock.
 func (server *Server) delResponse(w *bufio.Writer) {
-	respl := server.respLocks[w]
-	respl.Lock()
+	server.mu.Lock()
 	server.putWriteBuf(w)
 	// put resp in pool
 	resp := server.freeResps[w]
 	delete(server.freeResps, w)
 	server.reqPool.Put(resp)
-	respl.Unlock()
 	// put resp lock in pool
+	respl := server.respLocks[w]
 	delete(server.respLocks, w)
 	server.lockPool.Put(respl)
+	server.mu.Unlock()
 }
 
 // ServeConn runs the server on a single connection.
@@ -647,8 +651,8 @@ func (server *Server) ServeRequest(conn io.ReadWriter) error {
 		return err
 	}
 	service.call(server, wg, sending, mtype, req, argv, replyv, r, w, nil)
-	server.putReadBuf(r)
 	wg.Done()
+	server.putReadBuf(r)
 	server.putWriteBuf(w)
 	return nil
 }
