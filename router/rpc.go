@@ -51,7 +51,6 @@ func (this *RouterRPC) Sub(key *proto.ArgKey, ret *proto.Ret) (err error) {
 		ret.Ret = ParamterErr
 		return
 	}
-	log.Info("PbSub key(%s)", key.Key)
 	sb := DefaultBuckets.SubBucket(key.Key)
 	if sb == nil {
 		log.Error("DefaultBuckets get subbucket error key(%s)", key.Key)

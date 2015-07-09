@@ -184,11 +184,11 @@ type service struct {
 type Server struct {
 	mu         sync.RWMutex // protects the serviceMap
 	serviceMap map[string]*service
-	reqLocks   map[io.Reader]*sync.Mutex // protects freeReq
-	freeReqs   map[io.Reader]*Request
+	reqLocks   map[*bufio.Reader]*sync.Mutex // protects freeReq
+	freeReqs   map[*bufio.Reader]*Request
 	reqPool    sync.Pool
-	respLocks  map[io.Writer]*sync.Mutex // protects freeResp
-	freeResps  map[io.Writer]*Response
+	respLocks  map[*bufio.Writer]*sync.Mutex // protects freeResp
+	freeResps  map[*bufio.Writer]*Response
 	respPool   sync.Pool
 
 	lockPool sync.Pool
@@ -218,10 +218,10 @@ func NewServer() *Server {
 				return new(sync.Mutex)
 			},
 		},
-		reqLocks:  make(map[io.Reader]*sync.Mutex),
-		freeReqs:  make(map[io.Reader]*Request),
-		respLocks: make(map[io.Writer]*sync.Mutex),
-		freeResps: make(map[io.Writer]*Response),
+		reqLocks:  make(map[*bufio.Reader]*sync.Mutex),
+		freeReqs:  make(map[*bufio.Reader]*Request),
+		respLocks: make(map[*bufio.Writer]*sync.Mutex),
+		freeResps: make(map[*bufio.Writer]*Response),
 		codec:     NewPbServerCodec(),
 	}
 }
@@ -502,39 +502,46 @@ func (server *Server) putWriteBuf(w *bufio.Writer) {
 }
 
 // initRead init a Request and request lock.
-func (server *Server) initRequest(r io.Reader) {
+func (server *Server) initRequest(r *bufio.Reader) {
 	server.reqLocks[r] = server.lockPool.Get().(*sync.Mutex)
 	server.freeReqs[r] = server.reqPool.Get().(*Request)
 }
 
 // initWrite init a Response and response lock.
-func (server *Server) initResponse(w io.Writer) {
+func (server *Server) initResponse(w *bufio.Writer) {
 	server.respLocks[w] = server.lockPool.Get().(*sync.Mutex)
 	server.freeResps[w] = server.respPool.Get().(*Response)
 }
 
 // delRead delete a Request and request lock.
-func (server *Server) delRequest(r io.Reader) {
-	// put req lock in pool
+func (server *Server) delRequest(r *bufio.Reader) {
 	reql := server.reqLocks[r]
-	delete(server.reqLocks, r)
-	server.lockPool.Put(reql)
+	reql.Lock()
+	// pur reader in pool
+	server.putReadBuf(r)
 	// put req in pool
 	req := server.freeReqs[r]
 	delete(server.freeReqs, r)
 	server.reqPool.Put(req)
+	reql.Unlock()
+	// put req lock in pool
+	delete(server.reqLocks, r)
+	server.lockPool.Put(reql)
 }
 
 // delWrite delete a Response and response lock.
-func (server *Server) delResponse(w io.Writer) {
-	// put resp lock in pool
+func (server *Server) delResponse(w *bufio.Writer) {
 	respl := server.respLocks[w]
-	delete(server.respLocks, w)
-	server.lockPool.Put(respl)
+	respl.Lock()
+	server.putWriteBuf(w)
 	// put resp in pool
 	resp := server.freeResps[w]
 	delete(server.freeResps, w)
 	server.reqPool.Put(resp)
+	respl.Unlock()
+	// put resp lock in pool
+	delete(server.respLocks, w)
+	server.lockPool.Put(respl)
 }
 
 // ServeConn runs the server on a single connection.
@@ -558,7 +565,7 @@ func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 	w := server.getWriteBuf(conn)
 	server.initRequest(r)
 	server.initResponse(w)
-	sending := new(sync.Mutex)
+	sending := server.respLocks[w]
 	wg := new(sync.WaitGroup)
 	for {
 		service, mtype, req, argv, replyv, keepReading, err := server.readRequest(r)
@@ -579,10 +586,8 @@ func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 		}
 		go service.call(server, wg, sending, mtype, req, argv, replyv, r, w, conn)
 	}
-	server.putReadBuf(r)
-	server.delRequest(r)
 	wg.Wait()
-	server.putWriteBuf(w)
+	server.delRequest(r)
 	server.delResponse(w)
 }
 
@@ -643,7 +648,7 @@ func (server *Server) ServeRequest(conn io.ReadWriter) error {
 	return nil
 }
 
-func (server *Server) getRequest(r io.Reader) *Request {
+func (server *Server) getRequest(r *bufio.Reader) *Request {
 	// server.reqLock.Lock()
 	// req := server.freeReq
 	// if req == nil {
@@ -672,7 +677,7 @@ func (server *Server) getRequest(r io.Reader) *Request {
 	return req
 }
 
-func (server *Server) freeRequest(r io.Reader, req *Request) {
+func (server *Server) freeRequest(r *bufio.Reader, req *Request) {
 	// server.reqLock.Lock()
 	// req.next = server.freeReq
 	// server.freeReq = req
@@ -688,7 +693,7 @@ func (server *Server) freeRequest(r io.Reader, req *Request) {
 	}
 }
 
-func (server *Server) getResponse(w io.Writer) *Response {
+func (server *Server) getResponse(w *bufio.Writer) *Response {
 	// server.respLock.Lock()
 	// resp := server.freeResp
 	// if resp == nil {
@@ -717,7 +722,7 @@ func (server *Server) getResponse(w io.Writer) *Response {
 	return resp
 }
 
-func (server *Server) freeResponse(w io.Writer, resp *Response) {
+func (server *Server) freeResponse(w *bufio.Writer, resp *Response) {
 	// server.respLock.Lock()
 	// resp.next = server.freeResp
 	// server.freeResp = resp
