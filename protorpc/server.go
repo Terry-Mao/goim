@@ -134,7 +134,7 @@ import (
 	"sync"
 	"unicode"
 	"unicode/utf8"
-	"github.com/felixhao/log4go"
+	"code.google.com/p/log4go"
 )
 
 const (
