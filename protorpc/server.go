@@ -507,8 +507,9 @@ func (server *Server) initRequest(r *bufio.Reader) {
 	server.mu.Lock()
 	server.reqLocks[r] = server.lockPool.Get().(*sync.Mutex)
 	req := server.reqPool.Get()
-	log4go.Info("request: %v", req)
-	server.freeReqs[r] = req.(*Request)
+	rrr := req.(*Request)
+	log4go.Info("request: %v", rrr)
+	server.freeReqs[r] = rrr
 	server.mu.Unlock()
 }
 
@@ -518,8 +519,9 @@ func (server *Server) initResponse(w *bufio.Writer) {
 	l := server.lockPool.Get()
 	server.respLocks[w] = l.(*sync.Mutex)
 	resp := server.respPool.Get()
-	log4go.Info("response: %v", resp)
-	server.freeResps[w] = resp.(*Response)
+	rrr := resp.(*Response)
+	log4go.Info("response: %v", rrr)
+	server.freeResps[w] = rrr
 	server.mu.Unlock()
 }
 
@@ -632,7 +634,7 @@ func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 func (server *Server) ServeRequest(conn io.ReadWriter) error {
 	r := server.getReadBuf(conn)
 	w := server.getWriteBuf(conn)
-	sending := new(sync.Mutex)
+	sending := server.respLocks[w]
 	wg := new(sync.WaitGroup)
 	service, mtype, req, argv, replyv, keepReading, err := server.readRequest(r)
 	wg.Add(1)
