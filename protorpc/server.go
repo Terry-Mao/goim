@@ -506,7 +506,7 @@ func (server *Server) initRequest(r *bufio.Reader) {
 	server.mu.Lock()
 	server.reqLocks[r] = server.lockPool.Get().(*sync.Mutex)
 	req := server.reqPool.Get()
-	log.Print("request:", req)
+	log.Printf("request: %v", req)
 	server.freeReqs[r] = req.(*Request)
 	server.mu.Unlock()
 }
@@ -517,7 +517,7 @@ func (server *Server) initResponse(w *bufio.Writer) {
 	l := server.lockPool.Get()
 	server.respLocks[w] = l.(*sync.Mutex)
 	resp := server.respPool.Get()
-	log.Print("response:", resp)
+	log.Printf("response: %v", resp)
 	server.freeResps[w] = resp.(*Response)
 	server.mu.Unlock()
 }
