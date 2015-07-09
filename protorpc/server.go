@@ -627,7 +627,7 @@ func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 func (server *Server) ServeRequest(conn io.ReadWriter) error {
 	r := server.getReadBuf(conn)
 	w := server.getWriteBuf(conn)
-	sending := server.respLocks[w]
+	sending := new(sync.Mutex)
 	wg := new(sync.WaitGroup)
 	service, mtype, req, argv, replyv, keepReading, err := server.readRequest(r)
 	wg.Add(1)
