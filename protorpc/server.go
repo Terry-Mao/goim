@@ -124,7 +124,6 @@ package protorpc
 import (
 	"bufio"
 	// "encoding/gob"
-	"code.google.com/p/log4go"
 	"errors"
 	"io"
 	"log"
@@ -506,10 +505,7 @@ func (server *Server) putWriteBuf(w *bufio.Writer) {
 func (server *Server) initRequest(r *bufio.Reader) {
 	server.mu.Lock()
 	server.reqLocks[r] = server.lockPool.Get().(*sync.Mutex)
-	req := server.reqPool.Get()
-	rrr := req.(*Request)
-	log4go.Info("request: %v", rrr)
-	server.freeReqs[r] = rrr
+	server.freeReqs[r] = server.reqPool.Get().(*Request)
 	server.mu.Unlock()
 }
 
@@ -518,10 +514,7 @@ func (server *Server) initResponse(w *bufio.Writer) {
 	server.mu.Lock()
 	l := server.lockPool.Get()
 	server.respLocks[w] = l.(*sync.Mutex)
-	resp := server.respPool.Get()
-	rrr := resp.(*Response)
-	log4go.Info("response: %v", rrr)
-	server.freeResps[w] = rrr
+	server.freeResps[w] = server.respPool.Get().(*Response)
 	server.mu.Unlock()
 }
 
