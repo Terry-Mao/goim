@@ -124,6 +124,7 @@ package protorpc
 import (
 	"bufio"
 	// "encoding/gob"
+	"code.google.com/p/log4go"
 	"errors"
 	"io"
 	"log"
@@ -134,7 +135,6 @@ import (
 	"sync"
 	"unicode"
 	"unicode/utf8"
-	"code.google.com/p/log4go"
 )
 
 const (
@@ -669,11 +669,10 @@ func (server *Server) getRequest(r *bufio.Reader) *Request {
 	// }
 	// server.reqLock.Unlock()
 	// return req
-	var req *Request
 	reql, ok := server.reqLocks[r]
 	if ok {
 		reql.Lock()
-		req = server.freeReqs[r]
+		req := server.freeReqs[r]
 		if req == nil {
 			req = new(Request)
 		} else {
@@ -681,9 +680,9 @@ func (server *Server) getRequest(r *bufio.Reader) *Request {
 			*req = Request{}
 		}
 		reql.Unlock()
-	} else {
-		req = server.reqPool.Get().(*Request)
+		return req
 	}
+	req := server.reqPool.Get().(*Request)
 	return req
 }
 
@@ -714,11 +713,10 @@ func (server *Server) getResponse(w *bufio.Writer) *Response {
 	// }
 	// server.respLock.Unlock()
 	// return resp
-	var resp *Response
 	respl, ok := server.respLocks[w]
 	if ok {
 		respl.Lock()
-		resp = server.freeResps[w]
+		resp := server.freeResps[w]
 		if resp == nil {
 			resp = new(Response)
 		} else {
@@ -726,9 +724,9 @@ func (server *Server) getResponse(w *bufio.Writer) *Response {
 			*resp = Response{}
 		}
 		respl.Unlock()
-	} else {
-		resp = server.respPool.Get().(*Response)
+		return resp
 	}
+	resp := server.respPool.Get().(*Response)
 	return resp
 }
 
