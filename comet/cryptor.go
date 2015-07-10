@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/rsa"
 	"crypto/sha256"
+	"github.com/Terry-Mao/goim/libs/crypto/padding"
 	myrsa "github.com/Terry-Mao/goim/libs/crypto/rsa"
 	"io/ioutil"
 	"os"
@@ -87,7 +88,7 @@ func (c *DefaultCryptor) Cryptor(ki []byte) (ebm cipher.BlockMode, dbm cipher.Bl
 func (c *DefaultCryptor) Encrypt(encryptor cipher.BlockMode, msg []byte) (cipherText []byte, err error) {
 	if msg != nil {
 		// let caller do pkcs7 padding
-		// msg = padding.PKCS7.Padding(msg, encryptor.BlockSize())
+		msg = padding.PKCS7.Padding(msg, encryptor.BlockSize())
 		if len(msg) < encryptor.BlockSize() || len(msg)%encryptor.BlockSize() != 0 {
 			err = ErrInputTextSize
 			return
@@ -107,7 +108,7 @@ func (c *DefaultCryptor) Decrypt(decryptor cipher.BlockMode, cipherText []byte) 
 		msg = cipherText
 		decryptor.CryptBlocks(msg, cipherText)
 		// let caller do pkcs7 unpadding
-		// msg, err = padding.PKCS7.Unpadding(msg, decryptor.BlockSize())
+		msg, err = padding.PKCS7.Unpadding(msg, decryptor.BlockSize())
 	}
 	return
 }

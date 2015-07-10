@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bufio"
 	log "code.google.com/p/log4go"
 	"encoding/binary"
+	"io"
 )
 
 const (
@@ -11,17 +11,21 @@ const (
 	rawHeaderLen = int16(16)
 )
 
+type Flusher interface {
+	Flush() error
+}
+
 type ServerCodec interface {
-	ReadRequestHeader(*bufio.Reader, *Proto) error
-	ReadRequestBody(*bufio.Reader, *Proto) error
+	ReadRequestHeader(io.Reader, *Proto) error
+	ReadRequestBody(io.Reader, *Proto) error
 	// WriteResponse must be safe for concurrent use by multiple goroutines.
-	WriteResponse(*bufio.Writer, *Proto) error
+	WriteResponse(io.Writer, Flusher, *Proto) error
 }
 
-type DefaultServerCodec struct {
+type BinaryServerCodec struct {
 }
 
-func (c *DefaultServerCodec) ReadRequestHeader(rd *bufio.Reader, proto *Proto) (err error) {
+func (c *BinaryServerCodec) ReadRequestHeader(rd io.Reader, proto *Proto) (err error) {
 	if err = binary.Read(rd, binary.BigEndian, &proto.PackLen); err != nil {
 		log.Error("packLen: binary.Read() error(%v)", err)
 		return
@@ -56,7 +60,7 @@ func (c *DefaultServerCodec) ReadRequestHeader(rd *bufio.Reader, proto *Proto) (
 	return
 }
 
-func (c *DefaultServerCodec) ReadRequestBody(rd *bufio.Reader, proto *Proto) (err error) {
+func (c *BinaryServerCodec) ReadRequestBody(rd io.Reader, proto *Proto) (err error) {
 	var (
 		n       = int(0)
 		t       = int(0)
@@ -86,7 +90,7 @@ func (c *DefaultServerCodec) ReadRequestBody(rd *bufio.Reader, proto *Proto) (er
 	return
 }
 
-func (c *DefaultServerCodec) WriteResponse(wr *bufio.Writer, proto *Proto) (err error) {
+func (c *BinaryServerCodec) WriteResponse(wr io.Writer, fr Flusher, proto *Proto) (err error) {
 	log.Debug("write proto: %v", proto)
 	// packlen =header(16) + body
 	if err = binary.Write(wr, binary.BigEndian, uint32(rawHeaderLen)+uint32(len(proto.Body))); err != nil {
@@ -111,9 +115,12 @@ func (c *DefaultServerCodec) WriteResponse(wr *bufio.Writer, proto *Proto) (err 
 	}
 	if proto.Body != nil {
 		if _, err = wr.Write(proto.Body); err != nil {
-			log.Error("body: wr.Write() error(%v)", err)
+			log.Error("body: wfr.Write() error(%v)", err)
 			return
 		}
 	}
-	return wr.Flush()
+	if fr != nil {
+		return fr.Flush()
+	}
+	return
 }

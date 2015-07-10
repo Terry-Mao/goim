@@ -24,8 +24,20 @@ func main() {
 	if err := InitRSA(); err != nil {
 		panic(err)
 	}
-	DefaultServer = NewServer()
+	// new server
+	buckets := make([]*Bucket, Conf.Bucket)
+	for i := 0; i < Conf.Bucket; i++ {
+		buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
+	}
+	round := NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize, Conf.Session, Conf.SessionSize)
+	codec := new(BinaryServerCodec)
+	operator := new(DefaultOperator)
+	cryptor := NewDefaultCryptor()
+	DefaultServer = NewServer(buckets, round, codec, operator, cryptor)
 	if err := InitTCP(); err != nil {
+		panic(err)
+	}
+	if err := InitWebsocket(); err != nil {
 		panic(err)
 	}
 	if err := InitHttpPush(); err != nil {

@@ -2,7 +2,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"net"
+	"io"
 	"sync"
 	"time"
 )
@@ -18,7 +18,7 @@ const (
 
 type TimerData struct {
 	key   time.Time
-	value net.Conn
+	value io.Closer
 	index int
 	next  *TimerData
 }
@@ -73,7 +73,7 @@ func NewTimer(num int) *Timer {
 // Push pushes the element x onto the heap. The complexity is
 // O(log(n)) where n = h.Len().
 //
-func (t *Timer) Add(expire time.Duration, conn net.Conn) (td *TimerData, err error) {
+func (t *Timer) Add(expire time.Duration, closer io.Closer) (td *TimerData, err error) {
 	t.lock.Lock()
 	if t.cur >= t.max {
 		t.lock.Unlock()
@@ -83,7 +83,7 @@ func (t *Timer) Add(expire time.Duration, conn net.Conn) (td *TimerData, err err
 	t.cur++
 	td = t.get()
 	td.key = time.Now().Add(expire)
-	td.value = conn
+	td.value = closer
 	td.index = t.cur
 	// add to the minheap last node
 	t.timers[t.cur] = td
@@ -111,10 +111,10 @@ func (t *Timer) Expire() {
 		}
 		log.Debug("find a expire timer key: %s, index: %d", td.String(), td.index)
 		if td.value == nil {
-			log.Warn("expire timer no net.Conn")
+			log.Warn("expire timer no io.Closer")
 		} else {
 			if err = td.value.Close(); err != nil {
-				log.Error("timer conn close error(%v)", err)
+				log.Error("timer close error(%v)", err)
 			}
 		}
 		t.remove(0)
