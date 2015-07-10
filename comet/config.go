@@ -41,21 +41,21 @@ type Config struct {
 	MaxProc   int      `goconf:"base:maxproc"`
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	StatBind  []string `goconf:"base:stat.bind:,"`
+	// tcp
+	TCPBind      []string `goconf:"tcp:bind:,"`
+	TCPSndbuf    int      `goconf:"tcp:sndbuf:memory"`
+	TCPRcvbuf    int      `goconf:"tcp:rcvbuf:memory"`
+	TCPKeepalive bool     `goconf:"tcp:keepalive"`
+	// websocket
+	WebsocketBind []string `goconf:"websocket:bind:,"`
 	// proto section
-	TCPBind          []string      `goconf:"proto:tcp.bind:,"`
-	TCPSndbuf        int           `goconf:"proto:tcp.sndbuf:memory"`
-	TCPRcvbuf        int           `goconf:"proto:tcp.rcvbuf:memory"`
-	TCPKeepalive     bool          `goconf:"proto:tcp.keepalive"`
 	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
 	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
 	ReadBuf          int           `goconf:"proto:readbuf"`
 	WriteBuf         int           `goconf:"proto:writebuf"`
 	ReadBufSize      int           `goconf:"proto:readbuf.size"`
 	WriteBufSize     int           `goconf:"proto:writebuf.size"`
-	//EncrypterBuf       int           `goconf:"proto:encrypterbuf"`
-	//DecrypterBuf       int           `goconf:"proto:decrypterbuf"`
-	//EncrypterBufSize   int           `goconf:"proto:encrypterbuf.size"`
-	//DecrypterBufSize   int           `goconf:"proto:decrypterbuf.size"`
+	// timer
 	Timer       int `goconf:"proto:timer"`
 	TimerSize   int `goconf:"proto:timer.size"`
 	Session     int `goconf:"proto:session"`
@@ -83,11 +83,14 @@ func NewConfig() *Config {
 		MaxProc:   runtime.NumCPU(),
 		PprofBind: []string{"localhost:6971"},
 		StatBind:  []string{"localhost:6972"},
+		// tcp
+		TCPBind:      []string{"localhost:8080"},
+		TCPSndbuf:    1024,
+		TCPRcvbuf:    1024,
+		TCPKeepalive: false,
+		// websocket
+		WebsocketBind: []string{"localhost:8090"},
 		// proto section
-		TCPBind:          []string{"localhost:8080"},
-		TCPSndbuf:        1024,
-		TCPRcvbuf:        1024,
-		TCPKeepalive:     false,
 		HandshakeTimeout: 5 * time.Second,
 		WriteTimeout:     5 * time.Second,
 		ReadBuf:          1024,
@@ -113,7 +116,7 @@ func NewConfig() *Config {
 		HttpPushBind:     []string{"localhost:8082"},
 		HttpReadTimeout:  5 * time.Second,
 		HttpWriteTimeout: 5 * time.Second,
-		RPCPushBind:      []string{"localhost:8082"},
+		RPCPushBind:      []string{"localhost:8083"},
 	}
 }
 

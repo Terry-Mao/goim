@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bufio"
 	log "code.google.com/p/log4go"
 	"crypto/cipher"
-	"github.com/Terry-Mao/goim/libs/crypto/padding"
 	"github.com/Terry-Mao/goim/libs/hash/cityhash"
-	"net"
-	"sync"
+	"io"
 	"time"
 )
 
@@ -25,279 +22,228 @@ type Server struct {
 }
 
 // NewServer returns a new Server.
-func NewServer() *Server {
+func NewServer(b []*Bucket, r *Round, c ServerCodec, o Operator, d Cryptor) *Server {
 	s := new(Server)
 	log.Debug("server: use default server codec")
-	s.codec = new(DefaultServerCodec)
-	s.operator = new(DefaultOperator)
-	s.cryptor = NewDefaultCryptor()
-	s.buckets = make([]*Bucket, Conf.Bucket)
-	s.bucketIdx = uint32(Conf.Bucket)
-	for i := 0; i < Conf.Bucket; i++ {
-		s.buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
-	}
-	s.round = NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize, Conf.Session, Conf.SessionSize)
+	s.buckets = b
+	s.bucketIdx = uint32(len(b))
+	s.round = r
+	s.codec = c
+	s.operator = o
+	s.cryptor = d
 	return s
 }
 
-// Accept accepts connections on the listener and serves requests
-// for each incoming connection.  Accept blocks; the caller typically
-// invokes it in a go statement.
-func (server *Server) AcceptTCP(lis *net.TCPListener, i int) {
+func (server *Server) serve(rr io.Reader, wr io.Writer, fr Flusher, cr io.Closer, r int) {
 	var (
-		conn *net.TCPConn
-		err  error
-	)
-	for {
-		log.Debug("server: accept round: %d", i)
-		if conn, err = lis.AcceptTCP(); err != nil {
-			// if listener close then return
-			log.Error("listener.Accept(\"%s\") error(%v)", lis.Addr().String(), err)
-			return
-		}
-		if err = conn.SetKeepAlive(Conf.TCPKeepalive); err != nil {
-			log.Error("conn.SetKeepAlive() error(%v)", err)
-			return
-		}
-		if err = conn.SetReadBuffer(Conf.TCPSndbuf); err != nil {
-			log.Error("conn.SetReadBuffer() error(%v)", err)
-			return
-		}
-		if err = conn.SetWriteBuffer(Conf.TCPRcvbuf); err != nil {
-			log.Error("conn.SetWriteBuffer() error(%v)", err)
-			return
-		}
-		go server.serveConn(conn, i)
-		if i++; i == maxInt {
-			i = 0
-		}
-	}
-}
-
-func (server *Server) serveConn(conn net.Conn, r int) {
-	var (
-		ebm       cipher.BlockMode
-		dbm       cipher.BlockMode
-		subKey    string
-		err       error
-		heartbeat time.Duration
-		bucket    *Bucket
-		channel   *Channel
-		timerd    *TimerData
-		proto     = new(Proto)
-		// timer
-		timer = server.round.Timer(r)
-		// bufpool
-		rp = server.round.Reader(r) // reader
-		wp = server.round.Writer(r) // writer
-		// bufio
-		rd = NewBufioReaderSize(rp, conn, Conf.ReadBufSize)  // read buf
-		wr = NewBufioWriterSize(wp, conn, Conf.WriteBufSize) // write buf
-		// session
-		session = server.round.Session(r)
-		// ip addr
-		lAddr = conn.LocalAddr().String()
-		rAddr = conn.RemoteAddr().String()
+		b   *Bucket
+		ch  *Channel
+		hb  time.Duration // heartbeat
+		key string
+		ebm cipher.BlockMode
+		dbm cipher.BlockMode
+		err error
+		trd *TimerData
+		p   = new(Proto)
+		tr  = server.round.Timer(r)
+		s   = server.round.Session(r)
 	)
 	// handshake & auth
-	if timerd, err = timer.Add(Conf.HandshakeTimeout, conn); err != nil {
-		log.Error("\"%s\" handshake timer.Add() error(%v)", rAddr, err)
+	if trd, err = tr.Add(Conf.HandshakeTimeout, cr); err != nil {
+		log.Error("handshake: timer.Add() error(%v)", err)
 	} else {
-		log.Debug("handshake \"%s\" with \"%s\"", lAddr, rAddr)
-		if ebm, dbm, err = server.handshake(rd, wr, session, proto); err != nil {
-			log.Error("\"%s\"->\"%s\" handshake() error(%v)", lAddr, rAddr, err)
+		if ebm, dbm, err = server.handshake(rr, wr, fr, s, p); err != nil {
+			log.Error("handshake: server.handshake error(%v)", err)
 		} else {
-			if subKey, heartbeat, bucket, channel, err = server.auth(rd, wr, dbm, proto); err != nil {
-				log.Error("\"%s\"->\"%s\" auth() error(%v)", lAddr, rAddr, err)
+			if key, hb, err = server.auth(rr, wr, fr, dbm, p); err != nil {
+				log.Error("handshake: server.auth error(%v)", err)
 			}
 		}
 		//deltimer
-		timer.Del(timerd)
+		tr.Del(trd)
 	}
 	// failed
 	if err != nil {
-		if err = conn.Close(); err != nil {
-			log.Error("conn.Close(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
+		if err = cr.Close(); err != nil {
+			log.Error("handshake: fr.Close() error(%v)", err)
 		}
-		PutBufioReader(rp, rd)
-		PutBufioWriter(wp, wr)
 		return
 	}
+	// TODO how to reuse channel
+	// register key->channel
+	b = server.Bucket(key)
+	ch = NewChannel(Conf.CliProto, Conf.SvrProto)
+	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
-	log.Debug("%s[%s] serverconn goroutine start", subKey, rAddr)
-	go server.dispatch(conn, wr, wp, channel, ebm, dbm, heartbeat, timer, rAddr)
+	log.Debug("%s serverconn goroutine start", key)
+	go server.dispatch(cr, wr, fr, ch, ebm, dbm, hb, tr)
 	for {
 		// fetch a proto from channel free list
-		if proto, err = channel.CliProto.Set(); err != nil {
-			log.Error("%s[%s] fetch client proto error(%v)", subKey, rAddr, err)
+		if p, err = ch.CliProto.Set(); err != nil {
+			log.Error("%s fetch client proto error(%v)", key, err)
 			break
 		}
 		// parse request protocol
-		if err = server.readRequest(rd, proto); err != nil {
-			log.Error("%s[%s] read client request error(%v)", subKey, rAddr, err)
+		if err = server.readRequest(rr, p); err != nil {
+			log.Error("%s read client request error(%v)", key, err)
 			break
 		}
 		// send to writer
-		channel.CliProto.SetAdv()
+		ch.CliProto.SetAdv()
 		select {
-		case channel.Signal <- ProtoReady:
+		case ch.Signal <- ProtoReady:
 		default:
-			log.Warn("%s[%s] send a signal, but chan is full just ignore", subKey, rAddr)
+			log.Warn("%s send a signal, but chan is full just ignore", key)
 			break
 		}
 	}
 	// dialog finish
-	// put back reader buf
 	// revoke the subkey
 	// revoke the remote subkey
 	// close the net.Conn
 	// read & write goroutine
 	// return channel to bucket's free list
-	PutBufioReader(rp, rd)
-	bucket.Del(subKey)
-	if err = server.operator.Disconnect(subKey); err != nil {
-		log.Error("%s[%s] operator do disconnect error(%v)", subKey, rAddr, err)
+	b.Del(key)
+	if err = server.operator.Disconnect(key); err != nil {
+		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
 	// may call twice
-	if err = conn.Close(); err != nil {
-		log.Error("conn.Close(\"%s\", \"%s\") error(%v)", lAddr, rAddr, err)
+	if err = cr.Close(); err != nil {
+		log.Error("reader: cr.Close() error(%v)")
 	}
 	// don't use close chan, Signal can be reused
 	// if chan full, writer goroutine next fetch from chan will exit
 	// if chan empty, send a 0(close) let the writer exit
 	log.Debug("wake up dispatch goroutine")
 	select {
-	case channel.Signal <- ProtoFinsh:
+	case ch.Signal <- ProtoFinsh:
 	default:
-		log.Warn("%s[%s] send proto finish signal, but chan is full just ignore", subKey, rAddr)
+		log.Warn("%s send proto finish signal, but chan is full just ignore", key)
 	}
-	log.Debug("%s[%s] serverconn goroutine exit", subKey, rAddr)
+	log.Debug("%s serverconn goroutine exit", key)
+	return
 }
 
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatch(conn net.Conn, wr *bufio.Writer, wp *sync.Pool, channel *Channel, ebm, dbm cipher.BlockMode, heartbeat time.Duration, timer *Timer, rAddr string) {
+func (server *Server) dispatch(cr io.Closer, wr io.Writer, fr Flusher, ch *Channel, ebm, dbm cipher.BlockMode, hb time.Duration, tr *Timer) {
 	var (
-		err    error
-		proto  *Proto
-		signal int
-		timerd *TimerData
+		p   *Proto
+		err error
+		trd *TimerData
+		sig int
 	)
-	log.Debug("\"%s\" start dispatch goroutine", rAddr)
-	log.Debug("\"%s\" first set heartbeat timer", rAddr)
-	if timerd, err = timer.Add(heartbeat, conn); err != nil {
-		log.Error("\"%s\" dispatch timer.Add() error(%v)", rAddr, err)
+	log.Debug("start dispatch goroutine")
+	if trd, err = tr.Add(hb, cr); err != nil {
+		log.Error("dispatch: timer.Add() error(%v)", err)
 		goto failed
 	}
 	for {
-		if signal = <-channel.Signal; signal == 0 {
+		if sig = <-ch.Signal; sig == 0 {
 			goto failed
 		}
 		// fetch message from clibox(client send)
 		for {
-			if proto, err = channel.CliProto.Get(); err != nil {
-				log.Debug("\"%s\" channel no more client message, wait signal", rAddr)
+			if p, err = ch.CliProto.Get(); err != nil {
+				log.Debug("channel no more client message, wait signal")
 				break
 			}
-			if proto.Operation == OP_HEARTBEAT {
+			if p.Operation == OP_HEARTBEAT {
 				// Use a previous timer value if difference between it and a new
 				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
 				// to minimize the minheap operations for fast connections.
-				if !timerd.Lazy(heartbeat) {
-					timer.Del(timerd)
-					if timerd, err = timer.Add(heartbeat, conn); err != nil {
-						log.Error("\"%s\" dispatch timer.Add() error(%v)", rAddr, err)
+				if !trd.Lazy(hb) {
+					tr.Del(trd)
+					if trd, err = tr.Add(hb, cr); err != nil {
+						log.Error("dispatch: timer.Add() error(%v)", err)
 						goto failed
 					}
 				}
 				// heartbeat
-				proto.Body = nil
-				proto.Operation = OP_HEARTBEAT_REPLY
-				log.Debug("\"%s\" heartbeat proto: %v", rAddr, proto)
+				p.Body = nil
+				p.Operation = OP_HEARTBEAT_REPLY
+				log.Debug("heartbeat proto: %v", p)
 			} else {
 				// aes decrypt body
-				if proto.Body, err = server.cryptor.Decrypt(dbm, proto.Body); err != nil {
-					log.Error("\"%s\" decrypt client proto error(%v)", rAddr, err)
+				if p.Body, err = server.cryptor.Decrypt(dbm, p.Body); err != nil {
+					log.Error("decrypt client proto error(%v)", err)
 					goto failed
 				}
 				// process message
-				if err = server.operator.Operate(proto); err != nil {
-					log.Error("\"%s\" operator.Operate() error(%v)", rAddr, err)
+				if err = server.operator.Operate(p); err != nil {
+					log.Error("operator.Operate() error(%v)", err)
 					goto failed
 				}
-				if proto.Body, err = server.cryptor.Encrypt(ebm, proto.Body); err != nil {
-					log.Error("\"%s\" encrypt client proto error(%v)", rAddr, err)
+				if p.Body, err = server.cryptor.Encrypt(ebm, p.Body); err != nil {
+					log.Error("encrypt client proto error(%v)", err)
 					goto failed
 				}
 			}
-			if err = server.sendResponse(wr, proto); err != nil {
-				log.Error("\"%s\" server.SendResponse() error(%v)", rAddr, err)
+			if err = server.sendResponse(wr, fr, p); err != nil {
+				log.Error("server.SendResponse() error(%v)", err)
 				goto failed
 			}
-			channel.CliProto.GetAdv()
+			ch.CliProto.GetAdv()
 		}
 		// fetch message from svrbox(server send)
 		for {
-			if proto, err = channel.SvrProto.Get(); err != nil {
-				log.Debug("\"%s\" channel no more server message, wait signal", rAddr)
+			if p, err = ch.SvrProto.Get(); err != nil {
+				log.Debug("channel no more server message, wait signal")
 				break
 			}
-			if proto.Body, err = server.cryptor.Encrypt(ebm, proto.Body); err != nil {
-				log.Error("\"%s\" encrypt server proto error(%v)", rAddr, err)
+			if p.Body, err = server.cryptor.Encrypt(ebm, p.Body); err != nil {
+				log.Error("encrypt server proto error(%v)", err)
 				goto failed
 			}
 			// just forward the message
-			if err = server.sendResponse(wr, proto); err != nil {
-				log.Error("\"%s\" server.SendResponse() error(%v)", rAddr, err)
+			if err = server.sendResponse(wr, fr, p); err != nil {
+				log.Error("server.SendResponse() error(%v)", err)
 				goto failed
 			}
-			channel.SvrProto.GetAdv()
+			ch.SvrProto.GetAdv()
 		}
 	}
 failed:
 	// wake reader up
-	//  put writer buf & back encrypter buf & decrypter buf
-	PutBufioWriter(wp, wr)
-	if err = conn.Close(); err != nil {
-		log.Error("conn.Close(\"%s\") error(%v)", rAddr, err)
+	if err = cr.Close(); err != nil {
+		log.Error("cr.Close() error(%v)", err)
 	}
 	// deltimer
-	timer.Del(timerd)
-	log.Debug("\"%s\" dispatch goroutine exit", rAddr)
+	tr.Del(trd)
+	log.Debug("dispatch goroutine exit")
 	return
 }
 
 // handshake for goim handshake with client, use rsa & aes.
-func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, session *Session, proto *Proto) (ebm, dbm cipher.BlockMode, err error) {
+func (server *Server) handshake(rr io.Reader, wr io.Writer, fr Flusher, s *Session, p *Proto) (ebm, dbm cipher.BlockMode, err error) {
 	var (
 		ki, sidBytes []byte
 	)
-
 	// exchange key
 	log.Debug("get handshake request protocol")
-	if err = server.readRequest(rd, proto); err != nil {
+	if err = server.readRequest(rr, p); err != nil {
 		return
 	}
-	if proto.Operation == OP_HANDSHAKE {
-		log.Debug("handshake cipher body : %v", proto.Body)
-		if ki, err = server.cryptor.Exchange(RSAPri, proto.Body); err != nil {
+	if p.Operation == OP_HANDSHAKE {
+		log.Debug("handshake cipher body : %v", p.Body)
+		if ki, err = server.cryptor.Exchange(RSAPri, p.Body); err != nil {
 			log.Error("server.cryptor.Exchange() error(%v)", err)
 			return
 		}
-		proto.Operation = OP_HANDSHAKE_REPLY
-		sidBytes = []byte(session.Put(ki, SessionExpire))
+		p.Operation = OP_HANDSHAKE_REPLY
+		sidBytes = []byte(s.Put(ki, SessionExpire))
 		log.Debug("session id: \"%s\"", sidBytes)
-	} else if proto.Operation == OP_HANDSHAKE_SID {
+	} else if p.Operation == OP_HANDSHAKE_SID {
 		// raw message for find session -> aes key & iv
 		// if sniffed by somebody, it's safe here
-		if ki = session.Get(string(proto.Body)); ki == nil {
-			log.Error("session.Get(\"%s\") not exists", string(proto.Body))
+		if ki = s.Get(string(p.Body)); ki == nil {
+			log.Error("session.Get(\"%s\") not exists", string(p.Body))
 			return
 		}
-		proto.Operation = OP_HANDSHAKE_SID_REPLY
+		p.Operation = OP_HANDSHAKE_SID_REPLY
 	} else {
-		log.Warn("handshake operation not valid: %d", proto.Operation)
+		log.Warn("handshake operation not valid: %d", p.Operation)
 		err = ErrOperation
 		return
 	}
@@ -305,81 +251,75 @@ func (server *Server) handshake(rd *bufio.Reader, wr *bufio.Writer, session *Ses
 		log.Error("server.cryptor.Cryptor() error(%v)", err)
 		return
 	}
-	sidBytes = padding.PKCS7.Padding(sidBytes, ebm.BlockSize())
-	if proto.Body, err = server.cryptor.Encrypt(ebm, sidBytes); err != nil {
+	if p.Body, err = server.cryptor.Encrypt(ebm, sidBytes); err != nil {
 		log.Error("server.cryptor.Encrypt() sessionid error(%v)", err)
 		return
 	}
 	log.Debug("send handshake response protocol")
-	if err = server.sendResponse(wr, proto); err != nil {
+	if err = server.sendResponse(wr, fr, p); err != nil {
 		log.Error("handshake reply server.SendResponse() error(%v)", err)
 	}
 	return
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) auth(rd *bufio.Reader, wr *bufio.Writer, dbm cipher.BlockMode, proto *Proto) (subKey string, heartbeat time.Duration, bucket *Bucket, channel *Channel, err error) {
+func (server *Server) auth(rr io.Reader, wr io.Writer, fr Flusher, dbm cipher.BlockMode, p *Proto) (subKey string, heartbeat time.Duration, err error) {
 	log.Debug("get auth request protocol")
-	if err = server.readRequest(rd, proto); err != nil {
+	if err = server.readRequest(rr, p); err != nil {
 		return
 	}
-	if proto.Operation != OP_AUTH {
-		log.Warn("auth operation not valid: %d", proto.Operation)
+	if p.Operation != OP_AUTH {
+		log.Warn("auth operation not valid: %d", p.Operation)
 		err = ErrOperation
 		return
 	}
-	if proto.Body, err = server.cryptor.Decrypt(dbm, proto.Body); err != nil {
+	if p.Body, err = server.cryptor.Decrypt(dbm, p.Body); err != nil {
 		log.Error("auth decrypt client proto error(%v)", err)
 		return
 	}
-	if subKey, heartbeat, err = server.operator.Connect(proto); err != nil {
+	if subKey, heartbeat, err = server.operator.Connect(p); err != nil {
 		log.Error("operator.Connect error(%v)", err)
 		return
 	}
-	// TODO how to reuse channel
-	// register key->channel
-	bucket = server.Bucket(subKey)
-	channel = NewChannel(Conf.CliProto, Conf.SvrProto)
-	bucket.Put(subKey, channel)
 	log.Debug("send auth response protocol")
-	proto.Body = nil
-	proto.Operation = OP_AUTH_REPLY
-	if err = server.sendResponse(wr, proto); err != nil {
+	p.Body = nil
+	p.Operation = OP_AUTH_REPLY
+	if err = server.sendResponse(wr, fr, p); err != nil {
 		log.Error("[%s] server.SendResponse() error(%v)", subKey, err)
 	}
 	return
 }
 
 // readRequest
-func (server *Server) readRequest(rd *bufio.Reader, proto *Proto) (err error) {
-	if err = server.readRequestHeader(rd, proto); err != nil {
+func (server *Server) readRequest(rr io.Reader, proto *Proto) (err error) {
+	if err = server.readRequestHeader(rr, proto); err != nil {
 		return
 	}
 	// read body
-	if err = server.codec.ReadRequestBody(rd, proto); err != nil {
+	if err = server.codec.ReadRequestBody(rr, proto); err != nil {
 	}
 	log.Debug("read request finish, proto: %v", proto)
 	return
 }
 
-func (server *Server) readRequestHeader(rd *bufio.Reader, proto *Proto) (err error) {
-	if err = server.codec.ReadRequestHeader(rd, proto); err != nil {
+func (server *Server) readRequestHeader(rr io.Reader, proto *Proto) (err error) {
+	if err = server.codec.ReadRequestHeader(rr, proto); err != nil {
 		log.Error("codec.ReadRequestHeader() error(%v)", err)
 	}
 	return
 }
 
-func (server *Server) readRequestBody(rd *bufio.Reader, proto *Proto) (err error) {
-	if err = server.codec.ReadRequestHeader(rd, proto); err != nil {
+func (server *Server) readRequestBody(rr io.Reader, proto *Proto) (err error) {
+	if err = server.codec.ReadRequestHeader(rr, proto); err != nil {
 		log.Error("codec.ReadRequestHeader() error(%v)", err)
 	}
 	return
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) sendResponse(wr *bufio.Writer, proto *Proto) (err error) {
+func (server *Server) sendResponse(wr io.Writer, fr Flusher, proto *Proto) (err error) {
 	// do not set write timer, if pendding no heartbeat will receive, then conn.Close() will wake this up.
-	if err = server.codec.WriteResponse(wr, proto); err != nil {
+	if err = server.codec.WriteResponse(wr, fr, proto); err != nil {
 		log.Error("server.codec.WriteResponse() error(%v)", err)
 	}
 	return
