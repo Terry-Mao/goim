@@ -3,78 +3,53 @@ package protorpc
 import (
 	"bufio"
 	"bytes"
-	"fmt"
-
 	"github.com/gogo/protobuf/proto"
-	"sync"
+	"io"
 )
 
 type pbClientCodec struct {
-	mLock   sync.Mutex
-	methods map[string]uint32
-
-	reqHeaderBuf bytes.Buffer
-	reqBodyBuf   bytes.Buffer
+	rwc     io.ReadWriteCloser
+	reqBuf  bytes.Buffer
+	argsBuf bytes.Buffer
+	wr      *bufio.Writer
+	rr      *bufio.Reader
 }
 
 // NewPbClientCodec returns a new ClientCodec using Protobuf-RPC on conn.
-func NewPbClientCodec() ClientCodec {
-	return &pbClientCodec{
-		methods: make(map[string]uint32),
-	}
+func NewPbClientCodec(rwc io.ReadWriteCloser, rr *bufio.Reader, wr *bufio.Writer) ClientCodec {
+	p := new(pbClientCodec)
+	p.rwc = rwc
+	p.wr = wr
+	p.rr = rr
+	return p
 }
 
-func (c *pbClientCodec) WriteRequest(w *bufio.Writer, r *Request, param interface{}) error {
-	var request proto.Message
-	if param != nil {
-		var ok bool
-		if request, ok = param.(proto.Message); !ok {
-			return fmt.Errorf("protorpc.ClientCodec.WriteRequest: %T does not implement proto.Message", param)
-		}
-	}
-	if mid, ok := c.methods[r.ServiceMethod]; ok {
-		r.MethodId = mid
-		r.ServiceMethod = ""
-	} else {
-		c.mLock.Lock()
-		r.MethodId = uint32(len(c.methods))
-		c.methods[r.ServiceMethod] = r.MethodId
-		c.mLock.Unlock()
-	}
-	// bs, err := proto.Marshal(header)
-	bs, err := marshal(&c.reqHeaderBuf, r)
+func (c *pbClientCodec) WriteRequest(r *Request, p proto.Message) (err error) {
+	var (
+		rb, pb []byte
+	)
+	rb, err = marshal(&c.reqBuf, r)
 	if err != nil {
-		return err
+		return
 	}
-	if err = sendFrame(w, bs); err != nil {
-		return err
-	}
-	// bs, err = proto.Marshal(request)
-	bs, err = marshal(&c.reqBodyBuf, request)
+	pb, err = marshal(&c.argsBuf, p)
 	if err != nil {
-		return err
+		return
 	}
-	if err = sendFrame(w, bs); err != nil {
-		return err
+	if err = sendFrame(c.wr, rb, pb); err != nil {
+		return
 	}
-	return w.Flush()
+	return c.wr.Flush()
 }
 
-func (c *pbClientCodec) ReadResponseHeader(rd *bufio.Reader, r *Response) error {
-	return recvProto(rd, r)
+func (c *pbClientCodec) ReadResponseHeader(r *Response) error {
+	return recvFrame(c.rr, r)
 }
 
-func (c *pbClientCodec) ReadResponseBody(rd *bufio.Reader, x interface{}) error {
-	var response proto.Message
-	if x != nil {
-		var ok bool
-		response, ok = x.(proto.Message)
-		if !ok {
-			return fmt.Errorf("protorpc.ClientCodec.ReadResponseBody: %T does not implement proto.Message", x)
-		}
-	}
-	if err := recvProto(rd, response); err != nil {
-		return err
-	}
-	return nil
+func (c *pbClientCodec) ReadResponseBody(b proto.Message) error {
+	return recvFrame(c.rr, b)
+}
+
+func (c *pbClientCodec) Close() error {
+	return c.rwc.Close()
 }

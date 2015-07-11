@@ -2,8 +2,8 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	rpc "github.com/felixhao/goim/protorpc"
-	"github.com/felixhao/goim/router/proto"
+	rpc "github.com/Terry-Mao/goim/protorpc"
+	"github.com/Terry-Mao/goim/router/proto"
 	"net"
 )
 

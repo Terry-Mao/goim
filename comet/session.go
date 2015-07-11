@@ -51,8 +51,6 @@ func (l *SessionLRU) PushFront(e *SessionData) {
 	at := &l.root
 	n := at.next
 	at.next = e
-	at.next = e
-	at.next = e
 	e.prev = at
 	e.next = n
 	n.prev = e
@@ -148,20 +146,17 @@ func (s *Session) Get(sid string) (ki []byte) {
 		ok bool
 	)
 	s.lock.Lock()
-	if sd, ok = s.sessions[sid]; !ok {
-		s.lock.Unlock()
-		return
+	if sd, ok = s.sessions[sid]; ok {
+		if sd.Expire() {
+			// lazy-drop
+			delete(s.sessions, sid)
+			s.lru.remove(sd)
+		} else {
+			// update lru
+			s.lru.MoveToFront(sd)
+			ki = sd.ki
+		}
 	}
-	if sd.Expire() {
-		// lazy-drop
-		delete(s.sessions, sid)
-		s.lru.remove(sd)
-		s.lock.Unlock()
-		return
-	}
-	// update lru
-	s.lru.MoveToFront(sd)
-	ki = sd.ki
 	s.lock.Unlock()
 	return
 }

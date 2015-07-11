@@ -7,6 +7,7 @@ package protorpc
 import (
 	"errors"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	"net"
 	"runtime"
 	"strings"
@@ -18,8 +19,8 @@ type shutdownCodec struct {
 	closed    bool
 }
 
-func (c *shutdownCodec) WriteRequest(*Request, interface{}) error { return nil }
-func (c *shutdownCodec) ReadResponseBody(interface{}) error       { return nil }
+func (c *shutdownCodec) WriteRequest(*Request, proto.Message) error { return nil }
+func (c *shutdownCodec) ReadResponseBody(proto.Message) error       { return nil }
 func (c *shutdownCodec) ReadResponseHeader(*Response) error {
 	c.responded <- 1
 	return errors.New("shutdownCodec ReadResponseHeader")
@@ -39,20 +40,20 @@ func TestCloseCodec(t *testing.T) {
 	}
 }
 
-// Test that errors in gob shut down the connection. Issue 7689.
+// Test that errors in protobuf shut down the connection. Issue 7689.
 
 type R struct {
-	msg []byte // Not exported, so R does not work with gob.
+	msg []byte // Not exported, so R does not work with protobuf.
 }
 
 type S struct{}
 
-func (s *S) Recv(nul *struct{}, reply *R) error {
+func (s *S) Recv(nul proto.Message, reply *R) error {
 	*reply = R{[]byte("foo")}
 	return nil
 }
 
-func TestGobError(t *testing.T) {
+func TestProtoError(t *testing.T) {
 	if runtime.GOOS == "plan9" {
 		t.Skip("skipping test; see http://golang.org/issue/8908")
 	}
@@ -79,7 +80,7 @@ func TestGobError(t *testing.T) {
 	}
 
 	var reply Reply
-	err = client.Call("S.Recv", &struct{}{}, &reply)
+	err = client.Call("S.Recv", nil, &reply)
 	if err != nil {
 		panic(err)
 	}

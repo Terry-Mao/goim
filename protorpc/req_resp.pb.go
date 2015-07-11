@@ -14,7 +14,7 @@
 */
 package protorpc
 
-import proto "github.com/gogo/protobuf/proto"
+import proto "github.com/golang/protobuf/proto"
 
 // discarding unused import gogoproto "gogo/protobuf/gogoproto/gogo.pb"
 
@@ -25,41 +25,23 @@ import fmt "fmt"
 var _ = proto.Marshal
 
 type Request struct {
-	ServiceMethod string   `protobuf:"bytes,1,opt,proto3" json:"ServiceMethod,omitempty"`
-	Seq           uint64   `protobuf:"varint,2,opt,proto3" json:"Seq,omitempty"`
-	MethodId      uint32   `protobuf:"varint,3,opt,proto3" json:"MethodId,omitempty"`
-	Next          *Request `protobuf:"bytes,4,opt,name=next" json:"next,omitempty"`
+	ServiceMethod string `protobuf:"bytes,1,opt,proto3" json:"ServiceMethod,omitempty"`
+	Seq           uint64 `protobuf:"varint,2,opt,proto3" json:"Seq,omitempty"`
 }
 
 func (m *Request) Reset()         { *m = Request{} }
 func (m *Request) String() string { return proto.CompactTextString(m) }
 func (*Request) ProtoMessage()    {}
 
-func (m *Request) GetNext() *Request {
-	if m != nil {
-		return m.Next
-	}
-	return nil
-}
-
 type Response struct {
-	ServiceMethod string    `protobuf:"bytes,1,opt,proto3" json:"ServiceMethod,omitempty"`
-	Seq           uint64    `protobuf:"varint,2,opt,proto3" json:"Seq,omitempty"`
-	Error         string    `protobuf:"bytes,3,opt,proto3" json:"Error,omitempty"`
-	MethodId      uint32    `protobuf:"varint,4,opt,proto3" json:"MethodId,omitempty"`
-	Next          *Response `protobuf:"bytes,5,opt,name=next" json:"next,omitempty"`
+	ServiceMethod string `protobuf:"bytes,1,opt,proto3" json:"ServiceMethod,omitempty"`
+	Seq           uint64 `protobuf:"varint,2,opt,proto3" json:"Seq,omitempty"`
+	Error         string `protobuf:"bytes,3,opt,proto3" json:"Error,omitempty"`
 }
 
 func (m *Response) Reset()         { *m = Response{} }
 func (m *Response) String() string { return proto.CompactTextString(m) }
 func (*Response) ProtoMessage()    {}
-
-func (m *Response) GetNext() *Response {
-	if m != nil {
-		return m.Next
-	}
-	return nil
-}
 
 func init() {
 }
@@ -119,48 +101,6 @@ func (m *Request) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MethodId", wireType)
-			}
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				m.MethodId |= (uint32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Next", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Next == nil {
-				m.Next = &Request{}
-			}
-			if err := m.Next.Unmarshal(data[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			var sizeOfWire int
 			for {
@@ -262,48 +202,6 @@ func (m *Response) Unmarshal(data []byte) error {
 			}
 			m.Error = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MethodId", wireType)
-			}
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				m.MethodId |= (uint32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Next", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Next == nil {
-				m.Next = &Response{}
-			}
-			if err := m.Next.Unmarshal(data[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			var sizeOfWire int
 			for {
@@ -376,7 +274,7 @@ func skipReqResp(data []byte) (n int, err error) {
 			return iNdEx, nil
 		case 3:
 			for {
-				var wire uint64
+				var innerWire uint64
 				var start int = iNdEx
 				for shift := uint(0); ; shift += 7 {
 					if iNdEx >= l {
@@ -384,13 +282,13 @@ func skipReqResp(data []byte) (n int, err error) {
 					}
 					b := data[iNdEx]
 					iNdEx++
-					wire |= (uint64(b) & 0x7F) << shift
+					innerWire |= (uint64(b) & 0x7F) << shift
 					if b < 0x80 {
 						break
 					}
 				}
-				wireType := int(wire & 0x7)
-				if wireType == 4 {
+				innerWireType := int(innerWire & 0x7)
+				if innerWireType == 4 {
 					break
 				}
 				next, err := skipReqResp(data[start:])
@@ -421,13 +319,6 @@ func (m *Request) Size() (n int) {
 	if m.Seq != 0 {
 		n += 1 + sovReqResp(uint64(m.Seq))
 	}
-	if m.MethodId != 0 {
-		n += 1 + sovReqResp(uint64(m.MethodId))
-	}
-	if m.Next != nil {
-		l = m.Next.Size()
-		n += 1 + l + sovReqResp(uint64(l))
-	}
 	return n
 }
 
@@ -443,13 +334,6 @@ func (m *Response) Size() (n int) {
 	}
 	l = len(m.Error)
 	if l > 0 {
-		n += 1 + l + sovReqResp(uint64(l))
-	}
-	if m.MethodId != 0 {
-		n += 1 + sovReqResp(uint64(m.MethodId))
-	}
-	if m.Next != nil {
-		l = m.Next.Size()
 		n += 1 + l + sovReqResp(uint64(l))
 	}
 	return n
@@ -494,21 +378,6 @@ func (m *Request) MarshalTo(data []byte) (n int, err error) {
 		i++
 		i = encodeVarintReqResp(data, i, uint64(m.Seq))
 	}
-	if m.MethodId != 0 {
-		data[i] = 0x18
-		i++
-		i = encodeVarintReqResp(data, i, uint64(m.MethodId))
-	}
-	if m.Next != nil {
-		data[i] = 0x22
-		i++
-		i = encodeVarintReqResp(data, i, uint64(m.Next.Size()))
-		n1, err := m.Next.MarshalTo(data[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n1
-	}
 	return i, nil
 }
 
@@ -543,21 +412,6 @@ func (m *Response) MarshalTo(data []byte) (n int, err error) {
 		i++
 		i = encodeVarintReqResp(data, i, uint64(len(m.Error)))
 		i += copy(data[i:], m.Error)
-	}
-	if m.MethodId != 0 {
-		data[i] = 0x20
-		i++
-		i = encodeVarintReqResp(data, i, uint64(m.MethodId))
-	}
-	if m.Next != nil {
-		data[i] = 0x2a
-		i++
-		i = encodeVarintReqResp(data, i, uint64(m.Next.Size()))
-		n2, err := m.Next.MarshalTo(data[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n2
 	}
 	return i, nil
 }

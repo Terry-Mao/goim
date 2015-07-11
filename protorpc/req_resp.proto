@@ -11,14 +11,10 @@ option (gogoproto.unmarshaler_all) = true;
 message Request { 
     string     ServiceMethod = 1;
     uint64     Seq = 2;
-    uint32     MethodId = 3;
-    Request    next = 4 [(gogoproto.nullable) = true];
 }
 
 message Response { 
     string     ServiceMethod = 1;
     uint64     Seq = 2;
     string     Error = 3;
-    uint32     MethodId = 4;
-    Response   next = 5 [(gogoproto.nullable) = true];
 }
