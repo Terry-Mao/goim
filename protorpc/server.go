@@ -322,11 +322,8 @@ func (server *Server) sendResponse(sending *sync.Mutex, resp *Response, reply pr
 	sending.Lock()
 	// Encode the response header
 	resp.ServiceMethod = serviceMethod
-	if errmsg != "" {
-		resp.Error = errmsg
-		reply = nil
-	}
 	resp.Seq = seq
+	resp.Error = errmsg
 	err := codec.WriteResponse(resp, reply)
 	if debugLog && err != nil {
 		log.Println("rpc: writing response:", err)
@@ -358,6 +355,12 @@ func (server *Server) ServeConn(conn io.ReadWriteCloser) {
 	server.ServeCodec(srv)
 }
 
+var invalidRequest proto.Message
+
+func init() {
+	invalidRequest = nil
+}
+
 // ServeCodec is like ServeConn but uses the specified codec to
 // decode requests and encode responses.
 func (server *Server) ServeCodec(codec ServerCodec) {
@@ -367,7 +370,8 @@ func (server *Server) ServeCodec(codec ServerCodec) {
 		req     = new(Request)
 	)
 	for {
-		service, mtype, argv, replyv, keepReading, err := server.readRequest(req, codec)
+		*req = Request{}
+		service, mtype, argv, replyv, hasReq, keepReading, err := server.readRequest(req, codec)
 		if err != nil {
 			if debugLog && err != io.EOF {
 				log.Println("rpc:", err)
@@ -376,8 +380,8 @@ func (server *Server) ServeCodec(codec ServerCodec) {
 				break
 			}
 			// send a response if we actually managed to read a header.
-			if req != nil {
-				server.sendResponse(sending, res, nil, codec, req.Seq, req.ServiceMethod, err.Error())
+			if hasReq {
+				server.sendResponse(sending, res, invalidRequest, codec, req.Seq, req.ServiceMethod, err.Error())
 			}
 			continue
 		}
@@ -394,14 +398,14 @@ func (server *Server) ServeRequest(codec ServerCodec) error {
 		res     = new(Response)
 		req     = new(Request)
 	)
-	service, mtype, argv, replyv, keepReading, err := server.readRequest(req, codec)
+	service, mtype, argv, replyv, hasReq, keepReading, err := server.readRequest(req, codec)
 	if err != nil {
 		if !keepReading {
 			return err
 		}
 		// send a response if we actually managed to read a header.
-		if req != nil {
-			server.sendResponse(sending, res, nil, codec, req.Seq, req.ServiceMethod, err.Error())
+		if hasReq {
+			server.sendResponse(sending, res, invalidRequest, codec, req.Seq, req.ServiceMethod, err.Error())
 		}
 		return err
 	}
@@ -409,8 +413,8 @@ func (server *Server) ServeRequest(codec ServerCodec) error {
 	return nil
 }
 
-func (server *Server) readRequest(req *Request, codec ServerCodec) (service *service, mtype *methodType, argv, replyv reflect.Value, keepReading bool, err error) {
-	service, mtype, keepReading, err = server.readRequestHeader(req, codec)
+func (server *Server) readRequest(req *Request, codec ServerCodec) (service *service, mtype *methodType, argv, replyv reflect.Value, hasReq, keepReading bool, err error) {
+	service, mtype, hasReq, keepReading, err = server.readRequestHeader(req, codec)
 	if err != nil {
 		if !keepReading {
 			return
@@ -419,7 +423,6 @@ func (server *Server) readRequest(req *Request, codec ServerCodec) (service *ser
 		codec.ReadRequestBody(nil)
 		return
 	}
-
 	// Decode the argument value.
 	argIsValue := false // if true, need to indirect before calling.
 	if mtype.ArgType.Kind() == reflect.Ptr {
@@ -440,11 +443,12 @@ func (server *Server) readRequest(req *Request, codec ServerCodec) (service *ser
 	return
 }
 
-func (server *Server) readRequestHeader(req *Request, codec ServerCodec) (service *service, mtype *methodType, keepReading bool, err error) {
+func (server *Server) readRequestHeader(req *Request, codec ServerCodec) (service *service, mtype *methodType, hasReq, keepReading bool, err error) {
 	// Grab the request header.
+	hasReq = true
 	err = codec.ReadRequestHeader(req)
 	if err != nil {
-		req = nil
+		hasReq = false
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			return
 		}

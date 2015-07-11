@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package protorpc
+package test
 
 import (
 	"errors"
 	"fmt"
+	"github.com/Terry-Mao/goim/protorpc"
 	"github.com/gogo/protobuf/proto"
 	"net"
 	"runtime"
@@ -19,9 +20,9 @@ type shutdownCodec struct {
 	closed    bool
 }
 
-func (c *shutdownCodec) WriteRequest(*Request, proto.Message) error { return nil }
-func (c *shutdownCodec) ReadResponseBody(proto.Message) error       { return nil }
-func (c *shutdownCodec) ReadResponseHeader(*Response) error {
+func (c *shutdownCodec) WriteRequest(*protorpc.Request, proto.Message) error { return nil }
+func (c *shutdownCodec) ReadResponseBody(proto.Message) error                { return nil }
+func (c *shutdownCodec) ReadResponseHeader(*protorpc.Response) error {
 	c.responded <- 1
 	return errors.New("shutdownCodec ReadResponseHeader")
 }
@@ -32,7 +33,7 @@ func (c *shutdownCodec) Close() error {
 
 func TestCloseCodec(t *testing.T) {
 	codec := &shutdownCodec{responded: make(chan int)}
-	client := NewClientWithCodec(codec)
+	client := protorpc.NewClientWithCodec(codec)
 	<-codec.responded
 	client.Close()
 	if !codec.closed {
@@ -42,13 +43,9 @@ func TestCloseCodec(t *testing.T) {
 
 // Test that errors in protobuf shut down the connection. Issue 7689.
 
-type R struct {
-	msg []byte // Not exported, so R does not work with protobuf.
-}
-
 type S struct{}
 
-func (s *S) Recv(nul proto.Message, reply *R) error {
+func (s *S) Recv(nul *R, reply *R) error {
 	*reply = R{[]byte("foo")}
 	return nil
 }
@@ -62,19 +59,19 @@ func TestProtoError(t *testing.T) {
 		if err == nil {
 			t.Fatal("no error")
 		}
-		if !strings.Contains("reading body EOF", err.(error).Error()) {
-			t.Fatal("expected `reading body EOF', got", err)
+		if !strings.Contains("reading body proto: wrong wireType = 2 for field C", err.(error).Error()) {
+			t.Fatal("expected proto', got", err)
 		}
 	}()
-	Register(new(S))
+	protorpc.Register(new(S))
 
 	listen, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		panic(err)
 	}
-	go Accept(listen)
+	go protorpc.Accept(listen)
 
-	client, err := Dial("tcp", listen.Addr().String())
+	client, err := protorpc.Dial("tcp", listen.Addr().String())
 	if err != nil {
 		panic(err)
 	}
