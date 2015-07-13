@@ -44,7 +44,7 @@ func sendFrame(wr *bufio.Writer, ds ...[]byte) (err error) {
 
 func recvFrame(rd *bufio.Reader, s *int32, m proto.Message) (err error) {
 	var d []byte
-	if err = binary.Read(rd, binary.BigEndian, size); err != nil {
+	if err = binary.Read(rd, binary.BigEndian, s); err != nil {
 		return
 	}
 	size := int(*s)
