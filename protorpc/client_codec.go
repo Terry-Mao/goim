@@ -8,11 +8,12 @@ import (
 )
 
 type pbClientCodec struct {
-	rwc     io.ReadWriteCloser
-	reqBuf  bytes.Buffer
-	argsBuf bytes.Buffer
-	wr      *bufio.Writer
-	rr      *bufio.Reader
+	rwc      io.ReadWriteCloser
+	reqBuf   bytes.Buffer
+	argsBuf  bytes.Buffer
+	wr       *bufio.Writer
+	rr       *bufio.Reader
+	packSize int32
 }
 
 // NewPbClientCodec returns a new ClientCodec using Protobuf-RPC on conn.
@@ -43,11 +44,11 @@ func (c *pbClientCodec) WriteRequest(r *Request, p proto.Message) (err error) {
 }
 
 func (c *pbClientCodec) ReadResponseHeader(r *Response) error {
-	return recvFrame(c.rr, r)
+	return recvFrame(c.rr, &c.packSize, r)
 }
 
 func (c *pbClientCodec) ReadResponseBody(b proto.Message) error {
-	return recvFrame(c.rr, b)
+	return recvFrame(c.rr, &c.packSize, b)
 }
 
 func (c *pbClientCodec) Close() error {

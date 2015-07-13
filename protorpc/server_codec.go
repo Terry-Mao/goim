@@ -8,11 +8,12 @@ import (
 )
 
 type pbServerCodec struct {
-	rwc    io.ReadWriteCloser
-	resBuf bytes.Buffer
-	repBuf bytes.Buffer
-	rr     *bufio.Reader
-	wr     *bufio.Writer
+	rwc      io.ReadWriteCloser
+	resBuf   bytes.Buffer
+	repBuf   bytes.Buffer
+	rr       *bufio.Reader
+	wr       *bufio.Writer
+	packSize int32
 }
 
 // NewpbServerCodec returns a pbServerCodec that communicates with the ClientCodec
@@ -26,11 +27,11 @@ func NewPbServerCodec(rwc io.ReadWriteCloser, rr *bufio.Reader, wr *bufio.Writer
 }
 
 func (c *pbServerCodec) ReadRequestHeader(r *Request) error {
-	return recvFrame(c.rr, r)
+	return recvFrame(c.rr, &c.packSize, r)
 }
 
 func (c *pbServerCodec) ReadRequestBody(b proto.Message) error {
-	return recvFrame(c.rr, b)
+	return recvFrame(c.rr, &c.packSize, b)
 }
 
 func (c *pbServerCodec) WriteResponse(r *Response, p proto.Message) (err error) {
