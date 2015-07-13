@@ -42,16 +42,18 @@ func sendFrame(wr *bufio.Writer, ds ...[]byte) (err error) {
 	return
 }
 
-func recvFrame(rd *bufio.Reader, size *int32, m proto.Message) (err error) {
+func recvFrame(rd *bufio.Reader, s *int32, m proto.Message) (err error) {
 	var d []byte
 	if err = binary.Read(rd, binary.BigEndian, size); err != nil {
 		return
-	} else if *size == 0 {
+	}
+	size := int(*s)
+	if size == 0 {
 		return
 	}
-	if rd.Buffered() >= int(*size) {
+	if rd.Buffered() >= size {
 		// Parse proto directly from the buffered data.
-		if d, err = rd.Peek(int(*size)); err != nil {
+		if d, err = rd.Peek(size); err != nil {
 			return
 		}
 		// simply discard
@@ -67,7 +69,7 @@ func recvFrame(rd *bufio.Reader, size *int32, m proto.Message) (err error) {
 		_, err = io.ReadFull(rd, d)
 		return
 	}
-	d = make([]byte, *size)
+	d = make([]byte, size)
 	if _, err = io.ReadFull(rd, d); err != nil {
 		return
 	}
