@@ -28,28 +28,31 @@ func marshal(buf *bytes.Buffer, m proto.Message) ([]byte, error) {
 	return proto.Marshal(m)
 }
 
-func sendFrame(wr *bufio.Writer, ds ...[]byte) (err error) {
+func sendFrame(wr *bufio.Writer, b []byte, ds ...[]byte) (err error) {
+	var n int
 	// size & data
 	for _, d := range ds {
-		if err = binary.Write(wr, binary.BigEndian, int32(len(d))); err != nil {
+		n = binary.PutVarint(b, int64(len(d)))
+		if _, err = wr.Write(b[:n]); err != nil {
 			return
-		} else {
-			if _, err = wr.Write(d); err != nil {
-				return
-			}
+		}
+		if _, err = wr.Write(d); err != nil {
+			return
 		}
 	}
 	return
 }
 
-func recvFrame(rd *bufio.Reader, s *int32, m proto.Message) (err error) {
-	var d []byte
-	if err = binary.Read(rd, binary.BigEndian, s); err != nil {
+func recvFrame(rd *bufio.Reader, m proto.Message) (err error) {
+	var (
+		d     []byte
+		vsize int64
+		size  int
+	)
+	if vsize, err = binary.ReadVarint(rd); err != nil || vsize == 0 {
 		return
-	}
-	size := int(*s)
-	if size == 0 {
-		return
+	} else {
+		size = int(vsize)
 	}
 	if rd.Buffered() >= size {
 		// Parse proto directly from the buffered data.

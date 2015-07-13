@@ -42,7 +42,7 @@ var debug = template.Must(template.New("RPC debug").Parse(debugText))
 var debugLog = false
 
 type debugMethod struct {
-	Type *methodType
+	Typ  *methodType
 	Name string
 }
 

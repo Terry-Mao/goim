@@ -3,17 +3,18 @@ package protorpc
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	"github.com/gogo/protobuf/proto"
 	"io"
 )
 
 type pbServerCodec struct {
-	rwc      io.ReadWriteCloser
-	resBuf   bytes.Buffer
-	repBuf   bytes.Buffer
-	rr       *bufio.Reader
-	wr       *bufio.Writer
-	packSize int32
+	rwc     io.ReadWriteCloser
+	resBuf  bytes.Buffer
+	repBuf  bytes.Buffer
+	rr      *bufio.Reader
+	wr      *bufio.Writer
+	packBuf [binary.MaxVarintLen32]byte
 }
 
 // NewpbServerCodec returns a pbServerCodec that communicates with the ClientCodec
@@ -27,11 +28,11 @@ func NewPbServerCodec(rwc io.ReadWriteCloser, rr *bufio.Reader, wr *bufio.Writer
 }
 
 func (c *pbServerCodec) ReadRequestHeader(r *Request) error {
-	return recvFrame(c.rr, &c.packSize, r)
+	return recvFrame(c.rr, r)
 }
 
 func (c *pbServerCodec) ReadRequestBody(b proto.Message) error {
-	return recvFrame(c.rr, &c.packSize, b)
+	return recvFrame(c.rr, b)
 }
 
 func (c *pbServerCodec) WriteResponse(r *Response, p proto.Message) (err error) {
@@ -46,7 +47,7 @@ func (c *pbServerCodec) WriteResponse(r *Response, p proto.Message) (err error) 
 	if err != nil {
 		return
 	}
-	if err = sendFrame(c.wr, rb, pb); err != nil {
+	if err = sendFrame(c.wr, c.packBuf[:], rb, pb); err != nil {
 		return
 	}
 	return c.wr.Flush()

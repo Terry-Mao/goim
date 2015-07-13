@@ -145,12 +145,13 @@ const (
 // Precompute the reflect type for error.  Can't use error directly
 // because Typeof takes an empty interface value.  This is annoying.
 var typeOfError = reflect.TypeOf((*error)(nil)).Elem()
-var typeOfProto = reflect.TypeOf((*proto.Message)(nil)).Elem()
 
 type methodType struct {
-	method    reflect.Method
-	ArgType   reflect.Type
-	ReplyType reflect.Type
+	sync.Mutex // protects counters
+	method     reflect.Method
+	ArgType    reflect.Type
+	ReplyType  reflect.Type
+	numCalls   uint
 }
 
 type service struct {
