@@ -113,9 +113,9 @@ func startHttpServer() {
 func TestRPC(t *testing.T) {
 	once.Do(startServer)
 	testRPC(t, serverAddr)
-	//newOnce.Do(startNewServer)
-	//testRPC(t, newServerAddr)
-	//testNewServerRPC(t, newServerAddr)
+	newOnce.Do(startNewServer)
+	testRPC(t, newServerAddr)
+	testNewServerRPC(t, newServerAddr)
 }
 
 func testRPC(t *testing.T, addr string) {
@@ -388,6 +388,7 @@ type ReplyNotPointer int
 type ArgNotPublic int
 type ReplyNotPublic int
 type NeedsPtrType int
+type NotProtoType int
 type local struct{}
 
 func (t *ReplyNotPointer) ReplyNotPointer(args *Args, reply Reply) error {
@@ -403,6 +404,10 @@ func (t *ReplyNotPublic) ReplyNotPublic(args *Args, reply *local) error {
 }
 
 func (t *NeedsPtrType) NeedsPtrType(args *Args, reply *Reply) error {
+	return nil
+}
+
+func (t *NotProtoType) NotProtoType(i *int, j *Args) error {
 	return nil
 }
 
@@ -426,6 +431,10 @@ func TestRegistrationError(t *testing.T) {
 	} else if !strings.Contains(err.Error(), "pointer") {
 		t.Error("expected hint when registering NeedsPtrType")
 	}
+	//err = protorpc.Register(new(NotProtoType))
+	//if err == nil {
+	//	t.Error("expected error registering NotProtoType")
+	//}
 }
 
 type WriteFailCodec int

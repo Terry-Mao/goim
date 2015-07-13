@@ -34,7 +34,7 @@ func sendFrame(wr *bufio.Writer, ds ...[]byte) (err error) {
 		if err = binary.Write(wr, binary.BigEndian, int32(len(d))); err != nil {
 			return
 		} else {
-			if err = binary.Write(wr, binary.BigEndian, d); err != nil {
+			if _, err = wr.Write(d); err != nil {
 				return
 			}
 		}

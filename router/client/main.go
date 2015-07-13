@@ -171,7 +171,9 @@ func initData() {
 			s := n * e
 			for i := s; i < s+e; i++ {
 				sb.Key = fmt.Sprintf(SUB_KEY, i)
-				c.Call("RouterRPC.SetSub", sb, ret)
+				if err := c.Call("RouterRPC.SetSub", sb, ret); err != nil {
+					panic(err)
+				}
 			}
 			c.Close()
 			wg.Done()
