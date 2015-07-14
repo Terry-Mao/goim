@@ -2,13 +2,13 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"encoding/binary"
 	"io"
 )
 
 const (
-	maxPackLen   = 1 << 10
-	rawHeaderLen = int16(16)
+	maxPackLen    = 1 << 10
+	maxPackIntBuf = 4
+	rawHeaderLen  = int16(16)
 )
 
 type Flusher interface {
@@ -23,66 +23,52 @@ type ServerCodec interface {
 }
 
 type BinaryServerCodec struct {
+	packIntBuf [maxPackIntBuf]byte
 }
 
 func (c *BinaryServerCodec) ReadRequestHeader(rd io.Reader, proto *Proto) (err error) {
-	if err = binary.Read(rd, binary.BigEndian, &proto.PackLen); err != nil {
-		log.Error("packLen: binary.Read() error(%v)", err)
+	if err = ReadAll(rd, c.packIntBuf[:PackLenSize]); err != nil {
 		return
 	}
+	proto.PackLen = BigEndian.Int32(c.packIntBuf[:PackLenSize])
 	log.Debug("packLen: %d", proto.PackLen)
 	if proto.PackLen > maxPackLen {
 		return ErrProtoPackLen
 	}
-	if err = binary.Read(rd, binary.BigEndian, &proto.HeaderLen); err != nil {
-		log.Error("headerLen: binary.Read() error(%v)", err)
+	if err = ReadAll(rd, c.packIntBuf[:HeaderLenSize]); err != nil {
 		return
 	}
+	proto.HeaderLen = BigEndian.Int16(c.packIntBuf[:HeaderLenSize])
 	log.Debug("headerLen: %d", proto.HeaderLen)
 	if proto.HeaderLen != rawHeaderLen {
 		return ErrProtoHeaderLen
 	}
-	if err = binary.Read(rd, binary.BigEndian, &proto.Ver); err != nil {
-		log.Error("protoVer: binary.Read() error(%v)", err)
+	if err = ReadAll(rd, c.packIntBuf[:VerSize]); err != nil {
 		return
 	}
+	proto.Ver = BigEndian.Int16(c.packIntBuf[:VerSize])
 	log.Debug("protoVer: %d", proto.Ver)
-	if err = binary.Read(rd, binary.BigEndian, &proto.Operation); err != nil {
-		log.Error("Operation: binary.Read() error(%v)", err)
+	if err = ReadAll(rd, c.packIntBuf[:OperationSize]); err != nil {
 		return
 	}
+	proto.Operation = BigEndian.Int32(c.packIntBuf[:OperationSize])
 	log.Debug("operation: %d", proto.Operation)
-	if err = binary.Read(rd, binary.BigEndian, &proto.SeqId); err != nil {
-		log.Error("seqId: binary.Read() error(%v)", err)
+	if err = ReadAll(rd, c.packIntBuf[:SeqIdSize]); err != nil {
 		return
 	}
+	proto.SeqId = BigEndian.Int32(c.packIntBuf[:SeqIdSize])
 	log.Debug("seqId: %d", proto.SeqId)
 	return
 }
 
 func (c *BinaryServerCodec) ReadRequestBody(rd io.Reader, proto *Proto) (err error) {
-	var (
-		n       = int(0)
-		t       = int(0)
-		bodyLen = int(proto.PackLen - int32(proto.HeaderLen))
-	)
+	bodyLen := int(proto.PackLen - int32(proto.HeaderLen))
 	log.Debug("read body len: %d", bodyLen)
 	if bodyLen > 0 {
 		proto.Body = make([]byte, bodyLen)
-		// no deadline, because readheader always incoming calls readbody
-		for {
-			if t, err = rd.Read(proto.Body[n:]); err != nil {
-				log.Error("body: buf.Read() error(%v)", err)
-				return
-			}
-			if n += t; n == bodyLen {
-				log.Debug("body: rd.Read() fill ok")
-				break
-			} else if n < bodyLen {
-				log.Debug("body: rd.Read() need %d bytes", bodyLen-n)
-			} else {
-				log.Error("body: readbytes %d > %d", n, bodyLen)
-			}
+		if err = ReadAll(rd, proto.Body); err != nil {
+			log.Error("body: ReadAll() error(%v)", err)
+			return
 		}
 	} else {
 		proto.Body = nil
@@ -92,30 +78,34 @@ func (c *BinaryServerCodec) ReadRequestBody(rd io.Reader, proto *Proto) (err err
 
 func (c *BinaryServerCodec) WriteResponse(wr io.Writer, fr Flusher, proto *Proto) (err error) {
 	log.Debug("write proto: %v", proto)
-	// packlen =header(16) + body
-	if err = binary.Write(wr, binary.BigEndian, uint32(rawHeaderLen)+uint32(len(proto.Body))); err != nil {
-		log.Error("packLen: binary.Write() error(%v)", err)
+	BigEndian.PutInt32(c.packIntBuf[:PackLenSize], int32(rawHeaderLen)+int32(len(proto.Body)))
+	if _, err = wr.Write(c.packIntBuf[:PackLenSize]); err != nil {
+		log.Error("packLen: wr.Write() error(%v)", err)
 		return
 	}
-	if err = binary.Write(wr, binary.BigEndian, rawHeaderLen); err != nil {
-		log.Error("headerLen: binary.Write() error(%v)", err)
+	BigEndian.PutInt16(c.packIntBuf[:HeaderLenSize], rawHeaderLen)
+	if _, err = wr.Write(c.packIntBuf[:HeaderLenSize]); err != nil {
+		log.Error("headerLen: wr.Write() error(%v)", err)
 		return
 	}
-	if err = binary.Write(wr, binary.BigEndian, proto.Ver); err != nil {
-		log.Error("protoVer: binary.Write() error(%v)", err)
+	BigEndian.PutInt16(c.packIntBuf[:VerSize], proto.Ver)
+	if _, err = wr.Write(c.packIntBuf[:VerSize]); err != nil {
+		log.Error("protoVer: wr.Write() error(%v)", err)
 		return
 	}
-	if err = binary.Write(wr, binary.BigEndian, proto.Operation); err != nil {
-		log.Error("operation: binary.Write() error(%v)", err)
+	BigEndian.PutInt32(c.packIntBuf[:OperationSize], proto.Operation)
+	if _, err = wr.Write(c.packIntBuf[:OperationSize]); err != nil {
+		log.Error("operation: wr.Write() error(%v)", err)
 		return
 	}
-	if err = binary.Write(wr, binary.BigEndian, proto.SeqId); err != nil {
-		log.Error("seqId: binary.Write() error(%v)", err)
+	BigEndian.PutInt32(c.packIntBuf[:SeqIdSize], proto.SeqId)
+	if _, err = wr.Write(c.packIntBuf[:SeqIdSize]); err != nil {
+		log.Error("seqId: wr.Write() error(%v)", err)
 		return
 	}
 	if proto.Body != nil {
 		if _, err = wr.Write(proto.Body); err != nil {
-			log.Error("body: wfr.Write() error(%v)", err)
+			log.Error("body: wr.Write() error(%v)", err)
 			return
 		}
 	}
