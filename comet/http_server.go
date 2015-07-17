@@ -1,11 +1,12 @@
 package main
 
-/*
 import (
 	"bufio"
 	log "code.google.com/p/log4go"
+	"encoding/json"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -16,7 +17,7 @@ const (
 	headerLenSize = 2
 )
 
-func (server *Server) serveHttp(w http.ResponseWriter, r *http.Request, tr *Timer) {
+func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Timer) {
 	var (
 		b    *Bucket
 		ch   *Channel
@@ -24,31 +25,28 @@ func (server *Server) serveHttp(w http.ResponseWriter, r *http.Request, tr *Time
 		key  string
 		err  error
 		trd  *TimerData
-		conn *net.TCPConn
+		conn net.Conn
 		rwr  *bufio.ReadWriter
 		hj   http.Hijacker
+		p    = new(Proto)
 		ok   bool
 	)
+	if key, hb, err = server.authHTTP(r, p); err != nil {
+		http.Error(w, "auth failed", http.StatusForbidden)
+		return
+	}
 	if hj, ok = w.(http.Hijacker); !ok {
-		http.Error(w, "webserver doesn't support hijacking", http.StatusInternalServerError)
+		log.Error("w.(http.Hijacker) type assection failed")
+		http.Error(w, "not support", http.StatusInternalServerError)
 		return
 	}
 	if conn, rwr, err = hj.Hijack(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error("hj.Hijack() error(%v)", err)
+		http.Error(w, "not support", http.StatusInternalServerError)
 		return
 	}
-	// auth
-	if trd, err = tr.Add(Conf.HandshakeTimeout, conn); err != nil {
+	if trd, err = tr.Add(hb, conn); err != nil {
 		log.Error("handshake: timer.Add() error(%v)", err)
-	} else {
-		if key, hb, err = server.authHTTP(r, p); err != nil {
-			log.Error("handshake: server.auth error(%v)", err)
-		}
-		//deltimer
-		tr.Del(trd)
-	}
-	// failed
-	if err != nil {
 		if err = conn.Close(); err != nil {
 			log.Error("handshake: conn.Close() error(%v)", err)
 		}
@@ -58,10 +56,10 @@ func (server *Server) serveHttp(w http.ResponseWriter, r *http.Request, tr *Time
 	// register key->channel
 	b = server.Bucket(key)
 	// no client send
-	ch = NewChannel(0, Conf.SvrProto)
+	ch = NewChannel(0, 1)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
-	server.dispatchHTTP(conn, wr, wpb, ch, hb, tr)
+	server.dispatchHTTP(rwr, ch)
 	// dialog finish
 	// revoke the subkey
 	// revoke the remote subkey
@@ -72,6 +70,7 @@ func (server *Server) serveHttp(w http.ResponseWriter, r *http.Request, tr *Time
 		log.Error("conn.Close() error(%v)", err)
 	}
 	b.Del(key)
+	tr.Del(trd)
 	// don't use close chan, Signal can be reused
 	// if chan full, writer goroutine next fetch from chan will exit
 	// if chan empty, send a 0(close) let the writer exit
@@ -85,60 +84,83 @@ func (server *Server) serveHttp(w http.ResponseWriter, r *http.Request, tr *Time
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatchHTTP(conn *net.TCPConn, rwr *bufio.ReadWriter, ch *Channel, hb time.Duration, tr *Timer) {
+func (server *Server) dispatchHTTP(rwr *bufio.ReadWriter, ch *Channel) {
 	var (
 		p   *Proto
 		err error
-		trd *TimerData
 		sig int
 	)
 	log.Debug("start dispatch goroutine")
-	// fetch message from svrbox(server send)
-	for {
-		if p, err = ch.SvrProto.Get(); err != nil {
-			log.Debug("channel no more server message, wait signal")
-			break
-		}
-		// just forward the message
-		if err = server.writeTCPResponse(rwr, p); err != nil {
-			log.Error("server.sendTCPResponse() error(%v)", err)
-			goto failed
-		}
-		ch.SvrProto.GetAdv()
+	if sig = <-ch.Signal; sig == 0 {
+		return
 	}
-failed:
-	// deltimer
-	tr.Del(trd)
-	log.Debug("dispatch goroutine exit")
+	// fetch message from svrbox(server send)
+	if p, err = ch.SvrProto.Get(); err != nil {
+		log.Debug("channel no more server message, wait signal")
+		return
+	}
+	// just forward the message
+	if err = server.writeHTTPResponse(rwr, p); err != nil {
+		log.Error("server.sendTCPResponse() error(%v)", err)
+		return
+	}
+	ch.SvrProto.GetAdv()
 	return
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authHTTP(rr *bufio.Reader, wr *bufio.Writer, pb []byte, p *Proto) (subKey string, heartbeat time.Duration, err error) {
-	log.Debug("get auth request protocol")
-	if err = server.readTCPRequest(rr, pb, p); err != nil {
+func (server *Server) authHTTP(r *http.Request, p *Proto) (subKey string, heartbeat time.Duration, err error) {
+	var (
+		pStr   string
+		pInt   int64
+		params = r.URL.Query()
+	)
+	pStr = params.Get("ver")
+	if pInt, err = strconv.ParseInt(pStr, 10, 16); err != nil {
+		log.Error("strconv.ParseInt(\"%s\", 10) error(%v)", err)
 		return
 	}
+	p.Ver = int16(pInt)
+	pStr = params.Get("op")
+	if pInt, err = strconv.ParseInt(pStr, 10, 32); err != nil {
+		log.Error("strconv.ParseInt(\"%s\", 10) error(%v)", err)
+		return
+	}
+	p.Operation = int32(pInt)
+	pStr = params.Get("seq")
+	if pInt, err = strconv.ParseInt(pStr, 10, 32); err != nil {
+		log.Error("strconv.ParseInt(\"%s\", 10) error(%v)", err)
+		return
+	}
+	p.SeqId = int32(pInt)
 	if p.Operation != OP_AUTH {
 		log.Warn("auth operation not valid: %d", p.Operation)
 		err = ErrOperation
 		return
 	}
+	p.Body = []byte(params.Get("t"))
 	if subKey, heartbeat, err = server.operator.Connect(p); err != nil {
 		log.Error("operator.Connect error(%v)", err)
-		return
-	}
-	log.Debug("send auth response protocol")
-	p.Body = nil
-	p.Operation = OP_AUTH_REPLY
-	if err = server.writeTCPResponse(wr, pb, p); err != nil {
-		log.Error("[%s] server.sendTCPResponse() error(%v)", subKey, err)
 	}
 	return
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) writeHTTPResponse(rwr *bufio.Writer, proto *Proto) (err error) {
+func (server *Server) writeHTTPResponse(rwr *bufio.ReadWriter, proto *Proto) (err error) {
+	var pb []byte
+	if proto.Body == nil {
+		proto.Body = emptyJSONBody
+	}
+	if pb, err = json.Marshal(proto); err != nil {
+		log.Error("json.Marshal() error(%v)", err)
+		return
+	}
+	if _, err = rwr.Write(pb); err != nil {
+		log.Error("http rwr.Write() error(%v)", err)
+		return
+	}
+	if err = rwr.Flush(); err != nil {
+		log.Error("http rwr.Flush() error(%v)", err)
+	}
 	return
 }
-*/

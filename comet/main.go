@@ -35,7 +35,10 @@ func main() {
 	if err := InitWebsocket(); err != nil {
 		panic(err)
 	}
-	if err := InitHttpPush(); err != nil {
+	if err := InitHTTP(); err != nil {
+		panic(err)
+	}
+	if err := InitHTTPPush(); err != nil {
 		panic(err)
 	}
 	// start rpc

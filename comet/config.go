@@ -48,6 +48,8 @@ type Config struct {
 	TCPKeepalive bool     `goconf:"tcp:keepalive"`
 	// websocket
 	WebsocketBind []string `goconf:"websocket:bind:,"`
+	// http
+	HTTPBind []string `goconf:"http:bind:,"`
 	// proto section
 	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
 	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
@@ -64,9 +66,9 @@ type Config struct {
 	SvrProto int `goconf:"bucket:svr.proto.num"`
 	Channel  int `goconf:"bucket:channel.num"`
 	// push
-	HttpPushBind     []string      `goconf:"push:http.push.bind:,"`
-	HttpReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
-	HttpWriteTimeout time.Duration `goconf:"push:http.write.timeout:time"`
+	HTTPPushBind     []string      `goconf:"push:http.push.bind:,"`
+	HTTPReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
+	HTTPWriteTimeout time.Duration `goconf:"push:http.write.timeout:time"`
 	RPCPushBind      []string      `goconf:"push:rpc.push.bind:,"`
 }
 
@@ -86,6 +88,8 @@ func NewConfig() *Config {
 		TCPKeepalive: false,
 		// websocket
 		WebsocketBind: []string{"localhost:8090"},
+		// http
+		HTTPBind: []string{"localhost:8070"},
 		// proto section
 		HandshakeTimeout: 5 * time.Second,
 		WriteTimeout:     5 * time.Second,
@@ -101,9 +105,9 @@ func NewConfig() *Config {
 		SvrProto: 1024,
 		Channel:  1024,
 		// push
-		HttpPushBind:     []string{"localhost:8082"},
-		HttpReadTimeout:  5 * time.Second,
-		HttpWriteTimeout: 5 * time.Second,
+		HTTPPushBind:     []string{"localhost:8082"},
+		HTTPReadTimeout:  5 * time.Second,
+		HTTPWriteTimeout: 5 * time.Second,
 		RPCPushBind:      []string{"localhost:8083"},
 	}
 }

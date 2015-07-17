@@ -9,19 +9,19 @@ import (
 	"time"
 )
 
-func InitHttpPush() error {
+func InitHTTPPush() error {
 	// http listen
-	for _, bind := range Conf.HttpPushBind {
+	for _, bind := range Conf.HTTPPushBind {
 		httpServeMux := http.NewServeMux()
 		httpServeMux.HandleFunc("/1/push", Push)
-		log.Info("start http listen addr:\"%s\"", bind)
+		log.Info("start http push listen:\"%s\"", bind)
 		go httpListen(httpServeMux, bind)
 	}
 	return nil
 }
 
 func httpListen(mux *http.ServeMux, bind string) {
-	httpServer := &http.Server{Handler: mux, ReadTimeout: Conf.HttpReadTimeout, WriteTimeout: Conf.HttpWriteTimeout}
+	httpServer := &http.Server{Handler: mux, ReadTimeout: Conf.HTTPReadTimeout, WriteTimeout: Conf.HTTPWriteTimeout}
 	httpServer.SetKeepAlivesEnabled(true)
 	l, err := net.Listen("tcp", bind)
 	if err != nil {

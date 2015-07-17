@@ -6,10 +6,6 @@ import (
 	"time"
 )
 
-var (
-	emptyJSONBody = []byte("{}")
-)
-
 func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	var (
 		b   *Bucket

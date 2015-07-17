@@ -6,7 +6,8 @@ import (
 )
 
 var (
-	maxInt = 1<<31 - 1
+	maxInt        = 1<<31 - 1
+	emptyJSONBody = []byte("{}")
 )
 
 type Server struct {
