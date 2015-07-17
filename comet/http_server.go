@@ -23,6 +23,7 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 		ch   *Channel
 		hb   time.Duration // heartbeat
 		key  string
+		cb   string
 		err  error
 		trd  *TimerData
 		conn net.Conn
@@ -31,7 +32,7 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 		p    = new(Proto)
 		ok   bool
 	)
-	if key, hb, err = server.authHTTP(r, p); err != nil {
+	if key, cb, hb, err = server.authHTTP(r, p); err != nil {
 		http.Error(w, "auth failed", http.StatusForbidden)
 		return
 	}
@@ -59,7 +60,7 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 	ch = NewChannel(0, 1)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
-	server.dispatchHTTP(rwr, ch)
+	server.dispatchHTTP(rwr, cb, ch)
 	// dialog finish
 	// revoke the subkey
 	// revoke the remote subkey
@@ -84,7 +85,7 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatchHTTP(rwr *bufio.ReadWriter, ch *Channel) {
+func (server *Server) dispatchHTTP(rwr *bufio.ReadWriter, cb string, ch *Channel) {
 	var (
 		p   *Proto
 		err error
@@ -100,7 +101,7 @@ func (server *Server) dispatchHTTP(rwr *bufio.ReadWriter, ch *Channel) {
 		return
 	}
 	// just forward the message
-	if err = server.writeHTTPResponse(rwr, p); err != nil {
+	if err = server.writeHTTPResponse(rwr, cb, p); err != nil {
 		log.Error("server.sendTCPResponse() error(%v)", err)
 		return
 	}
@@ -109,7 +110,7 @@ func (server *Server) dispatchHTTP(rwr *bufio.ReadWriter, ch *Channel) {
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authHTTP(r *http.Request, p *Proto) (subKey string, heartbeat time.Duration, err error) {
+func (server *Server) authHTTP(r *http.Request, p *Proto) (subKey, callback string, heartbeat time.Duration, err error) {
 	var (
 		pStr   string
 		pInt   int64
@@ -138,6 +139,7 @@ func (server *Server) authHTTP(r *http.Request, p *Proto) (subKey string, heartb
 		err = ErrOperation
 		return
 	}
+	callback = params.Get("cb")
 	p.Body = []byte(params.Get("t"))
 	if subKey, heartbeat, err = server.operator.Connect(p); err != nil {
 		log.Error("operator.Connect error(%v)", err)
@@ -146,7 +148,7 @@ func (server *Server) authHTTP(r *http.Request, p *Proto) (subKey string, heartb
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) writeHTTPResponse(rwr *bufio.ReadWriter, proto *Proto) (err error) {
+func (server *Server) writeHTTPResponse(rwr *bufio.ReadWriter, cb string, proto *Proto) (err error) {
 	var pb []byte
 	if proto.Body == nil {
 		proto.Body = emptyJSONBody
@@ -154,6 +156,16 @@ func (server *Server) writeHTTPResponse(rwr *bufio.ReadWriter, proto *Proto) (er
 	if pb, err = json.Marshal(proto); err != nil {
 		log.Error("json.Marshal() error(%v)", err)
 		return
+	}
+	if len(cb) != 0 {
+		if _, err = rwr.WriteString(cb); err != nil {
+			log.Error("http rwr.Write() error(%v)", err)
+			return
+		}
+		if err = rwr.WriteByte('='); err != nil {
+			log.Error("http rwr.Write() error(%v)", err)
+			return
+		}
 	}
 	if _, err = rwr.Write(pb); err != nil {
 		log.Error("http rwr.Write() error(%v)", err)
