@@ -24,11 +24,11 @@ type Config struct {
 	MaxProc   int      `goconf:"base:maxproc"`
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	// proto section
-	TCPAddr string `goconf:"proto:tcp.addr"`
-	Sndbuf  int    `goconf:"proto:sndbuf:memory"`
-	Rcvbuf  int    `goconf:"proto:rcvbuf:memory"`
-	// crypto
-	RSAPublic string `goconf:"crypto:rsa.public"`
+	TCPAddr       string `goconf:"proto:tcp.addr"`
+	WebsocketAddr string `goconf:"proto:websocket.addr"`
+	Sndbuf        int    `goconf:"proto:sndbuf:memory"`
+	Rcvbuf        int    `goconf:"proto:rcvbuf:memory"`
+	Type          int    `goconf:"proto:type"`
 	// sub
 	SubKey string `goconf:sub:sub.key`
 }
@@ -42,11 +42,11 @@ func NewConfig() *Config {
 		MaxProc:   runtime.NumCPU(),
 		PprofBind: []string{"localhost:6971"},
 		// proto section
-		TCPAddr: "localhost:8080",
-		Sndbuf:  2048,
-		Rcvbuf:  256,
-		// crypto
-		RSAPublic: "./pub.pem",
+		TCPAddr:       "localhost:8080",
+		WebsocketAddr: "localhost:8090",
+		Sndbuf:        2048,
+		Rcvbuf:        256,
+		Type:          ProtoTCP,
 		// sub
 		SubKey: "Terry-Mao",
 	}

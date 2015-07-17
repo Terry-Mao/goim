@@ -56,12 +56,8 @@ type Config struct {
 	ReadBufSize      int           `goconf:"proto:readbuf.size"`
 	WriteBufSize     int           `goconf:"proto:writebuf.size"`
 	// timer
-	Timer       int `goconf:"proto:timer"`
-	TimerSize   int `goconf:"proto:timer.size"`
-	Session     int `goconf:"proto:session"`
-	SessionSize int `goconf:"proto:session.size"`
-	// crypto
-	RSAPrivate string `goconf:"crypto:rsa.private"`
+	Timer     int `goconf:"proto:timer"`
+	TimerSize int `goconf:"proto:timer.size"`
 	// bucket
 	Bucket   int `goconf:"bucket:bucket.num"`
 	CliProto int `goconf:"bucket:cli.proto.num"`
@@ -97,16 +93,8 @@ func NewConfig() *Config {
 		WriteBuf:         1024,
 		ReadBufSize:      1024,
 		WriteBufSize:     1024,
-		//EncrypterBuf:       1024,
-		//DecrypterBuf:       1024,
-		//EncrypterBufSize:   1024,
-		//DecrypterBufSize:   1024,
-		Timer:       1024,
-		TimerSize:   1000,
-		Session:     1024,
-		SessionSize: 1024,
-		// crypto
-		RSAPrivate: "./pri.pem",
+		Timer:            1024,
+		TimerSize:        1000,
 		// bucket
 		Bucket:   1024,
 		CliProto: 1024,

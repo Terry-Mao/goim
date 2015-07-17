@@ -54,6 +54,7 @@ func (operator *DefaultOperator) Operate(proto *Proto) error {
 	} else if proto.Operation == OP_TEST {
 		log.Debug("test operation: %s", body)
 		proto.Operation = OP_TEST_REPLY
+		proto.Body = []byte("{\"test\":\"come on\"}")
 	} else {
 		return ErrOperation
 	}

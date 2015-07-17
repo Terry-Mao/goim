@@ -24,8 +24,10 @@ func NewRing(num int) *Ring {
 }
 
 func InitRing(r *Ring, num int) {
-	r.data = make([]Proto, num)
-	r.num = num
+	if num > 0 {
+		r.data = make([]Proto, num)
+		r.num = num
+	}
 }
 
 func (r *Ring) Get() (proto *Proto, err error) {

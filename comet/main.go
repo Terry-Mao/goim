@@ -21,19 +21,14 @@ func main() {
 	defer log.Close()
 	log.Info("comet[%s] start", Ver)
 	perf.Init(Conf.PprofBind)
-	if err := InitRSA(); err != nil {
-		panic(err)
-	}
 	// new server
 	buckets := make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
 		buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
 	}
-	round := NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize, Conf.Session, Conf.SessionSize)
-	codec := new(BinaryServerCodec)
+	round := NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize)
 	operator := new(DefaultOperator)
-	cryptor := NewDefaultCryptor()
-	DefaultServer = NewServer(buckets, round, codec, operator, cryptor)
+	DefaultServer = NewServer(buckets, round, operator)
 	if err := InitTCP(); err != nil {
 		panic(err)
 	}

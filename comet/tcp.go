@@ -5,6 +5,10 @@ import (
 	"net"
 )
 
+const (
+	maxPackIntBuf = 4
+)
+
 // InitTCP listen all tcp.bind and start accept connections.
 func InitTCP() (err error) {
 	var (
@@ -66,19 +70,19 @@ func acceptTCP(server *Server, lis *net.TCPListener) {
 func serveTCP(server *Server, conn *net.TCPConn, r int) {
 	var (
 		// bufpool
-		rp = server.round.Reader(r) // reader
-		wp = server.round.Writer(r) // writer
-		// bufio
-		rr = NewBufioReaderSize(rp, conn, Conf.ReadBufSize)  // reader buf
-		wr = NewBufioWriterSize(wp, conn, Conf.WriteBufSize) // writer buf
-		fr = wr                                              // flusher
-		cr = conn
+		rrp = server.round.Reader(r) // reader
+		wrp = server.round.Writer(r) // writer
+		// timer
+		tr = server.round.Timer(r)
+		// buf
+		rr = NewBufioReaderSize(rrp, conn, Conf.ReadBufSize)  // reader buf
+		wr = NewBufioWriterSize(wrp, conn, Conf.WriteBufSize) // writer buf
 		// ip addr
 		lAddr = conn.LocalAddr().String()
 		rAddr = conn.RemoteAddr().String()
 	)
-	log.Debug("start serve \"%s\" with \"%s\"", lAddr, rAddr)
-	server.serve(rr, wr, fr, cr, r)
-	PutBufioReader(rp, rr)
-	PutBufioWriter(wp, wr)
+	log.Debug("start tcp serve \"%s\" with \"%s\"", lAddr, rAddr)
+	server.serveTCP(conn, rr, wr, tr)
+	PutBufioReader(rrp, rr)
+	PutBufioWriter(wrp, wr)
 }

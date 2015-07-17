@@ -39,8 +39,11 @@ func InitWebsocket() (err error) {
 func serveWebsocket(conn *websocket.Conn) {
 	var (
 		// ip addr
-		rAddr = conn.Request().RemoteAddr
+		lAddr = conn.LocalAddr()
+		rAddr = conn.RemoteAddr()
+		// timer
+		tr = DefaultServer.round.Timer(rand.Int())
 	)
-	log.Debug("start serve \"%s\"", rAddr)
-	DefaultServer.serve(conn, conn, nil, conn, rand.Int())
+	log.Debug("start websocket serve \"%s\" with \"%s\"", lAddr, rAddr)
+	DefaultServer.serveWebsocket(conn, tr)
 }
