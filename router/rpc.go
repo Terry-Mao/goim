@@ -2,20 +2,13 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	rpc "github.com/Terry-Mao/goim/protorpc"
 	"github.com/Terry-Mao/goim/router/proto"
+	rpc "github.com/Terry-Mao/protorpc"
 	"net"
 )
 
-const (
-	OK          = 1
-	NoExistKey  = 65531
-	ParamterErr = 65532
-	InternalErr = 65535
-)
-
-func InitRPC() error {
-	c := &RouterRPC{}
+func InitRPC(bs []*Bucket) error {
+	c := &RouterRPC{Buckets: bs, BucketIdx: int64(len(bs)) - 1}
 	rpc.Register(c)
 	for _, bind := range Conf.RPCBind {
 		log.Info("start listen rpc addr: \"%s\"", bind)
@@ -42,133 +35,47 @@ func rpcListen(bind string) {
 
 // Router RPC
 type RouterRPC struct {
+	Buckets   []*Bucket
+	BucketIdx int64
 }
 
-// Sub let client get sub info by sub key.
-func (this *RouterRPC) Sub(key *proto.ArgKey, ret *proto.Ret) (err error) {
-	if key == nil {
-		log.Error("RouterRPC.Sub() key==nil")
-		ret.Ret = ParamterErr
-		return
-	}
-	sb := DefaultBuckets.SubBucket(key.Key)
-	if sb == nil {
-		log.Error("DefaultBuckets get subbucket error key(%s)", key.Key)
-		ret.Ret = InternalErr
-		return
-	}
-	n := sb.Get(key.Key)
-	if n == nil {
-		ret.Ret = NoExistKey
-		return
-	}
-	ret.Ret |= (int64(n.server) << 48)
-	ret.Ret |= (int64(n.state) << 32)
-	ret.Ret |= OK
-	return
+func (r *RouterRPC) bucket(userId int64) *Bucket {
+	idx := int(userId % r.BucketIdx)
+	log.Debug("\"%d\" hit channel bucket index: %d", userId, idx)
+	return r.Buckets[idx]
 }
 
-// BatchSub let client batch get sub info by sub keys.
-func (this *RouterRPC) BatchSub(key *proto.ArgBatchKey, ret *proto.RetBatchSub) (err error) {
-	ret = new(proto.RetBatchSub)
-	if key == nil {
-		log.Error("RouterRPC.Push() key==nil")
-		ret.Ret = ParamterErr
-		return
-	}
-	l := len(key.Keys)
-	if l == 0 {
-		ret.Ret = OK
-		return
-	}
-	ret.Subs = make([]*proto.ArgSub, l)
-	i := 0
-	for _, v := range key.Keys {
-		sb := DefaultBuckets.SubBucket(v)
-		if sb == nil {
-			log.Error("DefaultBuckets batch get subbucket error key(%s)", v)
-			continue
-		}
-		n := sb.Get(v)
-		if n == nil {
-			log.Error("DefaultBuckets batch get subbucket nil error key(%s)", v)
-			continue
-		}
-		sub := &proto.ArgSub{}
-		sub.Key = v
-		sub.State = int32(n.state)
-		sub.Server = int32(n.server)
-		ret.Subs[i] = sub
-		i++
-	}
-	ret.Subs = ret.Subs[:i]
-	ret.Ret = OK
-	return
+func (r *RouterRPC) Connect(arg *proto.ConnArg, reply *proto.ConnReply) error {
+	reply.Seq = r.bucket(arg.UserId).Put(arg.UserId, arg.Server)
+	return nil
 }
 
-// Topic let client get all sub key in topic.
-func (this *RouterRPC) Topic(key *proto.ArgTopic, ret *proto.RetBatchSub) (err error) {
-	ret = new(proto.RetBatchSub)
-	if key == nil {
-		log.Error("RouterRPC.Topic() key==nil")
-		ret.Ret = ParamterErr
-		return
-	}
-	tb := DefaultBuckets.TopicBucket(key.Topic)
-	if tb == nil {
-		log.Error("DefaultBuckets get topicbucket error key(%s)", key)
-		ret.Ret = InternalErr
-		return
-	}
-	m := tb.Get(key.Topic)
-	l := len(m)
-	if l > 0 {
-		ret.Subs = make([]*proto.ArgSub, l)
-		i := 0
-		for k, _ := range m {
-			ts := &proto.ArgSub{}
-			ts.Key = k
-			sb := DefaultBuckets.SubBucket(k)
-			if sb == nil {
-				continue
-			}
-			n := sb.Get(k)
-			if n == nil {
-				// TODO is or not delete from topics
-				tb.del(key.Topic, k)
-				continue
-			}
-			ts.State = int32(n.state)
-			ts.Server = int32(n.server)
-			ret.Subs[i] = ts
-			i++
-		}
-		ret.Subs = ret.Subs[:i]
-	}
-	ret.Ret = OK
-	return
+func (r *RouterRPC) Disconnect(arg *proto.DisconnArg, reply *proto.DisconnReply) error {
+	reply.Has = r.bucket(arg.UserId).DelSession(arg.UserId, arg.Seq)
+	return nil
 }
 
-// PbSetSub let client set sub key.
-func (this *RouterRPC) SetSub(key *proto.ArgSub, ret *proto.Ret) (err error) {
-	if key == nil {
-		log.Error("RouterRPC.SetSub() key==nil")
-		ret.Ret = ParamterErr
-		return
-	}
-	DefaultBuckets.SubBucket(key.Key).SetStateAndServer(key.Key, int8(key.State), int16(key.Server))
-	ret.Ret = OK
-	return
+func (r *RouterRPC) Get(arg *proto.GetArg, reply *proto.GetReply) error {
+	seqs, servers := r.bucket(arg.UserId).Get(arg.UserId)
+	reply.Seqs = seqs
+	reply.Servers = servers
+	return nil
 }
 
-// SetTopic let client set topic.
-func (this *RouterRPC) SetTopic(key *proto.ArgTopicKey, ret *proto.Ret) (err error) {
-	if key == nil {
-		log.Error("RouterRPC.SetTopic() key==nil")
-		ret.Ret = ParamterErr
-		return
+func (r *RouterRPC) MGet(arg *proto.MGetArg, reply *proto.MGetReply) error {
+	var (
+		i       int
+		userId  int64
+		session *proto.GetReply
+	)
+	reply.Sessions = make([]*proto.GetReply, 0, len(arg.UserIds))
+	for i = 0; i < len(arg.UserIds); i++ {
+		userId = arg.UserIds[i]
+		seqs, servers := r.bucket(userId).Get(userId)
+		session = new(proto.GetReply)
+		session.Seqs = seqs
+		session.Servers = servers
+		reply.Sessions[i] = session
 	}
-	DefaultBuckets.PutToTopic(key.Topic, key.Key)
-	ret.Ret = OK
-	return
+	return nil
 }

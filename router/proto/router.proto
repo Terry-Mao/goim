@@ -8,34 +8,37 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
-message Ret {
-    int64     ret = 1;
+message ConnArg {
+    int64 userId = 1; 
+    int32 server = 2;
 }
 
-message ArgKey {
-    string     key = 1;
+message ConnReply {
+    int32 seq = 1;
 }
 
-message ArgTopic {
-    string     topic = 1;
+message DisconnArg {
+    int64 userId = 1;
+    int32 seq = 2;
 }
 
-message ArgSub {
-    string     key = 1;
-    int32      state = 2;
-    int32      server = 3;
+message DisconnReply {
+    bool has = 1;
 }
 
-message ArgBatchKey {
-    repeated string     keys = 1;
+message GetArg {
+    int64 userId = 1;
 }
 
-message RetBatchSub {
-    int64     ret = 1;
-    repeated ArgSub	   subs = 2 [(gogoproto.nullable) = true];
+message GetReply {
+    repeated int32 seqs = 1;
+    repeated int32 servers = 2;
 }
 
-message ArgTopicKey {
-    string     key = 1;
-    string     topic = 2;
+message MGetArg {
+    repeated int64 userIds = 1;
+}
+
+message MGetReply {
+    repeated GetReply sessions= 1;
 }
