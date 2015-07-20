@@ -3,7 +3,7 @@
     <tag>stdout</tag>
     <type>console</type>
     <!-- level is (:?FINEST|FINE|DEBUG|TRACE|INFO|WARNING|ERROR) -->
-    <level>DEBUG</level>
+    <level>INFO</level>
   </filter>
   <filter enabled="false">
     <tag>debug_file</tag>

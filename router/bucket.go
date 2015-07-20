@@ -1,220 +1,118 @@
 package main
 
 import (
-	"github.com/Terry-Mao/goim/libs/hash/cityhash"
 	"sync"
+	"time"
 )
 
-var (
-	DefaultBuckets *Buckets
-)
-
-func InitBuckets() {
-	DefaultBuckets = NewBuckets()
+type Bucket struct {
+	bLock    sync.Mutex         // protect the session map
+	sessions map[int64]*Session // map[user_id] ->  map[sub_id] -> server_id
+	server   int
+	cleaner  *Cleaner
 }
 
-type Buckets struct {
-	subBuckets     []*SubBucket
-	subBucketIdx   uint32
-	topicBuckets   []*TopicBucket
-	topicBucketIdx uint32
+// NewBucket new a bucket struct. store the subkey with im channel.
+func NewBucket(session, server, cleaner int) *Bucket {
+	b := new(Bucket)
+	b.sessions = make(map[int64]*Session, session)
+	b.server = server
+	b.cleaner = NewCleaner(cleaner)
+	go b.clean()
+	return b
 }
 
-func NewBuckets() *Buckets {
-	s := new(Buckets)
-	s.subBuckets = make([]*SubBucket, Conf.SubBucketNum)
-	s.subBucketIdx = uint32(Conf.SubBucketNum - 1)
-	for i := 0; i < Conf.SubBucketNum; i++ {
-		s.subBuckets[i] = NewSubBucket()
+// Put put a channel according with user id.
+func (b *Bucket) Put(userId int64, server int32) (seq int32) {
+	var (
+		s  *Session
+		ok bool
+	)
+	b.bLock.Lock()
+	if s, ok = b.sessions[userId]; !ok {
+		s = NewSession(b.server)
+		b.sessions[userId] = s
 	}
-	s.topicBuckets = make([]*TopicBucket, Conf.TopicBucketNum)
-	s.topicBucketIdx = uint32(Conf.TopicBucketNum - 1)
-	for i := 0; i < Conf.TopicBucketNum; i++ {
-		s.topicBuckets[i] = NewTopicBucket()
-	}
-	return s
+	seq = s.Put(server)
+	b.bLock.Unlock()
+	return
 }
 
-func (s *Buckets) SubBucket(key string) *SubBucket {
-	idx := cityhash.CityHash32([]byte(key), uint32(len(key))) & s.subBucketIdx
-	// log.Debug("\"%s\" hit sub bucket index: %d use cityhash", key, idx)
-	return s.subBuckets[idx]
+func (b *Bucket) Get(userId int64) (seqs []int32, servers []int32) {
+	var (
+		s      *Session
+		seq    int32
+		server int32
+		ok     bool
+	)
+	b.bLock.Lock()
+	if s, ok = b.sessions[userId]; ok {
+		seqs = make([]int32, 0, len(s.Servers()))
+		servers = make([]int32, 0, len(s.Servers()))
+		for seq, server = range s.Servers() {
+			seqs = append(seqs, seq)
+			servers = append(servers, server)
+		}
+	}
+	b.bLock.Unlock()
+	return
 }
 
-func (s *Buckets) TopicBucket(key string) *TopicBucket {
-	idx := cityhash.CityHash32([]byte(key), uint32(len(key))) & s.topicBucketIdx
-	// log.Debug("\"%s\" hit topic bucket index: %d use cityhash", key, idx)
-	return s.topicBuckets[idx]
-}
-
-func (s *Buckets) PutToTopic(topic, subkey string) {
-	tb := s.TopicBucket(topic)
-	if tb != nil {
-		tb.put(topic, subkey)
-	}
-	sb := s.SubBucket(subkey)
-	if sb != nil {
-		sb.putTopic(subkey, topic)
-	}
-}
-
-func (s *Buckets) DelFromTopic(topic, subkey string) {
-	tb := s.TopicBucket(topic)
-	if tb != nil {
-		tb.del(topic, subkey)
-	}
-	sb := s.SubBucket(subkey)
-	if sb != nil {
-		sb.delTopic(subkey, topic)
-	}
-}
-
-func (s *Buckets) RemoveTopic(topic string) {
-	tb := s.TopicBucket(topic)
-	if tb != nil {
-		m := tb.remove(topic)
-		if m != nil {
-			for k, _ := range m {
-				sb := s.SubBucket(k)
-				if sb != nil {
-					sb.delTopic(k, topic)
-				}
-			}
+func (b *Bucket) del(userId int64) {
+	var (
+		s  *Session
+		ok bool
+	)
+	if s, ok = b.sessions[userId]; ok {
+		if s.Size() == 0 {
+			delete(b.sessions, userId)
 		}
 	}
 }
 
-type Node struct {
-	state  int8
-	server int16
-	topics map[string]struct{}
-}
-
-func NewNode() *Node {
-	return new(Node)
-}
-
-type SubBucket struct {
-	bLock sync.Mutex
-	subs  map[string]*Node
-}
-
-func NewSubBucket() *SubBucket {
-	b := new(SubBucket)
-	b.subs = make(map[string]*Node)
-	return b
-}
-
-func (sb *SubBucket) putTopic(subkey, topic string) {
-	sb.bLock.Lock()
-	n, ok := sb.subs[subkey]
-	if !ok {
-		n = NewNode()
-	}
-	if n.topics == nil {
-		n.topics = make(map[string]struct{})
-	}
-	n.topics[topic] = struct{}{}
-	sb.bLock.Unlock()
-}
-
-func (sb *SubBucket) delTopic(subkey, topic string) {
-	sb.bLock.Lock()
-	n, ok := sb.subs[subkey]
-	if ok && n.topics != nil {
-		delete(n.topics, topic)
-		sb.subs[subkey] = n
-	}
-	sb.bLock.Unlock()
-}
-
-func (sb *SubBucket) SetState(subkey string, state int8) {
-	sb.bLock.Lock()
-	n, ok := sb.subs[subkey]
-	if !ok {
-		n = NewNode()
-		sb.subs[subkey] = n
-	}
-	n.state = state
-	sb.bLock.Unlock()
-}
-
-func (sb *SubBucket) SetServer(subkey string, server int16) {
-	sb.bLock.Lock()
-	n, ok := sb.subs[subkey]
-	if !ok {
-		n = NewNode()
-		sb.subs[subkey] = n
-	}
-	n.server = server
-	sb.bLock.Unlock()
-}
-
-func (sb *SubBucket) SetStateAndServer(subkey string, state int8, server int16) {
-	sb.bLock.Lock()
-	n, ok := sb.subs[subkey]
-	if !ok {
-		n = NewNode()
-		sb.subs[subkey] = n
-	}
-	n.state = state
-	n.server = server
-	sb.bLock.Unlock()
-}
-
-func (b *SubBucket) Get(subkey string) *Node {
-	var n *Node
+func (b *Bucket) Del(userId int64) {
 	b.bLock.Lock()
-	n = b.subs[subkey]
+	b.del(userId)
 	b.bLock.Unlock()
-	return n
 }
 
-type TopicBucket struct {
-	tLock  sync.Mutex
-	topics map[string]map[string]struct{}
-}
-
-func NewTopicBucket() *TopicBucket {
-	tb := new(TopicBucket)
-	tb.topics = make(map[string]map[string]struct{})
-	return tb
-}
-
-func (tb *TopicBucket) put(topic, subkey string) {
-	tb.tLock.Lock()
-	l, ok := tb.topics[topic]
-	if !ok {
-		l = make(map[string]struct{})
+// Del delete the channel by sub key.
+func (b *Bucket) DelSession(userId int64, seq int32) (ok bool) {
+	var (
+		s     *Session
+		empty bool
+	)
+	b.bLock.Lock()
+	if s, ok = b.sessions[userId]; ok {
+		// WARN:
+		// delete(b.sessions, userId)
+		// empty is a dirty data, we use here for try lru clean discard session.
+		// when one user flapped connect & disconnect, this also can reduce
+		// frequently new & free object, gc is slow!!!
+		empty = s.Del(seq)
 	}
-	l[subkey] = struct{}{}
-	tb.topics[topic] = l
-	tb.tLock.Unlock()
-}
-
-func (tb *TopicBucket) del(topic, subkey string) {
-	tb.tLock.Lock()
-	l, ok := tb.topics[topic]
-	if ok {
-		delete(l, subkey)
-		tb.topics[topic] = l
+	b.bLock.Unlock()
+	// lru
+	if empty {
+		b.cleaner.PushFront(userId)
 	}
-	tb.tLock.Unlock()
+	return
 }
 
-func (tb *TopicBucket) remove(topic string) map[string]struct{} {
-	var m map[string]struct{}
-	tb.tLock.Lock()
-	m = tb.topics[topic]
-	delete(tb.topics, topic)
-	tb.tLock.Unlock()
-	return m
-}
-
-func (tb *TopicBucket) Get(topic string) map[string]struct{} {
-	var m map[string]struct{}
-	tb.tLock.Lock()
-	m = tb.topics[topic]
-	tb.tLock.Unlock()
-	return m
+func (b *Bucket) clean() {
+	var (
+		i       int
+		userIds []int64
+	)
+	for {
+		userIds = b.cleaner.Clean()
+		if len(userIds) != 0 {
+			b.bLock.Lock()
+			for i = 0; i < len(userIds); i++ {
+				b.del(userIds[i])
+			}
+			b.bLock.Unlock()
+		}
+		time.Sleep(Conf.BucketCleanPeriod)
+	}
 }

@@ -25,15 +25,14 @@ type Config struct {
 	MaxProc   int      `goconf:"base:maxproc"`
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	StatBind  []string `goconf:"base:stat.bind:,"`
-	// http
-	HttpBind         []string      `goconf:"http:bind:,"`
-	HttpReadTimeout  time.Duration `goconf:"http:read.timeout:time"`
-	HttpWriteTimeout time.Duration `goconf:"http:write.timeout:time"`
 	// rpc
 	RPCBind []string `goconf:"rpc:bind:,"`
 	// bucket
-	SubBucketNum   int `goconf:"bucket:subbucket.num"`
-	TopicBucketNum int `goconf:"bucket:topicbucket.num"`
+	Bucket            int           `goconf:"bucket:bucket"`
+	Session           int           `goconf:"bucket:session"`
+	Server            int           `goconf:"bucket:server"`
+	Cleaner           int           `goconf:"bucket:cleaner"`
+	BucketCleanPeriod time.Duration `goconf:"bucket:clean.period:time"`
 }
 
 func NewConfig() *Config {
@@ -45,15 +44,14 @@ func NewConfig() *Config {
 		MaxProc:   runtime.NumCPU(),
 		PprofBind: []string{"localhost:6971"},
 		StatBind:  []string{"localhost:6972"},
-		// http
-		HttpBind:         []string{"localhost:8080"},
-		HttpReadTimeout:  5 * time.Second,
-		HttpWriteTimeout: 5 * time.Second,
 		// rpc
 		RPCBind: []string{"localhost:9090"},
 		// bucket
-		SubBucketNum:   1,
-		TopicBucketNum: 1,
+		Bucket:            runtime.NumCPU(),
+		Session:           1000,
+		Server:            5,
+		Cleaner:           1000,
+		BucketCleanPeriod: time.Hour * 1,
 	}
 }
 

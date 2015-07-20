@@ -19,17 +19,15 @@ func main() {
 	runtime.GOMAXPROCS(Conf.MaxProc)
 	log.LoadConfiguration(Conf.Log)
 	defer log.Close()
-	// init buckets
-	InitBuckets()
 	log.Info("router[%s] start", VERSION)
 	// start prof
 	perf.Init(Conf.PprofBind)
-	// start http
-	if err := InitHttp(); err != nil {
-		panic(err)
-	}
 	// start rpc
-	if err := InitRPC(); err != nil {
+	buckets := make([]*Bucket, Conf.Bucket)
+	for i := 0; i < Conf.Bucket; i++ {
+		buckets[i] = NewBucket(Conf.Session, Conf.Server, Conf.Cleaner)
+	}
+	if err := InitRPC(buckets); err != nil {
 		panic(err)
 	}
 	// block until a signal is received.
