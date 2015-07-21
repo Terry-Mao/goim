@@ -2,20 +2,10 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/comet/proto"
+	rpc "github.com/Terry-Mao/protorpc"
 	"net"
-	"net/rpc"
 )
-
-type RPCPushMsg struct {
-	Key string
-	Msg []byte
-}
-
-type RPCPushsMsg struct {
-	Key        string
-	Operations []int32
-	Msgs       [][]byte
-}
 
 func InitRPCPush() error {
 	c := &PushRPC{}
@@ -35,7 +25,7 @@ func rpcListen(bind string) {
 	}
 	// if process exit, then close the rpc bind
 	defer func() {
-		log.Info("rpc addr: \"%s\" close", bind)
+		log.Info("listen rpc: \"%s\" close", bind)
 		if err := l.Close(); err != nil {
 			log.Error("listener.Close() error(%v)", err)
 		}
@@ -48,41 +38,82 @@ type PushRPC struct {
 }
 
 // Push push a message to a specified sub key, must goroutine safe.
-func (this *PushRPC) Push(args *RPCPushMsg, ret *int) (err error) {
-	if args == nil {
-		*ret = InternalErr
-		log.Error("PushRPC.Push() args==nil")
+func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *proto.NoReply) (err error) {
+	if arg == nil {
+		err = ErrPushMsgArg
 		return
 	}
-	bucket := DefaultServer.Bucket(args.Key)
-	if channel := bucket.Get(args.Key); channel != nil {
+	bucket := DefaultServer.Bucket(arg.Key)
+	if channel := bucket.Get(arg.Key); channel != nil {
 		// padding let caller do
-		if err = channel.Push(1, OP_SEND_SMS_REPLY, args.Msg); err != nil {
-			*ret = InternalErr
-			log.Error("channel.Push() error(%v)", err)
-			return
-		}
+		err = channel.PushMsg(int16(arg.Ver), arg.Operation, arg.Msg)
 	}
-	*ret = OK
 	return
 }
 
 // Pushs push multiple messages to a specified sub key, must goroutine safe.
-func (this *PushRPC) Pushs(args *RPCPushsMsg, ret *int) (err error) {
-	if args == nil {
-		*ret = InternalErr
-		log.Error("PushRPC.Pushs() args==nil")
+func (this *PushRPC) PushMsgs(arg *proto.PushMsgsArg, reply *proto.PushMsgsReply) (err error) {
+	reply.Index = -1
+	if arg == nil || len(arg.Vers) != len(arg.Operations) || len(arg.Operations) != len(arg.Msgs) {
+		err = ErrPushMsgsArg
 		return
 	}
-	bucket := DefaultServer.Bucket(args.Key)
-	if channel := bucket.Get(args.Key); channel != nil {
+	bucket := DefaultServer.Bucket(arg.Key)
+	if channel := bucket.Get(arg.Key); channel != nil {
 		// padding let caller do
-		if _, err = channel.Pushs(1, args.Operations, args.Msgs); err != nil {
-			*ret = InternalErr
-			log.Error("channel.Pushs() error(%v)", err)
-			return
+		reply.Index, err = channel.PushMsgs(arg.Vers, arg.Operations, arg.Msgs)
+	}
+	return
+}
+
+// Push push a message to a specified sub key, must goroutine safe.
+func (this *PushRPC) MPushMsg(arg *proto.MPushMsgArg, reply *proto.MPushMsgReply) (err error) {
+	var (
+		bucket  *Bucket
+		channel *Channel
+		key     string
+		n       int
+	)
+	reply.Index = -1
+	if arg == nil {
+		err = ErrMPushMsgArg
+		return
+	}
+	for n, key = range arg.Keys {
+		bucket = DefaultServer.Bucket(key)
+		if channel = bucket.Get(key); channel != nil {
+			// padding let caller do
+			if err = channel.PushMsg(int16(arg.Ver), arg.Operation, arg.Msg); err != nil {
+				return
+			}
+			reply.Index = int32(n)
 		}
 	}
-	*ret = OK
+	return
+}
+
+// Push push a message to a specified sub key, must goroutine safe.
+func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsReply) (err error) {
+	var (
+		bucket  *Bucket
+		channel *Channel
+		key     string
+		n       int
+	)
+	reply.Index = -1
+	if arg == nil || len(arg.Keys) != len(arg.Vers) || len(arg.Vers) != len(arg.Operations) || len(arg.Operations) != len(arg.Msgs) {
+		err = ErrMPushMsgsArg
+		return
+	}
+	for n, key = range arg.Keys {
+		bucket = DefaultServer.Bucket(key)
+		if channel = bucket.Get(key); channel != nil {
+			// padding let caller do
+			if err = channel.PushMsg(int16(arg.Vers[n]), arg.Operations[n], arg.Msgs[n]); err != nil {
+				return
+			}
+			reply.Index = int32(n)
+		}
+	}
 	return
 }

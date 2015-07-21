@@ -22,7 +22,8 @@ func NewChannel(cliProto, svrProto int) *Channel {
 	return c
 }
 
-func (c *Channel) Push(ver int16, operation int32, body []byte) (err error) {
+// not goroutine safe, must push one by one.
+func (c *Channel) PushMsg(ver int16, operation int32, body []byte) (err error) {
 	var proto *Proto
 	// fetch a proto from channel free list
 	proto, err = c.SvrProto.Set()
@@ -40,39 +41,27 @@ func (c *Channel) Push(ver int16, operation int32, body []byte) (err error) {
 	return
 }
 
-func (c *Channel) Pushs(ver int16, operations []int32, bodies [][]byte) (n int, err error) {
+// not goroutine safe, must push one by one.
+func (c *Channel) PushMsgs(ver []int32, operations []int32, bodies [][]byte) (idx int32, err error) {
 	var (
 		proto *Proto
+		n     int32
 	)
-	if len(operations) != len(bodies) {
-		err = ErrPushArgs
-		return
-	}
-	for n = 0; n < len(operations); n++ {
+	for n = 0; n < int32(len(ver)); n++ {
 		// fetch a proto from channel free list
-		proto, err = c.SvrProto.Set()
-		if err != nil {
-			return
+		if proto, err = c.SvrProto.Set(); err != nil {
+			goto finish
 		}
-		proto.Ver = ver
+		proto.Ver = int16(ver[n])
 		proto.Operation = operations[n]
 		proto.Body = bodies[n]
 		c.SvrProto.SetAdv()
+		idx = n
 	}
+finish:
 	select {
 	case c.Signal <- ProtoReady:
 	default:
 	}
 	return
 }
-
-/*
-func (c *Channel) Reset() {
-	select {
-	case <-c.Signal:
-	default:
-	}
-	c.CliProto.Reset()
-	c.SvrProto.Reset()
-}
-*/

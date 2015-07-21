@@ -70,9 +70,9 @@ func Push(w http.ResponseWriter, r *http.Request) {
 	bucket := DefaultServer.Bucket(key)
 	if channel := bucket.Get(key); channel != nil {
 		// padding let caller do
-		if err = channel.Push(1, OP_SEND_SMS_REPLY, bodyBytes); err != nil {
+		if err = channel.PushMsg(1, OP_SEND_SMS_REPLY, bodyBytes); err != nil {
 			res["ret"] = InternalErr
-			log.Error("channel.Push() error(%v)", err)
+			log.Error("channel.PushMsg() error(%v)", err)
 			return
 		}
 	}

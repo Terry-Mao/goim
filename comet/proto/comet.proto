@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package proto;
+
+import "gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+
+message NoReply {
+}
+
+message PushMsgArg {
+    string key =1;
+    int32 ver = 2;
+    int32 operation = 3;
+    bytes msg = 4;
+}
+
+message PushMsgsArg {
+    string key = 1;
+    repeated int32 vers = 2;
+    repeated int32 operations = 3;
+    repeated bytes msgs = 4;
+}
+
+message PushMsgsReply {
+    int32 index = 1;
+}
+
+message MPushMsgArg {
+    repeated string keys =1;
+    int32 ver = 2;
+    int32 operation = 3;
+    bytes msg = 4;
+}
+
+message MPushMsgReply {
+    int32 index = 1;
+}
+
+message MPushMsgsArg {
+    repeated string keys =1;
+    repeated int32 vers = 2;
+    repeated int32 operations = 3;
+    repeated bytes msgs = 4;
+}
+
+message MPushMsgsReply {
+    int32 index = 1;
+}
