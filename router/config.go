@@ -29,10 +29,12 @@ type Config struct {
 	RPCBind []string `goconf:"rpc:bind:,"`
 	// bucket
 	Bucket            int           `goconf:"bucket:bucket"`
-	Session           int           `goconf:"bucket:session"`
 	Server            int           `goconf:"bucket:server"`
 	Cleaner           int           `goconf:"bucket:cleaner"`
 	BucketCleanPeriod time.Duration `goconf:"bucket:clean.period:time"`
+	// session
+	Session       int           `goconf:"session:session"`
+	SessionExpire time.Duration `goconf:"session:expire:time"`
 }
 
 func NewConfig() *Config {
@@ -48,10 +50,12 @@ func NewConfig() *Config {
 		RPCBind: []string{"localhost:9090"},
 		// bucket
 		Bucket:            runtime.NumCPU(),
-		Session:           1000,
 		Server:            5,
 		Cleaner:           1000,
 		BucketCleanPeriod: time.Hour * 1,
+		// session
+		Session:       1000,
+		SessionExpire: time.Hour * 1,
 	}
 }
 

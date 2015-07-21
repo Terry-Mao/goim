@@ -94,7 +94,7 @@ func (b *Bucket) DelSession(userId int64, seq int32) (ok bool) {
 	b.bLock.Unlock()
 	// lru
 	if empty {
-		b.cleaner.PushFront(userId)
+		b.cleaner.PushFront(userId, Conf.SessionExpire)
 	}
 	return
 }

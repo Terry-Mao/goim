@@ -31,14 +31,14 @@ func NewCleaner(cleaner int) *Cleaner {
 	return c
 }
 
-func (c *Cleaner) PushFront(key int64) {
+func (c *Cleaner) PushFront(key int64, expire time.Duration) {
 	c.cLock.Lock()
 	if e, ok := c.maps[key]; ok {
 		c.moveToFront(e)
 	} else {
 		e = new(CleanData)
 		e.Key = key
-		e.expireTime = time.Now()
+		e.expireTime = time.Now().Add(expire)
 		c.maps[key] = e
 		at := &c.root
 		n := at.next

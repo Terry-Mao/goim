@@ -41,7 +41,6 @@ type RouterRPC struct {
 
 func (r *RouterRPC) bucket(userId int64) *Bucket {
 	idx := int(userId % r.BucketIdx)
-	log.Debug("\"%d\" hit channel bucket index: %d", userId, idx)
 	return r.Buckets[idx]
 }
 
