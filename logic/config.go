@@ -30,7 +30,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&confFile, "c", "./comet.conf", " set comet config file path")
+	flag.StringVar(&confFile, "c", "./logic.conf", " set logic config file path")
 }
 
 type Config struct {
@@ -40,37 +40,20 @@ type Config struct {
 	Log       string   `goconf:"base:log"`
 	MaxProc   int      `goconf:"base:maxproc"`
 	PprofBind []string `goconf:"base:pprof.bind:,"`
-	StatBind  []string `goconf:"base:stat.bind:,"`
 	RpcBind   []string `goconf:"base:rpc.bind:,"`
-	// proto section
-	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
-	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
-	ReadBuf          int           `goconf:"proto:readbuf"`
-	WriteBuf         int           `goconf:"proto:writebuf"`
-	ReadBufSize      int           `goconf:"proto:readbuf.size"`
-	WriteBufSize     int           `goconf:"proto:writebuf.size"`
 	// router RPC
 	RouterPPCAddrs []string      `goconf:"router:addrs:,"`
 	RouterRPCRetry time.Duration `goconf:"router:retry:time"`
-	RouterRPCPing  time.Duration `goconf:"router:ping:time"`
 }
 
 func NewConfig() *Config {
 	return &Config{
 		// base section
-		PidFile:   "/tmp/gopush-cluster-comet.pid",
+		PidFile:   "/tmp/gopush-cluster-logic.pid",
 		Dir:       "./",
 		Log:       "./log/xml",
 		MaxProc:   runtime.NumCPU(),
 		PprofBind: []string{"localhost:6971"},
-		StatBind:  []string{"localhost:6972"},
-		// proto section
-		HandshakeTimeout: 5 * time.Second,
-		WriteTimeout:     5 * time.Second,
-		ReadBuf:          1024,
-		WriteBuf:         1024,
-		ReadBufSize:      1024,
-		WriteBufSize:     1024,
 	}
 }
 

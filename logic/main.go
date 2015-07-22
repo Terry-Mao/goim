@@ -19,6 +19,9 @@ func main() {
 	log.Info("logic[%s] start", Ver)
 	perf.Init(Conf.PprofBind)
 	// start rpc
+	if err := InitRPC(DefaultThird); err != nil {
+		panic(err)
+	}
 	if err := InitRouterRpc(Conf.RouterPPCAddrs, Conf.RouterRPCRetry); err != nil {
 		panic(err)
 	}
