@@ -16,15 +16,15 @@ message PingReply {
 
 message ConnArg {
     string token = 1;
-	int32 serverid = 2;
+	int32 server = 2;
 }
 
 message ConnReply {
-    string subkey = 1;
+    string key = 1;
 }
 
 message DisconnArg {
-    string subkey = 1;
+    string key = 1;
 }
 
 message DisconnReply {

@@ -43,8 +43,8 @@ func (m *PingReply) String() string { return proto1.CompactTextString(m) }
 func (*PingReply) ProtoMessage()    {}
 
 type ConnArg struct {
-	Token    string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	Serverid int32  `protobuf:"varint,2,opt,name=serverid,proto3" json:"serverid,omitempty"`
+	Token  string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Server int32  `protobuf:"varint,2,opt,name=server,proto3" json:"server,omitempty"`
 }
 
 func (m *ConnArg) Reset()         { *m = ConnArg{} }
@@ -52,7 +52,7 @@ func (m *ConnArg) String() string { return proto1.CompactTextString(m) }
 func (*ConnArg) ProtoMessage()    {}
 
 type ConnReply struct {
-	Subkey string `protobuf:"bytes,1,opt,name=subkey,proto3" json:"subkey,omitempty"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 }
 
 func (m *ConnReply) Reset()         { *m = ConnReply{} }
@@ -60,7 +60,7 @@ func (m *ConnReply) String() string { return proto1.CompactTextString(m) }
 func (*ConnReply) ProtoMessage()    {}
 
 type DisconnArg struct {
-	Subkey string `protobuf:"bytes,1,opt,name=subkey,proto3" json:"subkey,omitempty"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 }
 
 func (m *DisconnArg) Reset()         { *m = DisconnArg{} }
@@ -202,7 +202,7 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Serverid", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Server", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
@@ -210,7 +210,7 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				m.Serverid |= (int32(b) & 0x7F) << shift
+				m.Server |= (int32(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -259,7 +259,7 @@ func (m *ConnReply) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Subkey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -277,7 +277,7 @@ func (m *ConnReply) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Subkey = string(data[iNdEx:postIndex])
+			m.Key = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			var sizeOfWire int
@@ -323,7 +323,7 @@ func (m *DisconnArg) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Subkey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -341,7 +341,7 @@ func (m *DisconnArg) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Subkey = string(data[iNdEx:postIndex])
+			m.Key = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			var sizeOfWire int
@@ -528,8 +528,8 @@ func (m *ConnArg) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovLogic(uint64(l))
 	}
-	if m.Serverid != 0 {
-		n += 1 + sovLogic(uint64(m.Serverid))
+	if m.Server != 0 {
+		n += 1 + sovLogic(uint64(m.Server))
 	}
 	return n
 }
@@ -537,7 +537,7 @@ func (m *ConnArg) Size() (n int) {
 func (m *ConnReply) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Subkey)
+	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovLogic(uint64(l))
 	}
@@ -547,7 +547,7 @@ func (m *ConnReply) Size() (n int) {
 func (m *DisconnArg) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Subkey)
+	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovLogic(uint64(l))
 	}
@@ -633,10 +633,10 @@ func (m *ConnArg) MarshalTo(data []byte) (n int, err error) {
 		i = encodeVarintLogic(data, i, uint64(len(m.Token)))
 		i += copy(data[i:], m.Token)
 	}
-	if m.Serverid != 0 {
+	if m.Server != 0 {
 		data[i] = 0x10
 		i++
-		i = encodeVarintLogic(data, i, uint64(m.Serverid))
+		i = encodeVarintLogic(data, i, uint64(m.Server))
 	}
 	return i, nil
 }
@@ -656,11 +656,11 @@ func (m *ConnReply) MarshalTo(data []byte) (n int, err error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Subkey) > 0 {
+	if len(m.Key) > 0 {
 		data[i] = 0xa
 		i++
-		i = encodeVarintLogic(data, i, uint64(len(m.Subkey)))
-		i += copy(data[i:], m.Subkey)
+		i = encodeVarintLogic(data, i, uint64(len(m.Key)))
+		i += copy(data[i:], m.Key)
 	}
 	return i, nil
 }
@@ -680,11 +680,11 @@ func (m *DisconnArg) MarshalTo(data []byte) (n int, err error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Subkey) > 0 {
+	if len(m.Key) > 0 {
 		data[i] = 0xa
 		i++
-		i = encodeVarintLogic(data, i, uint64(len(m.Subkey)))
-		i += copy(data[i:], m.Subkey)
+		i = encodeVarintLogic(data, i, uint64(len(m.Key)))
+		i += copy(data[i:], m.Key)
 	}
 	return i, nil
 }
