@@ -23,9 +23,10 @@ func (server *Server) serveTCP(conn *net.TCPConn, rr *bufio.Reader, wr *bufio.Wr
 		log.Error("handshake: timer.Add() error(%v)", err)
 		goto failed
 	}
-	if key, hb, err = server.authTCP(rr, wr, pb, ch); err != nil {
+	key, hb, err = server.authTCP(rr, wr, pb, ch)
+	tr.Del(trd)
+	if err != nil {
 		log.Error("server.authTCP() error(%v)", err)
-		tr.Del(trd)
 		goto failed
 	}
 	// register key->channel
