@@ -8,6 +8,12 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
+message PingArg {
+}
+
+message PingReply {
+}
+
 message ConnArg {
     int64 userId = 1; 
     int32 server = 2;

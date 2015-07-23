@@ -46,9 +46,10 @@ func getRouterClient(userID int64) *protorpc.Client {
 }
 
 func rpcPing(addr string, c *protorpc.Client, retry time.Duration) {
+	var err error
 	for {
-		if err := c.Call(routerServicePing, nil, nil); err != nil {
-			log.Error("c.Call(\"%s\", 0, &ret) error(%v), retry", routerServicePing, err)
+		if err = c.Call(routerServicePing, nil, nil); err != nil {
+			log.Error("c.Call(\"%s\", 0, &ret) error(%v), retry after:%ds", routerServicePing, err, retry/time.Second)
 			rpcTmp, err := protorpc.Dial("tcp", addr)
 			if err != nil {
 				log.Error("protorpc.Dial(\"tcp\", %s) error(%v)", addr, err)
@@ -59,7 +60,7 @@ func rpcPing(addr string, c *protorpc.Client, retry time.Duration) {
 			time.Sleep(retry)
 			continue
 		}
-		log.Debug("rpc ping:%s ok")
+		log.Debug("rpc ping:%s ok", addr)
 		time.Sleep(retry)
 		continue
 

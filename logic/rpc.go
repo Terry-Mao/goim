@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 	"net"
-	"net/rpc"
 	"strconv"
 	"strings"
 
 	log "code.google.com/p/log4go"
 
 	rproto "github.com/Terry-Mao/goim/router/proto"
+	rpc "github.com/Terry-Mao/protorpc"
 	lproto "github.com/thinkboy/goim/logic/proto"
 )
 
@@ -42,6 +42,10 @@ func rpcListen(bind string) {
 // RPC
 type RPC struct {
 	thirdAuth ThirdAuth
+}
+
+func (r *RPC) Ping(arg *lproto.PingArg, reply *lproto.PingReply) error {
+	return nil
 }
 
 // Connect auth and registe login

@@ -8,6 +8,12 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
+message PingArg {
+}
+
+message PingReply {
+}
+
 message ConnArg {
     string token = 1;
 	int32 serverid = 2;

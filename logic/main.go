@@ -18,11 +18,15 @@ func main() {
 	defer log.Close()
 	log.Info("logic[%s] start", Ver)
 	perf.Init(Conf.PprofBind)
-	// start rpc
-	if err := InitRPC(DefaultThird); err != nil {
+	if err := InitRouterRpc(Conf.RouterPPCAddrs, Conf.RouterRPCRetry); err != nil {
 		panic(err)
 	}
-	if err := InitRouterRpc(Conf.RouterPPCAddrs, Conf.RouterRPCRetry); err != nil {
+	// init http
+	if err := InitHTTP(); err != nil {
+		panic(err)
+	}
+	// start rpc
+	if err := InitRPC(DefaultThird); err != nil {
 		panic(err)
 	}
 	// block until a signal is received.

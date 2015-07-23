@@ -9,6 +9,8 @@
 		router.proto
 
 	It has these top-level messages:
+		PingArg
+		PingReply
 		ConnArg
 		ConnReply
 		DisconnArg
@@ -22,13 +24,27 @@ package proto
 
 import proto1 "github.com/golang/protobuf/proto"
 
-// discarding unused import gogoproto "gogo/protobuf/gogoproto/gogo.pb"
+// discarding unused import gogoproto "gogo/protobuf/gogoproto"
 
 import io "io"
 import fmt "fmt"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto1.Marshal
+
+type PingArg struct {
+}
+
+func (m *PingArg) Reset()         { *m = PingArg{} }
+func (m *PingArg) String() string { return proto1.CompactTextString(m) }
+func (*PingArg) ProtoMessage()    {}
+
+type PingReply struct {
+}
+
+func (m *PingReply) Reset()         { *m = PingReply{} }
+func (m *PingReply) String() string { return proto1.CompactTextString(m) }
+func (*PingReply) ProtoMessage()    {}
 
 type ConnArg struct {
 	UserId int64 `protobuf:"varint,1,opt,name=userId,proto3" json:"userId,omitempty"`
@@ -104,7 +120,87 @@ func (m *MGetReply) GetSessions() []*GetReply {
 	return nil
 }
 
-func init() {
+func (m *PingArg) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		switch fieldNum {
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipRouter(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	return nil
+}
+func (m *PingReply) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		switch fieldNum {
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipRouter(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	return nil
 }
 func (m *ConnArg) Unmarshal(data []byte) error {
 	l := len(data)
@@ -129,6 +225,7 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
+			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -144,6 +241,7 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Server", wireType)
 			}
+			m.Server = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -201,6 +299,7 @@ func (m *ConnReply) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Seq", wireType)
 			}
+			m.Seq = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -258,6 +357,7 @@ func (m *DisconnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
+			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -273,6 +373,7 @@ func (m *DisconnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Seq", wireType)
 			}
+			m.Seq = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -389,6 +490,7 @@ func (m *GetArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
+			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -709,6 +811,18 @@ func skipRouter(data []byte) (n int, err error) {
 	}
 	panic("unreachable")
 }
+func (m *PingArg) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
+func (m *PingReply) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
 func (m *ConnArg) Size() (n int) {
 	var l int
 	_ = l
@@ -812,6 +926,42 @@ func sovRouter(x uint64) (n int) {
 func sozRouter(x uint64) (n int) {
 	return sovRouter(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
+func (m *PingArg) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *PingArg) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
+func (m *PingReply) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *PingReply) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
 func (m *ConnArg) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)

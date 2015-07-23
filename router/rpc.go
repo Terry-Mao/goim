@@ -1,10 +1,12 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/router/proto"
-	rpc "github.com/Terry-Mao/protorpc"
 	"net"
+
+	log "code.google.com/p/log4go"
+
+	rpc "github.com/Terry-Mao/protorpc"
+	"github.com/thinkboy/goim/router/proto"
 )
 
 func InitRPC(bs []*Bucket) error {
@@ -42,6 +44,11 @@ type RouterRPC struct {
 func (r *RouterRPC) bucket(userId int64) *Bucket {
 	idx := int(userId % r.BucketIdx)
 	return r.Buckets[idx]
+}
+
+func (r *RouterRPC) Ping(arg *proto.PingArg, reply *proto.PingReply) error {
+	log.Debug("recive ping")
+	return nil
 }
 
 func (r *RouterRPC) Connect(arg *proto.ConnArg, reply *proto.ConnReply) error {
