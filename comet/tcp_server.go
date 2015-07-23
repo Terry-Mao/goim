@@ -10,49 +10,39 @@ import (
 func (server *Server) serveTCP(conn *net.TCPConn, rr *bufio.Reader, wr *bufio.Writer, tr *Timer) {
 	var (
 		b   *Bucket
-		ch  *Channel
+		p   *Proto
 		hb  time.Duration // heartbeat
 		key string
 		err error
 		trd *TimerData
-		p   = new(Proto)
-		rpb = make([]byte, maxPackIntBuf)
-		wpb = make([]byte, maxPackIntBuf) // avoid false sharing
+		ch  = NewChannel(Conf.CliProto, Conf.SvrProto)
+		pb  = make([]byte, maxPackIntBuf)
 	)
 	// auth
 	if trd, err = tr.Add(Conf.HandshakeTimeout, conn); err != nil {
 		log.Error("handshake: timer.Add() error(%v)", err)
-	} else {
-		if key, hb, err = server.authTCP(rr, wr, rpb, p); err != nil {
-			log.Error("handshake: server.auth error(%v)", err)
-		}
-		//deltimer
+		goto failed
+	}
+	if key, hb, err = server.authTCP(rr, wr, pb, ch); err != nil {
+		log.Error("server.authTCP() error(%v)", err)
 		tr.Del(trd)
+		goto failed
 	}
-	// failed
-	if err != nil {
-		if err = conn.Close(); err != nil {
-			log.Error("handshake: conn.Close() error(%v)", err)
-		}
-		return
-	}
-	// TODO how to reuse channel
 	// register key->channel
 	b = server.Bucket(key)
-	ch = NewChannel(Conf.CliProto, Conf.SvrProto)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
-	go server.dispatchTCP(conn, wr, wpb, ch, hb, tr)
+	go server.dispatchTCP(conn, wr, ch, hb, tr)
 	for {
 		// fetch a proto from channel free list
 		if p, err = ch.CliProto.Set(); err != nil {
 			log.Error("%s fetch client proto error(%v)", key, err)
-			break
+			goto failed
 		}
 		// parse request protocol
-		if err = server.readTCPRequest(rr, rpb, p); err != nil {
+		if err = server.readTCPRequest(rr, pb, p); err != nil {
 			log.Error("%s read client request error(%v)", key, err)
-			break
+			goto failed
 		}
 		// send to writer
 		ch.CliProto.SetAdv()
@@ -63,26 +53,24 @@ func (server *Server) serveTCP(conn *net.TCPConn, rr *bufio.Reader, wr *bufio.Wr
 			break
 		}
 	}
+failed:
 	// dialog finish
-	// revoke the subkey
-	// revoke the remote subkey
-	// close the net.Conn
-	// read & write goroutine
-	// return channel to bucket's free list
 	// may call twice
 	if err = conn.Close(); err != nil {
 		log.Error("reader: conn.Close() error(%v)")
 	}
-	// don't use close chan, Signal can be reused
-	// if chan full, writer goroutine next fetch from chan will exit
-	// if chan empty, send a 0(close) let the writer exit
-	log.Debug("wake up dispatch goroutine")
-	select {
-	case ch.Signal <- ProtoFinsh:
-	default:
-		log.Warn("%s send proto finish signal, but chan is full just ignore", key)
+	if b != nil {
+		b.Del(key)
+		// don't use close chan, Signal can be reused
+		// if chan full, writer goroutine next fetch from chan will exit
+		// if chan empty, send a 0(close) let the writer exit
+		log.Debug("wake up dispatch goroutine")
+		select {
+		case ch.Signal <- ProtoFinsh:
+		default:
+			log.Warn("%s send proto finish signal, but chan is full just ignore", key)
+		}
 	}
-	b.Del(key)
 	if err = server.operator.Disconnect(key); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
@@ -93,12 +81,13 @@ func (server *Server) serveTCP(conn *net.TCPConn, rr *bufio.Reader, wr *bufio.Wr
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, pb []byte, ch *Channel, hb time.Duration, tr *Timer) {
+func (server *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, ch *Channel, hb time.Duration, tr *Timer) {
 	var (
 		p   *Proto
 		err error
 		trd *TimerData
 		sig int
+		pb  = make([]byte, maxPackIntBuf) // avoid false sharing
 	)
 	log.Debug("start dispatch goroutine")
 	if trd, err = tr.Add(hb, conn); err != nil {
@@ -169,8 +158,13 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, pb []byte, p *Proto) (subKey string, heartbeat time.Duration, err error) {
-	log.Debug("get auth request protocol")
+func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, pb []byte, ch *Channel) (subKey string, heartbeat time.Duration, err error) {
+	var p *Proto
+	// WARN
+	// don't adv the cli proto, after auth simply discard it.
+	if p, err = ch.CliProto.Set(); err != nil {
+		return
+	}
 	if err = server.readTCPRequest(rr, pb, p); err != nil {
 		return
 	}
@@ -183,7 +177,6 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, pb []byte, p *
 		log.Error("operator.Connect error(%v)", err)
 		return
 	}
-	log.Debug("send auth response protocol")
 	p.Body = nil
 	p.Operation = OP_AUTH_REPLY
 	if err = server.writeTCPResponse(wr, pb, p); err != nil {
