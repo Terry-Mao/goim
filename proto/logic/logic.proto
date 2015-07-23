@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package proto;
+
+import "gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+
+message PingArg {
+}
+
+message PingReply {
+}
+
+message ConnArg {
+    string token = 1;
+	int32 serverid = 2;
+}
+
+message ConnReply {
+    string subkey = 1;
+}
+
+message DisconnArg {
+    string subkey = 1;
+}
+
+message DisconnReply {
+    bool has = 1;
+}
