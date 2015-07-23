@@ -43,8 +43,8 @@ func (m *PingReply) String() string { return proto1.CompactTextString(m) }
 func (*PingReply) ProtoMessage()    {}
 
 type ConnArg struct {
-	Token    string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	ServerId int32  `protobuf:"varint,2,opt,name=serverId,proto3" json:"serverId,omitempty"`
+	Token  string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Server int32  `protobuf:"varint,2,opt,name=server,proto3" json:"server,omitempty"`
 }
 
 func (m *ConnArg) Reset()         { *m = ConnArg{} }
@@ -202,7 +202,7 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ServerId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Server", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
@@ -210,7 +210,7 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				m.ServerId |= (int32(b) & 0x7F) << shift
+				m.Server |= (int32(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -528,8 +528,8 @@ func (m *ConnArg) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovLogic(uint64(l))
 	}
-	if m.ServerId != 0 {
-		n += 1 + sovLogic(uint64(m.ServerId))
+	if m.Server != 0 {
+		n += 1 + sovLogic(uint64(m.Server))
 	}
 	return n
 }
@@ -633,10 +633,10 @@ func (m *ConnArg) MarshalTo(data []byte) (n int, err error) {
 		i = encodeVarintLogic(data, i, uint64(len(m.Token)))
 		i += copy(data[i:], m.Token)
 	}
-	if m.ServerId != 0 {
+	if m.Server != 0 {
 		data[i] = 0x10
 		i++
-		i = encodeVarintLogic(data, i, uint64(m.ServerId))
+		i = encodeVarintLogic(data, i, uint64(m.Server))
 	}
 	return i, nil
 }

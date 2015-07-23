@@ -61,19 +61,18 @@ func (this *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error
 
 	// notice router which connected
 	c := getRouterClient(userID)
-	arg := &rproto.ConnArg{UserId: userID, Server: args.Serverid}
+	arg := &rproto.ConnArg{UserId: userID, Server: args.Server}
 	reply := &rproto.ConnReply{}
 	if err = c.Call(routerServiceConnect, arg, reply); err != nil {
 		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceConnect, *arg, err)
 		return
 	}
-	rep.Subkey = subKey(userID, reply.Seq)
+	rep.Key = this.key(userID, reply.Seq)
 	return
 }
 
-// subKey marshal subkey
-func subKey(userID int64, seq int32) string {
-	return fmt.Sprintf("%d_%d", userID, seq)
+func (this *RPC) key(userId int64, seq int32) string {
+	return fmt.Sprintf("%d_%d", userId, seq)
 }
 
 // unSubKey parse subkey
@@ -102,9 +101,9 @@ func (this *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (
 		log.Error(err)
 		return
 	}
-	userID, seq, err := unSubKey(args.Subkey)
+	userID, seq, err := unSubKey(args.Key)
 	if err != nil {
-		log.Error("unSubKey(\"%s\") error(%s)", args.Subkey, err)
+		log.Error("unSubKey(\"%s\") error(%s)", args.Key, err)
 		return
 	}
 

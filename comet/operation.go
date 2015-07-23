@@ -62,7 +62,7 @@ func (operator *DefaultOperator) Operate(p *Proto) error {
 }
 
 func (operator *DefaultOperator) Connect(p *Proto) (key string, heartbeat time.Duration, err error) {
-	arg := &proto.ConnArg{Token: string(p.Body), ServerId: Conf.ServerId}
+	arg := &proto.ConnArg{Token: string(p.Body), Server: Conf.ServerId}
 	reply := &proto.ConnReply{}
 	if err = logicRpcClient.Call(logicServiceConnect, arg, reply); err != nil {
 		log.Error("c.Call(\"%s\", 0, &ret) error(%v)", logicServiceConnect, err)
