@@ -49,7 +49,6 @@ func (operator *DefaultOperator) Operate(p *Proto) error {
 	if p.Operation == OP_SEND_SMS {
 		// call suntao's api
 		// p.Body = nil
-
 		p.Operation = OP_SEND_SMS_REPLY
 		log.Info("send sms proto: %v", p)
 	} else if p.Operation == OP_TEST {
@@ -62,19 +61,27 @@ func (operator *DefaultOperator) Operate(p *Proto) error {
 	return nil
 }
 
-func (operator *DefaultOperator) Connect(p *Proto) (subKey string, heartbeat time.Duration, err error) {
-	// TODO call register router
-	// for test
-	args := proto.ConnArg{Token: string(p.Body), Serverid: Conf.ServerId}
-	resp := proto.ConnReply{}
-	if err = logicRpcClient.Call(logicServiceConnect, &args, &resp); err != nil {
+func (operator *DefaultOperator) Connect(p *Proto) (key string, heartbeat time.Duration, err error) {
+	arg := &proto.ConnArg{Token: string(p.Body), ServerId: Conf.ServerId}
+	reply := &proto.ConnReply{}
+	if err = logicRpcClient.Call(logicServiceConnect, arg, reply); err != nil {
 		log.Error("c.Call(\"%s\", 0, &ret) error(%v)", logicServiceConnect, err)
 		return
 	}
-	heartbeat = 60 * time.Second
+	heartbeat = 5 * 60 * time.Second
+	key = reply.Key
 	return
 }
 
-func (operator *DefaultOperator) Disconnect(subKey string) error {
-	return nil
+func (operator *DefaultOperator) Disconnect(key string) (err error) {
+	arg := &proto.DisconnArg{Key: key}
+	reply := &proto.DisconnReply{}
+	if err = logicRpcClient.Call(logicServiceDisconnect, arg, reply); err != nil {
+		log.Error("c.Call(\"%s\", 0, &ret) error(%v)", logicServiceConnect, err)
+		return
+	}
+	if !reply.Has {
+		log.Warn("disconnect key: \"%s\" not exists", key)
+	}
+	return
 }
