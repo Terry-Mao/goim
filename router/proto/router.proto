@@ -8,6 +8,12 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
+message PingArg {
+}
+
+message PingReply {
+}
+
 message ConnArg {
     int64 userId = 1; 
     int32 server = 2;
@@ -41,4 +47,12 @@ message MGetArg {
 
 message MGetReply {
     repeated GetReply sessions= 1;
+}
+
+message GetSeqCountArg {
+    int64 userId = 1;
+}
+
+message GetSeqCountReply {
+    int32 count = 1;
 }

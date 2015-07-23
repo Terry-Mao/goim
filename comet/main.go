@@ -45,6 +45,9 @@ func main() {
 	if err := InitRPCPush(); err != nil {
 		panic(err)
 	}
+	if err := InitLogicRpc(Conf.LogicAddr, Conf.LogicRetry); err != nil {
+		panic(err)
+	}
 	// block until a signal is received.
 	InitSignal()
 }

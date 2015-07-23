@@ -41,7 +41,7 @@ type Config struct {
 	MaxProc   int      `goconf:"base:maxproc"`
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	StatBind  []string `goconf:"base:stat.bind:,"`
-	ServerId  int16    `goconf:"base:server.id"`
+	ServerId  int32    `goconf:"base:server.id"`
 	// tcp
 	TCPBind      []string `goconf:"tcp:bind:,"`
 	TCPSndbuf    int      `goconf:"tcp:sndbuf:memory"`
@@ -71,6 +71,9 @@ type Config struct {
 	HTTPReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
 	HTTPWriteTimeout time.Duration `goconf:"push:http.write.timeout:time"`
 	RPCPushBind      []string      `goconf:"push:rpc.push.bind:,"`
+	// logic
+	LogicAddr  string        `goconf:"logic:addr"`
+	LogicRetry time.Duration `goconf:"logic:retry:time"`
 }
 
 func NewConfig() *Config {

@@ -1,10 +1,12 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/router/proto"
-	rpc "github.com/Terry-Mao/protorpc"
 	"net"
+
+	log "code.google.com/p/log4go"
+
+	rpc "github.com/Terry-Mao/protorpc"
+	"github.com/thinkboy/goim/router/proto"
 )
 
 func InitRPC(bs []*Bucket) error {
@@ -44,6 +46,11 @@ func (r *RouterRPC) bucket(userId int64) *Bucket {
 	return r.Buckets[idx]
 }
 
+func (r *RouterRPC) Ping(arg *proto.PingArg, reply *proto.PingReply) error {
+	log.Debug("receive ping")
+	return nil
+}
+
 func (r *RouterRPC) Connect(arg *proto.ConnArg, reply *proto.ConnReply) error {
 	reply.Seq = r.bucket(arg.UserId).Put(arg.UserId, arg.Server)
 	return nil
@@ -76,5 +83,10 @@ func (r *RouterRPC) MGet(arg *proto.MGetArg, reply *proto.MGetReply) error {
 		session.Servers = servers
 		reply.Sessions[i] = session
 	}
+	return nil
+}
+
+func (r *RouterRPC) GetSeqCount(arg *proto.GetSeqCountArg, reply *proto.GetSeqCountReply) error {
+	reply.Count = int32(r.bucket(arg.UserId).Count(arg.UserId))
 	return nil
 }

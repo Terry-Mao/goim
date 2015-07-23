@@ -13,7 +13,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&confFile, "c", "./comet.conf", " set comet config file path")
+	flag.StringVar(&confFile, "c", "./client.conf", " set client config file path")
 }
 
 type Config struct {
@@ -36,7 +36,7 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		// base section
-		PidFile:   "/tmp/gopush-cluster-comet.pid",
+		PidFile:   "/tmp/gopush-cluster-client.pid",
 		Dir:       "./",
 		Log:       "./log/xml",
 		MaxProc:   runtime.NumCPU(),

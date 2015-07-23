@@ -1,8 +1,11 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"time"
+
+	log "code.google.com/p/log4go"
+
+	lproto "github.com/thinkboy/goim/logic/proto"
 )
 
 const (
@@ -64,7 +67,12 @@ func (operator *DefaultOperator) Operate(proto *Proto) error {
 func (operator *DefaultOperator) Connect(proto *Proto) (subKey string, heartbeat time.Duration, err error) {
 	// TODO call register router
 	// for test
-	subKey = string(proto.Body)
+	args := lproto.ConnArg{Token: string(proto.Body), Serverid: Conf.ServerId}
+	resp := lproto.ConnReply{}
+	if err = logicRpcClient.Call(logicServiceConnect, &args, &resp); err != nil {
+		log.Error("c.Call(\"%s\", 0, &ret) error(%v)", logicServiceConnect, err)
+		return
+	}
 	heartbeat = 60 * time.Second
 	return
 }
