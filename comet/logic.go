@@ -47,6 +47,5 @@ func rpcPing(addr string, c *protorpc.Client, retry time.Duration) {
 		log.Debug("rpc ping:%s ok", addr)
 		time.Sleep(retry)
 		continue
-
 	}
 }

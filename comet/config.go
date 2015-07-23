@@ -71,6 +71,9 @@ type Config struct {
 	HTTPReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
 	HTTPWriteTimeout time.Duration `goconf:"push:http.write.timeout:time"`
 	RPCPushBind      []string      `goconf:"push:rpc.push.bind:,"`
+	// logic
+	LogicAddr  string        `goconf:"logic:addr"`
+	LogicRetry time.Duration `goconf:"logic:retry:time"`
 }
 
 func NewConfig() *Config {
