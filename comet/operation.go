@@ -1,11 +1,9 @@
 package main
 
 import (
-	"time"
-
 	log "code.google.com/p/log4go"
-
-	lproto "github.com/thinkboy/goim/logic/proto"
+	proto "github.com/Terry-Mao/goim/proto/logic"
+	"time"
 )
 
 const (
@@ -44,31 +42,31 @@ type Operator interface {
 type DefaultOperator struct {
 }
 
-func (operator *DefaultOperator) Operate(proto *Proto) error {
+func (operator *DefaultOperator) Operate(p *Proto) error {
 	var (
 		body []byte
 	)
-	if proto.Operation == OP_SEND_SMS {
+	if p.Operation == OP_SEND_SMS {
 		// call suntao's api
-		// proto.Body = nil
+		// p.Body = nil
 
-		proto.Operation = OP_SEND_SMS_REPLY
-		log.Info("send sms proto: %v", proto)
-	} else if proto.Operation == OP_TEST {
+		p.Operation = OP_SEND_SMS_REPLY
+		log.Info("send sms proto: %v", p)
+	} else if p.Operation == OP_TEST {
 		log.Debug("test operation: %s", body)
-		proto.Operation = OP_TEST_REPLY
-		proto.Body = []byte("{\"test\":\"come on\"}")
+		p.Operation = OP_TEST_REPLY
+		p.Body = []byte("{\"test\":\"come on\"}")
 	} else {
 		return ErrOperation
 	}
 	return nil
 }
 
-func (operator *DefaultOperator) Connect(proto *Proto) (subKey string, heartbeat time.Duration, err error) {
+func (operator *DefaultOperator) Connect(p *Proto) (subKey string, heartbeat time.Duration, err error) {
 	// TODO call register router
 	// for test
-	args := lproto.ConnArg{Token: string(proto.Body), Serverid: Conf.ServerId}
-	resp := lproto.ConnReply{}
+	args := proto.ConnArg{Token: string(p.Body), Serverid: Conf.ServerId}
+	resp := proto.ConnReply{}
 	if err = logicRpcClient.Call(logicServiceConnect, &args, &resp); err != nil {
 		log.Error("c.Call(\"%s\", 0, &ret) error(%v)", logicServiceConnect, err)
 		return

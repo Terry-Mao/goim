@@ -1,16 +1,14 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"fmt"
+	lproto "github.com/Terry-Mao/goim/proto/logic"
+	rproto "github.com/Terry-Mao/goim/proto/router"
+	rpc "github.com/Terry-Mao/protorpc"
 	"net"
 	"strconv"
 	"strings"
-
-	log "code.google.com/p/log4go"
-
-	rproto "github.com/Terry-Mao/goim/router/proto"
-	rpc "github.com/Terry-Mao/protorpc"
-	lproto "github.com/thinkboy/goim/logic/proto"
 )
 
 func InitRPC(thirdAuth ThirdAuth) error {
