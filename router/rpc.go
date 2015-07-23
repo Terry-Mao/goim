@@ -85,3 +85,8 @@ func (r *RouterRPC) MGet(arg *proto.MGetArg, reply *proto.MGetReply) error {
 	}
 	return nil
 }
+
+func (r *RouterRPC) GetSeqCount(arg *proto.GetSeqCountArg, reply *proto.GetSeqCountReply) error {
+	reply.Count = int32(r.bucket(arg.UserId).Count(arg.UserId))
+	return nil
+}

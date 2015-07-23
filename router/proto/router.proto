@@ -48,3 +48,11 @@ message MGetArg {
 message MGetReply {
     repeated GetReply sessions= 1;
 }
+
+message GetSeqCountArg {
+    int64 userId = 1;
+}
+
+message GetSeqCountReply {
+    int32 count = 1;
+}

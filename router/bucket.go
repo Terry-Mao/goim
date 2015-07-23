@@ -6,7 +6,7 @@ import (
 )
 
 type Bucket struct {
-	bLock    sync.Mutex         // protect the session map
+	bLock    sync.RWMutex       // protect the session map
 	sessions map[int64]*Session // map[user_id] ->  map[sub_id] -> server_id
 	server   int
 	cleaner  *Cleaner
@@ -45,7 +45,7 @@ func (b *Bucket) Get(userId int64) (seqs []int32, servers []int32) {
 		server int32
 		ok     bool
 	)
-	b.bLock.Lock()
+	b.bLock.RLock()
 	if s, ok = b.sessions[userId]; ok {
 		seqs = make([]int32, 0, len(s.Servers()))
 		servers = make([]int32, 0, len(s.Servers()))
@@ -54,7 +54,16 @@ func (b *Bucket) Get(userId int64) (seqs []int32, servers []int32) {
 			servers = append(servers, server)
 		}
 	}
-	b.bLock.Unlock()
+	b.bLock.RUnlock()
+	return
+}
+
+func (b *Bucket) Count(userId int64) (count int) {
+	b.bLock.RLock()
+	if s, ok := b.sessions[userId]; ok {
+		count = s.Size()
+	}
+	b.bLock.RUnlock()
 	return
 }
 
@@ -82,7 +91,7 @@ func (b *Bucket) DelSession(userId int64, seq int32) (ok bool) {
 		s     *Session
 		empty bool
 	)
-	b.bLock.Lock()
+	b.bLock.RLock()
 	if s, ok = b.sessions[userId]; ok {
 		// WARN:
 		// delete(b.sessions, userId)
@@ -91,7 +100,7 @@ func (b *Bucket) DelSession(userId int64, seq int32) (ok bool) {
 		// frequently new & free object, gc is slow!!!
 		empty = s.Del(seq)
 	}
-	b.bLock.Unlock()
+	b.bLock.RUnlock()
 	// lru
 	if empty {
 		b.cleaner.PushFront(userId, Conf.SessionExpire)
