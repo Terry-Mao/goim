@@ -45,6 +45,7 @@ type RPC struct {
 }
 
 func (r *RPC) Ping(arg *lproto.PingArg, reply *lproto.PingReply) error {
+	log.Debug("receive ping")
 	return nil
 }
 

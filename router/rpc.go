@@ -47,7 +47,7 @@ func (r *RouterRPC) bucket(userId int64) *Bucket {
 }
 
 func (r *RouterRPC) Ping(arg *proto.PingArg, reply *proto.PingReply) error {
-	log.Debug("recive ping")
+	log.Debug("receive ping")
 	return nil
 }
 
