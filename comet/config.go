@@ -41,6 +41,7 @@ type Config struct {
 	MaxProc   int      `goconf:"base:maxproc"`
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	StatBind  []string `goconf:"base:stat.bind:,"`
+	ServerId  int16    `goconf:"base:server.id"`
 	// tcp
 	TCPBind      []string `goconf:"tcp:bind:,"`
 	TCPSndbuf    int      `goconf:"tcp:sndbuf:memory"`
