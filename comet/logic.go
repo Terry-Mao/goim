@@ -1,11 +1,9 @@
 package main
 
 import (
-	"time"
-
 	log "code.google.com/p/log4go"
-
-	"github.com/Terry-Mao/goim/protorpc"
+	"github.com/Terry-Mao/protorpc"
+	"time"
 )
 
 var (
