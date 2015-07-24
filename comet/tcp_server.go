@@ -243,32 +243,26 @@ func (server *Server) writeTCPResponse(wr *bufio.Writer, pb []byte, proto *Proto
 	log.Debug("write proto: %v", proto)
 	BigEndian.PutInt32(pb[:packLenSize], int32(rawHeaderLen)+int32(len(proto.Body)))
 	if _, err = wr.Write(pb[:packLenSize]); err != nil {
-		log.Error("packLen: wr.Write() error(%v)", err)
 		return
 	}
 	BigEndian.PutInt16(pb[:headerLenSize], rawHeaderLen)
 	if _, err = wr.Write(pb[:headerLenSize]); err != nil {
-		log.Error("headerLen: wr.Write() error(%v)", err)
 		return
 	}
 	BigEndian.PutInt16(pb[:VerSize], proto.Ver)
 	if _, err = wr.Write(pb[:VerSize]); err != nil {
-		log.Error("protoVer: wr.Write() error(%v)", err)
 		return
 	}
 	BigEndian.PutInt32(pb[:OperationSize], proto.Operation)
 	if _, err = wr.Write(pb[:OperationSize]); err != nil {
-		log.Error("operation: wr.Write() error(%v)", err)
 		return
 	}
 	BigEndian.PutInt32(pb[:SeqIdSize], proto.SeqId)
 	if _, err = wr.Write(pb[:SeqIdSize]); err != nil {
-		log.Error("seqId: wr.Write() error(%v)", err)
 		return
 	}
 	if proto.Body != nil {
 		if _, err = wr.Write(proto.Body); err != nil {
-			log.Error("body: wr.Write() error(%v)", err)
 			return
 		}
 	}
