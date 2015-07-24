@@ -58,7 +58,7 @@ func (this *RPC) decode(key string) (userId int64, seq int32, err error) {
 	if userId, err = strconv.ParseInt(key[:idx], 10, 64); err != nil {
 		return
 	}
-	if t, err = strconv.ParseInt(key[idx:], 10, 32); err != nil {
+	if t, err = strconv.ParseInt(key[idx+1:], 10, 32); err != nil {
 		return
 	}
 	seq = int32(t)
