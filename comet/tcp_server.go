@@ -104,7 +104,6 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		// fetch message from clibox(client send)
 		for {
 			if p, err = ch.CliProto.Get(); err != nil {
-				log.Debug("channel no more client message, wait signal")
 				break
 			}
 			if p.Operation == OP_HEARTBEAT {
@@ -121,7 +120,6 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 				// heartbeat
 				p.Body = nil
 				p.Operation = OP_HEARTBEAT_REPLY
-				log.Debug("heartbeat proto: %v", p)
 			} else {
 				// process message
 				if err = server.operator.Operate(p); err != nil {
@@ -138,7 +136,6 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
-				log.Debug("channel no more server message, wait signal")
 				break
 			}
 			// just forward the message
@@ -238,12 +235,13 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 	} else {
 		proto.Body = nil
 	}
+	// log.Debug("read proto: %v", proto.Print())
 	return
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
 func (server *Server) writeTCPResponse(wr *bufio.Writer, pb []byte, proto *Proto) (err error) {
-	log.Debug("write proto: %v", proto)
+	// log.Debug("write proto: %v", proto.Print())
 	BigEndian.PutInt32(pb[:packLenSize], int32(rawHeaderLen)+int32(len(proto.Body)))
 	if _, err = wr.Write(pb[:packLenSize]); err != nil {
 		return
