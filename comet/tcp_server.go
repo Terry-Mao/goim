@@ -4,10 +4,11 @@ import (
 	"bufio"
 	log "code.google.com/p/log4go"
 	"net"
+	"sync"
 	"time"
 )
 
-func (server *Server) serveTCP(conn *net.TCPConn, rr *bufio.Reader, wr *bufio.Writer, tr *Timer) {
+func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio.Reader, wr *bufio.Writer, tr *Timer) {
 	var (
 		b   *Bucket
 		p   *Proto
@@ -33,7 +34,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rr *bufio.Reader, wr *bufio.Wr
 	b = server.Bucket(key)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
-	go server.dispatchTCP(conn, wr, ch, hb, tr)
+	go server.dispatchTCP(conn, wrp, wr, ch, hb, tr)
 	for {
 		// fetch a proto from channel free list
 		if p, err = ch.CliProto.Set(); err != nil {
@@ -60,6 +61,7 @@ failed:
 	if err = conn.Close(); err != nil {
 		log.Error("reader: conn.Close() error(%v)")
 	}
+	PutBufioReader(rrp, rr)
 	if b != nil {
 		b.Del(key)
 		// don't use close chan, Signal can be reused
@@ -82,7 +84,7 @@ failed:
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, ch *Channel, hb time.Duration, tr *Timer) {
+func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.Writer, ch *Channel, hb time.Duration, tr *Timer) {
 	var (
 		p   *Proto
 		err error
@@ -154,6 +156,7 @@ failed:
 	}
 	// deltimer
 	tr.Del(trd)
+	PutBufioWriter(wrp, wr)
 	log.Debug("dispatch goroutine exit")
 	return
 }

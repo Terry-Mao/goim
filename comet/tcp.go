@@ -82,7 +82,5 @@ func serveTCP(server *Server, conn *net.TCPConn, r int) {
 		rAddr = conn.RemoteAddr().String()
 	)
 	log.Debug("start tcp serve \"%s\" with \"%s\"", lAddr, rAddr)
-	server.serveTCP(conn, rr, wr, tr)
-	PutBufioReader(rrp, rr)
-	PutBufioWriter(wrp, wr)
+	server.serveTCP(conn, rrp, wrp, rr, wr, tr)
 }
