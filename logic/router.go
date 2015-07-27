@@ -2,7 +2,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/gopush-cluster/ketama"
+	"github.com/Terry-Mao/goim/libs/hash/ketama"
 	rpc "github.com/Terry-Mao/protorpc"
 	"strconv"
 	"time"

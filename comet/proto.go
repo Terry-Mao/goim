@@ -25,6 +25,6 @@ type Proto struct {
 	Body      json.RawMessage `json:"body"` // binary body bytes(json.RawMessage is []byte)
 }
 
-func (p *Proto) Print() {
+func (p *Proto) String() {
 	log.Debug("\n-------- proto --------\nver: %d\nop: %d\nseq: %d\nbody: %s\n", p.Ver, p.Operation, p.SeqId, string(p.Body))
 }

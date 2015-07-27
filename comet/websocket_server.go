@@ -73,7 +73,6 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	// don't use close chan, Signal can be reused
 	// if chan full, writer goroutine next fetch from chan will exit
 	// if chan empty, send a 0(close) let the writer exit
-	log.Debug("wake up dispatch goroutine")
 	select {
 	case ch.Signal <- ProtoFinsh:
 	default:
@@ -109,7 +108,6 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 		// fetch message from clibox(client send)
 		for {
 			if p, err = ch.CliProto.Get(); err != nil {
-				log.Debug("channel no more client message, wait signal")
 				break
 			}
 			if p.Operation == OP_HEARTBEAT {
@@ -143,7 +141,6 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
-				log.Debug("channel no more server message, wait signal")
 				break
 			}
 			// just forward the message
@@ -167,7 +164,6 @@ failed:
 
 // auth for goim handshake with client, use rsa & aes.
 func (server *Server) authWebsocket(conn *websocket.Conn, p *Proto) (subKey string, heartbeat time.Duration, err error) {
-	log.Debug("get auth request protocol")
 	if err = server.readWebsocketRequest(conn, p); err != nil {
 		return
 	}
@@ -180,7 +176,6 @@ func (server *Server) authWebsocket(conn *websocket.Conn, p *Proto) (subKey stri
 		log.Error("operator.Connect error(%v)", err)
 		return
 	}
-	log.Debug("send auth response protocol")
 	p.Body = nil
 	p.Operation = OP_AUTH_REPLY
 	if err = server.writeWebsocketResponse(conn, p); err != nil {

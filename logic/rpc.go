@@ -42,6 +42,29 @@ type RPC struct {
 	thirdAuth ThirdAuth
 }
 
+func (this *RPC) encode(userId int64, seq int32) string {
+	return fmt.Sprintf("%d_%d", userId, seq)
+}
+
+func (this *RPC) decode(key string) (userId int64, seq int32, err error) {
+	var (
+		idx int
+		t   int64
+	)
+	if idx = strings.IndexByte(key, '_'); idx == -1 {
+		err = ErrDecodeKey
+		return
+	}
+	if userId, err = strconv.ParseInt(key[:idx], 10, 64); err != nil {
+		return
+	}
+	if t, err = strconv.ParseInt(key[idx+1:], 10, 32); err != nil {
+		return
+	}
+	seq = int32(t)
+	return
+}
+
 func (r *RPC) Ping(arg *lproto.PingArg, reply *lproto.PingReply) error {
 	log.Debug("receive ping")
 	return nil
@@ -67,30 +90,7 @@ func (this *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error
 		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceConnect, *arg, err)
 		return
 	}
-	rep.Key = this.key(userID, reply.Seq)
-	return
-}
-
-func (this *RPC) key(userId int64, seq int32) string {
-	return fmt.Sprintf("%d_%d", userId, seq)
-}
-
-// unSubKey parse subkey
-func unSubKey(subKeyStr string) (userID int64, seq int32, err error) {
-	tmp := strings.Split(subKeyStr, "_")
-	if len(tmp) != 2 {
-		err = fmt.Errorf("subkey format error")
-		return
-	}
-	userID, err = strconv.ParseInt(tmp[0], 10, 64)
-	if err != nil {
-		return
-	}
-	seq64, err := strconv.ParseInt(tmp[1], 10, 64)
-	if err != nil {
-		return
-	}
-	seq = int32(seq64)
+	rep.Key = this.encode(userID, reply.Seq)
 	return
 }
 
@@ -101,9 +101,9 @@ func (this *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (
 		log.Error(err)
 		return
 	}
-	userID, seq, err := unSubKey(args.Key)
+	userID, seq, err := this.decode(args.Key)
 	if err != nil {
-		log.Error("unSubKey(\"%s\") error(%s)", args.Key, err)
+		log.Error("decode(\"%s\") error(%s)", args.Key, err)
 		return
 	}
 

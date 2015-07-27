@@ -4,10 +4,11 @@ import (
 	"bufio"
 	log "code.google.com/p/log4go"
 	"net"
+	"sync"
 	"time"
 )
 
-func (server *Server) serveTCP(conn *net.TCPConn, rr *bufio.Reader, wr *bufio.Writer, tr *Timer) {
+func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio.Reader, wr *bufio.Writer, tr *Timer) {
 	var (
 		b   *Bucket
 		p   *Proto
@@ -33,7 +34,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rr *bufio.Reader, wr *bufio.Wr
 	b = server.Bucket(key)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
-	go server.dispatchTCP(conn, wr, ch, hb, tr)
+	go server.dispatchTCP(conn, wrp, wr, ch, hb, tr)
 	for {
 		// fetch a proto from channel free list
 		if p, err = ch.CliProto.Set(); err != nil {
@@ -60,6 +61,7 @@ failed:
 	if err = conn.Close(); err != nil {
 		log.Error("reader: conn.Close() error(%v)")
 	}
+	PutBufioReader(rrp, rr)
 	if b != nil {
 		b.Del(key)
 		// don't use close chan, Signal can be reused
@@ -82,7 +84,7 @@ failed:
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, ch *Channel, hb time.Duration, tr *Timer) {
+func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.Writer, ch *Channel, hb time.Duration, tr *Timer) {
 	var (
 		p   *Proto
 		err error
@@ -102,7 +104,6 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, ch *Chann
 		// fetch message from clibox(client send)
 		for {
 			if p, err = ch.CliProto.Get(); err != nil {
-				log.Debug("channel no more client message, wait signal")
 				break
 			}
 			if p.Operation == OP_HEARTBEAT {
@@ -119,7 +120,6 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, ch *Chann
 				// heartbeat
 				p.Body = nil
 				p.Operation = OP_HEARTBEAT_REPLY
-				log.Debug("heartbeat proto: %v", p)
 			} else {
 				// process message
 				if err = server.operator.Operate(p); err != nil {
@@ -136,7 +136,6 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, ch *Chann
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
-				log.Debug("channel no more server message, wait signal")
 				break
 			}
 			// just forward the message
@@ -154,6 +153,7 @@ failed:
 	}
 	// deltimer
 	tr.Del(trd)
+	PutBufioWriter(wrp, wr)
 	log.Debug("dispatch goroutine exit")
 	return
 }
@@ -235,40 +235,35 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 	} else {
 		proto.Body = nil
 	}
+	log.Debug("read proto: %s", proto)
 	return
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
 func (server *Server) writeTCPResponse(wr *bufio.Writer, pb []byte, proto *Proto) (err error) {
-	log.Debug("write proto: %v", proto)
+	log.Debug("write proto: %s", proto)
 	BigEndian.PutInt32(pb[:packLenSize], int32(rawHeaderLen)+int32(len(proto.Body)))
 	if _, err = wr.Write(pb[:packLenSize]); err != nil {
-		log.Error("packLen: wr.Write() error(%v)", err)
 		return
 	}
 	BigEndian.PutInt16(pb[:headerLenSize], rawHeaderLen)
 	if _, err = wr.Write(pb[:headerLenSize]); err != nil {
-		log.Error("headerLen: wr.Write() error(%v)", err)
 		return
 	}
 	BigEndian.PutInt16(pb[:VerSize], proto.Ver)
 	if _, err = wr.Write(pb[:VerSize]); err != nil {
-		log.Error("protoVer: wr.Write() error(%v)", err)
 		return
 	}
 	BigEndian.PutInt32(pb[:OperationSize], proto.Operation)
 	if _, err = wr.Write(pb[:OperationSize]); err != nil {
-		log.Error("operation: wr.Write() error(%v)", err)
 		return
 	}
 	BigEndian.PutInt32(pb[:SeqIdSize], proto.SeqId)
 	if _, err = wr.Write(pb[:SeqIdSize]); err != nil {
-		log.Error("seqId: wr.Write() error(%v)", err)
 		return
 	}
 	if proto.Body != nil {
 		if _, err = wr.Write(proto.Body); err != nil {
-			log.Error("body: wr.Write() error(%v)", err)
 			return
 		}
 	}
