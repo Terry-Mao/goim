@@ -124,7 +124,6 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 				// heartbeat
 				p.Body = nil
 				p.Operation = OP_HEARTBEAT_REPLY
-				p.Print()
 			} else {
 				// process message
 				if err = server.operator.Operate(p); err != nil {
@@ -189,7 +188,6 @@ func (server *Server) readWebsocketRequest(conn *websocket.Conn, proto *Proto) (
 	if err = websocket.JSON.Receive(conn, proto); err != nil {
 		log.Error("websocket.JSON.Receive() error(%v)", err)
 	}
-	proto.Print()
 	return
 }
 
