@@ -201,6 +201,6 @@ func (server *Server) writeWebsocketResponse(conn *websocket.Conn, proto *Proto)
 	if err = websocket.JSON.Send(conn, proto); err != nil {
 		log.Error("websocket.JSON.Send() error(%v)", err)
 	}
-	proto.Print()
+	proto.Reset()
 	return
 }

@@ -267,5 +267,9 @@ func (server *Server) writeTCPResponse(wr *bufio.Writer, pb []byte, proto *Proto
 			return
 		}
 	}
-	return wr.Flush()
+	if err = wr.Flush(); err != nil {
+		log.Error("tcp wr.Flush() error(%v)", err)
+	}
+	proto.Reset()
+	return
 }

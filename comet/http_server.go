@@ -174,5 +174,6 @@ func (server *Server) writeHTTPResponse(rwr *bufio.ReadWriter, cb string, proto 
 	if err = rwr.Flush(); err != nil {
 		log.Error("http rwr.Flush() error(%v)", err)
 	}
+	proto.Reset()
 	return
 }

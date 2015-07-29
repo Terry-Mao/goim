@@ -11,6 +11,10 @@ const (
 	SeqIdSize     = 4
 )
 
+var (
+	emptyProto = Proto{}
+)
+
 // Proto is a request&response written before every goim connect.  It is used internally
 // but documented here as an aid to debugging, such as when analyzing
 // network traffic.
@@ -23,6 +27,10 @@ type Proto struct {
 	Operation int32           `json:"op"`   // operation for request
 	SeqId     int32           `json:"seq"`  // sequence number chosen by client
 	Body      json.RawMessage `json:"body"` // binary body bytes(json.RawMessage is []byte)
+}
+
+func (p *Proto) Reset() {
+	*p = emptyProto
 }
 
 func (p *Proto) String() {
