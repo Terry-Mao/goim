@@ -89,10 +89,9 @@ func (server *Server) dispatchHTTP(rwr *bufio.ReadWriter, cb string, ch *Channel
 	var (
 		p   *Proto
 		err error
-		sig int
 	)
 	log.Debug("start dispatch goroutine")
-	if sig = <-ch.Signal; sig == 0 {
+	if !ch.Ready() {
 		return
 	}
 	// fetch message from svrbox(server send)
