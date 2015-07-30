@@ -11,8 +11,8 @@ import (
 	"strings"
 )
 
-func InitRPC(thirdAuth ThirdAuth) error {
-	c := &RPC{thirdAuth: thirdAuth}
+func InitRPC(auther Auther) error {
+	c := &RPC{auther: auther}
 	rpc.Register(c)
 	for _, bind := range Conf.RpcBind {
 		log.Info("start listen rpc addr: \"%s\"", bind)
@@ -39,14 +39,14 @@ func rpcListen(bind string) {
 
 // RPC
 type RPC struct {
-	thirdAuth ThirdAuth
+	auther Auther
 }
 
-func (this *RPC) encode(userId int64, seq int32) string {
+func (r *RPC) encode(userId int64, seq int32) string {
 	return fmt.Sprintf("%d_%d", userId, seq)
 }
 
-func (this *RPC) decode(key string) (userId int64, seq int32, err error) {
+func (r *RPC) decode(key string) (userId int64, seq int32, err error) {
 	var (
 		idx int
 		t   int64
@@ -71,17 +71,15 @@ func (r *RPC) Ping(arg *lproto.PingArg, reply *lproto.PingReply) error {
 }
 
 // Connect auth and registe login
-func (this *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
+func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 	if args == nil {
-		err = fmt.Errorf("RPC.Connect() args==nil")
-		log.Error(err)
+		err = ErrArgs
+		log.Error("Connect() error(%v)", err)
 		return
 	}
-
 	// get userID from third implementation.
 	// developer could implement "ThirdAuth" interface for decide how get userID
-	userID := this.thirdAuth.CheckUID(args.Token)
-
+	userID := r.auther.Auth(args.Token)
 	// notice router which connected
 	c := getRouterClient(userID)
 	arg := &rproto.ConnArg{UserId: userID, Server: args.Server}
@@ -90,23 +88,22 @@ func (this *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error
 		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceConnect, *arg, err)
 		return
 	}
-	rep.Key = this.encode(userID, reply.Seq)
+	rep.Key = r.encode(userID, reply.Seq)
 	return
 }
 
 // Disconnect notice router offline
-func (this *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err error) {
+func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err error) {
 	if args == nil {
-		err = fmt.Errorf("RPC.Connect() args==nil")
-		log.Error(err)
+		err = ErrArgs
+		log.Error("Disconnect() error(%v)", err)
 		return
 	}
-	userID, seq, err := this.decode(args.Key)
+	userID, seq, err := r.decode(args.Key)
 	if err != nil {
 		log.Error("decode(\"%s\") error(%s)", args.Key, err)
 		return
 	}
-
 	// notice router which disconnected
 	c := getRouterClient(userID)
 	arg := &rproto.DisconnArg{UserId: userID, Seq: seq}
