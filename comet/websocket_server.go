@@ -53,12 +53,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 		}
 		// send to writer
 		ch.CliProto.SetAdv()
-		select {
-		case ch.Signal <- ProtoReady:
-		default:
-			log.Warn("%s send a signal, but chan is full just ignore", key)
-			break
-		}
+		ch.Signal()
 	}
 	// dialog finish
 	// revoke the subkey
@@ -70,14 +65,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	if err = conn.Close(); err != nil {
 		log.Error("reader: conn.Close() error(%v)")
 	}
-	// don't use close chan, Signal can be reused
-	// if chan full, writer goroutine next fetch from chan will exit
-	// if chan empty, send a 0(close) let the writer exit
-	select {
-	case ch.Signal <- ProtoFinsh:
-	default:
-		log.Warn("%s send proto finish signal, but chan is full just ignore", key)
-	}
+	ch.Finish()
 	b.Del(key)
 	if err = server.operator.Disconnect(key); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
@@ -94,7 +82,6 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 		p   *Proto
 		err error
 		trd *TimerData
-		sig int
 	)
 	log.Debug("start dispatch goroutine")
 	if trd, err = tr.Add(hb, conn); err != nil {
@@ -102,7 +89,7 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 		goto failed
 	}
 	for {
-		if sig = <-ch.Signal; sig == 0 {
+		if !ch.Ready() {
 			goto failed
 		}
 		// fetch message from clibox(client send)
@@ -124,7 +111,6 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 				// heartbeat
 				p.Body = nil
 				p.Operation = OP_HEARTBEAT_REPLY
-				p.Print()
 			} else {
 				// process message
 				if err = server.operator.Operate(p); err != nil {
@@ -189,7 +175,6 @@ func (server *Server) readWebsocketRequest(conn *websocket.Conn, proto *Proto) (
 	if err = websocket.JSON.Receive(conn, proto); err != nil {
 		log.Error("websocket.JSON.Receive() error(%v)", err)
 	}
-	proto.Print()
 	return
 }
 
@@ -201,6 +186,6 @@ func (server *Server) writeWebsocketResponse(conn *websocket.Conn, proto *Proto)
 	if err = websocket.JSON.Send(conn, proto); err != nil {
 		log.Error("websocket.JSON.Send() error(%v)", err)
 	}
-	proto.Print()
+	proto.Reset()
 	return
 }

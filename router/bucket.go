@@ -121,6 +121,7 @@ func (b *Bucket) clean() {
 				b.del(userIds[i])
 			}
 			b.bLock.Unlock()
+			continue
 		}
 		time.Sleep(Conf.BucketCleanPeriod)
 	}

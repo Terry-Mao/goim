@@ -48,12 +48,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		}
 		// send to writer
 		ch.CliProto.SetAdv()
-		select {
-		case ch.Signal <- ProtoReady:
-		default:
-			log.Warn("%s send a signal, but chan is full just ignore", key)
-			break
-		}
+		ch.Signal()
 	}
 failed:
 	// dialog finish
@@ -64,15 +59,8 @@ failed:
 	PutBufioReader(rrp, rr)
 	if b != nil {
 		b.Del(key)
-		// don't use close chan, Signal can be reused
-		// if chan full, writer goroutine next fetch from chan will exit
-		// if chan empty, send a 0(close) let the writer exit
 		log.Debug("wake up dispatch goroutine")
-		select {
-		case ch.Signal <- ProtoFinsh:
-		default:
-			log.Warn("%s send proto finish signal, but chan is full just ignore", key)
-		}
+		ch.Finish()
 	}
 	if err = server.operator.Disconnect(key); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
@@ -89,7 +77,6 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		p   *Proto
 		err error
 		trd *TimerData
-		sig int
 		pb  = make([]byte, maxPackIntBuf) // avoid false sharing
 	)
 	log.Debug("start dispatch goroutine")
@@ -98,7 +85,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		goto failed
 	}
 	for {
-		if sig = <-ch.Signal; sig == 0 {
+		if !ch.Ready() {
 			goto failed
 		}
 		// fetch message from clibox(client send)
@@ -267,5 +254,9 @@ func (server *Server) writeTCPResponse(wr *bufio.Writer, pb []byte, proto *Proto
 			return
 		}
 	}
-	return wr.Flush()
+	if err = wr.Flush(); err != nil {
+		log.Error("tcp wr.Flush() error(%v)", err)
+	}
+	proto.Reset()
+	return
 }

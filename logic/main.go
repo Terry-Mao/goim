@@ -26,7 +26,7 @@ func main() {
 		panic(err)
 	}
 	// start rpc
-	if err := InitRPC(DefaultThird); err != nil {
+	if err := InitRPC(NewDefaultAuther()); err != nil {
 		panic(err)
 	}
 	// block until a signal is received.

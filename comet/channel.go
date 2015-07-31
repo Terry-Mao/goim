@@ -1,14 +1,14 @@
 package main
 
 const (
-	signalNum  = 1
-	ProtoFinsh = 0
-	ProtoReady = 1
+	signalNum   = 1
+	protoFinish = 0
+	protoReady  = 1
 )
 
 // Channel used by message pusher send msg to write goroutine.
 type Channel struct {
-	Signal   chan int
+	signal   chan int
 	CliProto Ring
 	SvrProto Ring
 	//next     *Channel
@@ -16,28 +16,46 @@ type Channel struct {
 
 func NewChannel(cliProto, svrProto int) *Channel {
 	c := new(Channel)
-	c.Signal = make(chan int, signalNum)
+	c.signal = make(chan int, signalNum)
 	InitRing(&c.CliProto, cliProto)
 	InitRing(&c.SvrProto, svrProto)
 	return c
+}
+
+func (c *Channel) Ready() bool {
+	return (<-c.signal) == protoReady
+}
+
+func (c *Channel) Signal() {
+	// just ignore duplication signal
+	select {
+	case c.signal <- protoReady:
+	default:
+	}
+}
+
+func (c *Channel) Finish() {
+	// don't use close chan, Signal can be reused
+	// if chan full, writer goroutine next fetch from chan will exit
+	// if chan empty, send a 0(close) let the writer exit
+	select {
+	case c.signal <- protoFinish:
+	default:
+	}
 }
 
 // not goroutine safe, must push one by one.
 func (c *Channel) PushMsg(ver int16, operation int32, body []byte) (err error) {
 	var proto *Proto
 	// fetch a proto from channel free list
-	proto, err = c.SvrProto.Set()
-	if err != nil {
+	if proto, err = c.SvrProto.Set(); err != nil {
 		return
 	}
 	proto.Ver = ver
 	proto.Operation = operation
 	proto.Body = body
 	c.SvrProto.SetAdv()
-	select {
-	case c.Signal <- ProtoReady:
-	default:
-	}
+	c.Signal()
 	return
 }
 
@@ -59,9 +77,6 @@ func (c *Channel) PushMsgs(ver []int32, operations []int32, bodies [][]byte) (id
 		idx = n
 	}
 finish:
-	select {
-	case c.Signal <- ProtoReady:
-	default:
-	}
+	c.Signal()
 	return
 }
