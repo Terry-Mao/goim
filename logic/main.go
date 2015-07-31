@@ -18,7 +18,7 @@ func main() {
 	defer log.Close()
 	log.Info("logic[%s] start", Ver)
 	perf.Init(Conf.PprofBind)
-	if err := InitRouterRpc(Conf.RouterPPCAddrs, Conf.RouterRPCRetry); err != nil {
+	if err := InitRouterRpc(Conf.RouterPPCAddrs); err != nil {
 		panic(err)
 	}
 	// init http

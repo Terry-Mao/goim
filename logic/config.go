@@ -45,8 +45,7 @@ type Config struct {
 	HTTPReadTimeout  time.Duration `goconf:"base:http.read.timeout:time"`
 	HTTPWriteTimeout time.Duration `goconf:"base:http.write.timeout:time"`
 	// router RPC
-	RouterPPCAddrs []string      `goconf:"router:addrs:,"`
-	RouterRPCRetry time.Duration `goconf:"router:retry:time"`
+	RouterPPCAddrs []string `goconf:"router:addrs:,"`
 }
 
 func NewConfig() *Config {
@@ -57,8 +56,6 @@ func NewConfig() *Config {
 		Log:       "./log/xml",
 		MaxProc:   runtime.NumCPU(),
 		PprofBind: []string{"localhost:6971"},
-		// router RPC
-		RouterRPCRetry: 60 * time.Second,
 	}
 }
 
