@@ -34,6 +34,8 @@ func NewCleaner(cleaner int) *Cleaner {
 func (c *Cleaner) PushFront(key int64, expire time.Duration) {
 	c.cLock.Lock()
 	if e, ok := c.maps[key]; ok {
+		// update time
+		e.expireTime = time.Now().Add(expire)
 		c.moveToFront(e)
 	} else {
 		e = new(CleanData)

@@ -89,10 +89,9 @@ func (server *Server) dispatchHTTP(rwr *bufio.ReadWriter, cb string, ch *Channel
 	var (
 		p   *Proto
 		err error
-		sig int
 	)
 	log.Debug("start dispatch goroutine")
-	if sig = <-ch.Signal; sig == 0 {
+	if !ch.Ready() {
 		return
 	}
 	// fetch message from svrbox(server send)
@@ -174,5 +173,6 @@ func (server *Server) writeHTTPResponse(rwr *bufio.ReadWriter, cb string, proto 
 	if err = rwr.Flush(); err != nil {
 		log.Error("http rwr.Flush() error(%v)", err)
 	}
+	proto.Reset()
 	return
 }
