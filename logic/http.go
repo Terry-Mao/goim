@@ -3,8 +3,10 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"encoding/json"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -48,5 +50,35 @@ func retPWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{
 }
 
 func Push(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method Not Allowed", 405)
+		return
+	}
+	body := ""
+	res := map[string]interface{}{"ret": OK}
+	defer retPWrite(w, r, res, &body, time.Now())
+	// param
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		res["ret"] = InternalErr
+		log.Error("ioutil.ReadAll() failed (%v)", err)
+		return
+	}
+	body = string(bodyBytes)
+	params := r.URL.Query()
+	userId, err := strconv.ParseInt(params.Get("userid"), 10, 64)
+	if err != nil {
+		res["ret"] = InternalErr
+		return
+	}
 
+	//推送到kafka
+	if err := pushTokafka(userId, bodyBytes); err != nil {
+		res["ret"] = InternalErr
+		log.Error("pushTokafka(%d) error(%v)", userId, err)
+		return
+	}
+
+	res["ret"] = OK
+	return
 }

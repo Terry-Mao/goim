@@ -46,6 +46,8 @@ type Config struct {
 	HTTPWriteTimeout time.Duration `goconf:"base:http.write.timeout:time"`
 	// router RPC
 	RouterPPCAddrs []string `goconf:"router:addrs:,"`
+	// kafka
+	KafkaAddrs []string `goconf:"kafka:addrs:,"`
 }
 
 func NewConfig() *Config {
