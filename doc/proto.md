@@ -24,7 +24,7 @@ GET
 
 ```json
 {
-    "ver": "1.0.2",
+    "ver": 102,
     "op": 10,
     "seq": 10,
     "body": {"data": "xxx"}
@@ -61,7 +61,7 @@ Websocket（JSON Frame），请求和返回协议一致
 
 ```json
 {
-    "ver": "1.0.2",
+    "ver": 102,
     "op": 10,
     "seq": 10,
     "body": {"data": "xxx"}
