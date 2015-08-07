@@ -12,20 +12,20 @@ func InitRPCPush() error {
 	rpc.Register(c)
 	for _, bind := range Conf.RPCPushBind {
 		log.Info("start listen rpc addr: \"%s\"", bind)
-		go rpcListen(bind)
+		go rpcListen(Conf.RPCPushNetwork, bind)
 	}
 	return nil
 }
 
-func rpcListen(bind string) {
-	l, err := net.Listen("tcp", bind)
+func rpcListen(network, addr string) {
+	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", addr, err)
 		panic(err)
 	}
-	// if process exit, then close the rpc bind
+	// if process exit, then close the rpc addr
 	defer func() {
-		log.Info("listen rpc: \"%s\" close", bind)
+		log.Info("listen rpc: \"%s\" close", addr)
 		if err := l.Close(); err != nil {
 			log.Error("listener.Close() error(%v)", err)
 		}

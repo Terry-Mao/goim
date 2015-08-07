@@ -67,13 +67,15 @@ type Config struct {
 	SvrProto int `goconf:"bucket:svr.proto.num"`
 	Channel  int `goconf:"bucket:channel.num"`
 	// push
-	HTTPPushBind     []string      `goconf:"push:http.push.bind:,"`
+	HTTPPushNetwork  string        `goconf:"push:http.network"`
+	HTTPPushBind     []string      `goconf:"push:http.bind:,"`
 	HTTPReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
 	HTTPWriteTimeout time.Duration `goconf:"push:http.write.timeout:time"`
-	RPCPushBind      []string      `goconf:"push:rpc.push.bind:,"`
+	RPCPushBind      []string      `goconf:"push:rpc.bind:,"`
+	RPCPushNetwork   string        `goconf:"push:rpc.network"`
 	// logic
-	LogicAddr  string        `goconf:"logic:addr"`
-	LogicRetry time.Duration `goconf:"logic:retry:time"`
+	LogicNetwork string `goconf:logic:network`
+	LogicAddr    string `goconf:"logic:addr"`
 }
 
 func NewConfig() *Config {
@@ -109,9 +111,11 @@ func NewConfig() *Config {
 		SvrProto: 1024,
 		Channel:  1024,
 		// push
+		HTTPPushNetwork:  "tcp",
 		HTTPPushBind:     []string{"localhost:8082"},
 		HTTPReadTimeout:  5 * time.Second,
 		HTTPWriteTimeout: 5 * time.Second,
+		RPCPushNetwork:   "tcp",
 		RPCPushBind:      []string{"localhost:8083"},
 	}
 }

@@ -23,9 +23,9 @@ func InitHTTPPush() error {
 func httpListen(mux *http.ServeMux, bind string) {
 	httpServer := &http.Server{Handler: mux, ReadTimeout: Conf.HTTPReadTimeout, WriteTimeout: Conf.HTTPWriteTimeout}
 	httpServer.SetKeepAlivesEnabled(true)
-	l, err := net.Listen("tcp", bind)
+	l, err := net.Listen(Conf.HTTPPushNetwork, bind)
 	if err != nil {
-		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		log.Error("net.Listen(\"%s\", \"%s\") error(%v)", Conf.HTTPPushNetwork, bind, err)
 		panic(err)
 	}
 	if err := httpServer.Serve(l); err != nil {

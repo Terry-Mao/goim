@@ -3,47 +3,24 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/protorpc"
-	"time"
 )
 
 var (
 	logicRpcClient *protorpc.Client
+	logicRpcQuit   = make(chan struct{}, 1)
 
 	logicService           = "RPC"
-	logicServicePing       = "RPC.Ping"
 	logicServiceConnect    = "RPC.Connect"
 	logicServiceDisconnect = "RPC.Disconnect"
 )
 
-func InitLogicRpc(addr string, retry time.Duration) (err error) {
-	logicRpcClient, err = protorpc.Dial("tcp", addr)
+func InitLogicRpc(network, addr string) (err error) {
+	logicRpcClient, err = protorpc.Dial(network, addr)
 	if err != nil {
-		log.Error("rpc.Dial(\"%s\") error(%s)", addr, err)
+		log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", network, addr, err)
 		return
 	}
-	go rpcPing(addr, logicRpcClient, retry)
-	log.Debug("logic rpc addr:%s connected", addr)
-
+	go protorpc.Reconnect(&logicRpcClient, logicRpcQuit, "tcp", addr)
+	log.Debug("logic rpc addr %s:%s connected", network, addr)
 	return
-}
-
-func rpcPing(addr string, c *protorpc.Client, retry time.Duration) {
-	var err error
-	for {
-		if err = c.Call(logicServicePing, nil, nil); err != nil {
-			log.Error("c.Call(\"%s\", nil, nil) error(%v), retry after:%ds", logicServicePing, err, retry/time.Second)
-			rpcTmp, err := protorpc.Dial("tcp", addr)
-			if err != nil {
-				log.Error("protorpc.Dial(\"tcp\", %s) error(%v)", addr, err)
-				time.Sleep(retry)
-				continue
-			}
-			c = rpcTmp
-			time.Sleep(retry)
-			continue
-		}
-		log.Debug("rpc ping:%s ok", addr)
-		time.Sleep(retry)
-		continue
-	}
 }
