@@ -10,9 +10,9 @@ import (
 func InitRPCPush() error {
 	c := &PushRPC{}
 	rpc.Register(c)
-	for _, bind := range Conf.RPCPushBind {
-		log.Info("start listen rpc addr: \"%s\"", bind)
-		go rpcListen(Conf.RPCPushNetwork, bind)
+	for i := 0; i < len(Conf.RPCPushAddrs); i++ {
+		log.Info("start listen rpc addr: \"%s\"", Conf.RPCPushAddrs[i])
+		go rpcListen(Conf.RPCPushNetworks[i], Conf.RPCPushAddrs[i])
 	}
 	return nil
 }
