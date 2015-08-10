@@ -10,22 +10,22 @@ import (
 func InitRPCPush() error {
 	c := &PushRPC{}
 	rpc.Register(c)
-	for _, bind := range Conf.RPCPushBind {
-		log.Info("start listen rpc addr: \"%s\"", bind)
-		go rpcListen(bind)
+	for i := 0; i < len(Conf.RPCPushAddrs); i++ {
+		log.Info("start listen rpc addr: \"%s\"", Conf.RPCPushAddrs[i])
+		go rpcListen(Conf.RPCPushNetworks[i], Conf.RPCPushAddrs[i])
 	}
 	return nil
 }
 
-func rpcListen(bind string) {
-	l, err := net.Listen("tcp", bind)
+func rpcListen(network, addr string) {
+	l, err := net.Listen(network, addr)
 	if err != nil {
-		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		log.Error("net.Listen(\"%s\", \"%s\") error(%v)", network, addr, err)
 		panic(err)
 	}
-	// if process exit, then close the rpc bind
+	// if process exit, then close the rpc addr
 	defer func() {
-		log.Info("listen rpc: \"%s\" close", bind)
+		log.Info("listen rpc: \"%s\" close", addr)
 		if err := l.Close(); err != nil {
 			log.Error("listener.Close() error(%v)", err)
 		}

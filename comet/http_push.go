@@ -11,21 +11,21 @@ import (
 
 func InitHTTPPush() error {
 	// http listen
-	for _, bind := range Conf.HTTPPushBind {
+	for i := 0; i < len(Conf.HTTPPushAddrs); i++ {
 		httpServeMux := http.NewServeMux()
 		httpServeMux.HandleFunc("/1/push", Push)
-		log.Info("start http push listen:\"%s\"", bind)
-		go httpListen(httpServeMux, bind)
+		log.Info("start http push listen:\"%s\"", Conf.HTTPPushAddrs[i])
+		go httpListen(httpServeMux, Conf.HTTPPushNetworks[i], Conf.HTTPPushAddrs[i])
 	}
 	return nil
 }
 
-func httpListen(mux *http.ServeMux, bind string) {
+func httpListen(mux *http.ServeMux, network, addr string) {
 	httpServer := &http.Server{Handler: mux, ReadTimeout: Conf.HTTPReadTimeout, WriteTimeout: Conf.HTTPWriteTimeout}
 	httpServer.SetKeepAlivesEnabled(true)
-	l, err := net.Listen("tcp", bind)
+	l, err := net.Listen(network, addr)
 	if err != nil {
-		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		log.Error("net.Listen(\"%s\", \"%s\") error(%v)", network, addr, err)
 		panic(err)
 	}
 	if err := httpServer.Serve(l); err != nil {
