@@ -10,22 +10,22 @@ import (
 func InitRPC(bs []*Bucket) error {
 	c := &RouterRPC{Buckets: bs, BucketIdx: int64(len(bs))}
 	rpc.Register(c)
-	for _, bind := range Conf.RPCBind {
-		log.Info("start listen rpc addr: \"%s\"", bind)
-		go rpcListen(bind)
+	for i := 0; i < len(Conf.RPCAddrs); i++ {
+		log.Info("start listen rpc addr: \"%s\":\"%s\"", Conf.RPCNetworks[i], Conf.RPCAddrs[i])
+		go rpcListen(Conf.RPCNetworks[i], Conf.RPCAddrs[i])
 	}
 	return nil
 }
 
-func rpcListen(bind string) {
-	l, err := net.Listen("tcp", bind)
+func rpcListen(network, addr string) {
+	l, err := net.Listen(network, addr)
 	if err != nil {
-		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		log.Error("net.Listen(\"%s\", \"%s\") error(%v)", network, addr, err)
 		panic(err)
 	}
 	// if process exit, then close the rpc bind
 	defer func() {
-		log.Info("rpc addr: \"%s\" close", bind)
+		log.Info("rpc addr: \"%s\" close", addr)
 		if err := l.Close(); err != nil {
 			log.Error("listener.Close() error(%v)", err)
 		}

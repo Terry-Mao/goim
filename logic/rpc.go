@@ -14,22 +14,22 @@ import (
 func InitRPC(auther Auther) error {
 	c := &RPC{auther: auther}
 	rpc.Register(c)
-	for _, bind := range Conf.RpcBind {
-		log.Info("start listen rpc addr: \"%s\"", bind)
-		go rpcListen(bind)
+	for i := 0; i < len(Conf.RPCAddrs); i++ {
+		log.Info("start listen rpc addr: \"%s\"", Conf.RPCAddrs[i])
+		go rpcListen(Conf.RPCNetworks[i], Conf.RPCAddrs[i])
 	}
 	return nil
 }
 
-func rpcListen(bind string) {
-	l, err := net.Listen("tcp", bind)
+func rpcListen(network, addr string) {
+	l, err := net.Listen(network, addr)
 	if err != nil {
-		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		log.Error("net.Listen(\"%s\", \"%s\") error(%v)", network, addr, err)
 		panic(err)
 	}
 	// if process exit, then close the rpc bind
 	defer func() {
-		log.Info("rpc addr: \"%s\" close", bind)
+		log.Info("rpc addr: \"%s\" close", addr)
 		if err := l.Close(); err != nil {
 			log.Error("listener.Close() error(%v)", err)
 		}
@@ -65,11 +65,6 @@ func (r *RPC) decode(key string) (userId int64, seq int32, err error) {
 	return
 }
 
-func (r *RPC) Ping(arg *lproto.PingArg, reply *lproto.PingReply) error {
-	log.Debug("receive ping")
-	return nil
-}
-
 // Connect auth and registe login
 func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 	if args == nil {
@@ -81,7 +76,7 @@ func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 	// developer could implement "ThirdAuth" interface for decide how get userID
 	userID := r.auther.Auth(args.Token)
 	// notice router which connected
-	c := getRouterClient(userID)
+	c := RouterClient(userID)
 	arg := &rproto.ConnArg{UserId: userID, Server: args.Server}
 	reply := &rproto.ConnReply{}
 	if err = c.Call(routerServiceConnect, arg, reply); err != nil {
@@ -105,7 +100,7 @@ func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err
 		return
 	}
 	// notice router which disconnected
-	c := getRouterClient(userID)
+	c := RouterClient(userID)
 	arg := &rproto.DisconnArg{UserId: userID, Seq: seq}
 	reply := &rproto.DisconnReply{}
 	if err = c.Call(routerServiceDisconnect, arg, reply); err != nil {

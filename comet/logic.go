@@ -7,22 +7,21 @@ import (
 
 var (
 	logicRpcClient *protorpc.Client
+	logicRpcQuit   = make(chan struct{}, 1)
 
 	logicService           = "RPC"
-	logicServicePing       = "RPC.Ping"
 	logicServiceConnect    = "RPC.Connect"
 	logicServiceDisconnect = "RPC.Disconnect"
 )
 
-func InitLogicRpc(addr string) (err error) {
-	logicRpcClient, err = protorpc.Dial("tcp", addr)
+func InitLogicRpc(network, addr string) (err error) {
+	logicRpcClient, err = protorpc.Dial(network, addr)
 	if err != nil {
-		log.Error("rpc.Dial(\"%s\") error(%s)", addr, err)
+		log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", network, addr, err)
 		return
 	}
-	var quit chan struct{}
-	go protorpc.Reconnect(&logicRpcClient, quit, "tcp", addr)
-	log.Debug("logic rpc addr:%s connected", addr)
+	go protorpc.Reconnect(&logicRpcClient, logicRpcQuit, "tcp", addr)
+	log.Debug("logic rpc addr %s:%s connected", network, addr)
 
 	return
 }
