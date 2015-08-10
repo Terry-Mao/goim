@@ -9,14 +9,15 @@
 		router.proto
 
 	It has these top-level messages:
-		PingArg
-		PingReply
+		NoArg
+		NoReply
 		ConnArg
 		ConnReply
 		DisconnArg
 		DisconnReply
 		GetArg
 		GetReply
+		GetAllReply
 		MGetArg
 		MGetReply
 		GetSeqCountArg
@@ -26,7 +27,7 @@ package proto
 
 import proto1 "github.com/golang/protobuf/proto"
 
-// discarding unused import gogoproto "gogo/protobuf/gogoproto/gogo.pb"
+// discarding unused import gogoproto "gogo/protobuf/gogoproto"
 
 import io "io"
 import fmt "fmt"
@@ -34,19 +35,19 @@ import fmt "fmt"
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto1.Marshal
 
-type PingArg struct {
+type NoArg struct {
 }
 
-func (m *PingArg) Reset()         { *m = PingArg{} }
-func (m *PingArg) String() string { return proto1.CompactTextString(m) }
-func (*PingArg) ProtoMessage()    {}
+func (m *NoArg) Reset()         { *m = NoArg{} }
+func (m *NoArg) String() string { return proto1.CompactTextString(m) }
+func (*NoArg) ProtoMessage()    {}
 
-type PingReply struct {
+type NoReply struct {
 }
 
-func (m *PingReply) Reset()         { *m = PingReply{} }
-func (m *PingReply) String() string { return proto1.CompactTextString(m) }
-func (*PingReply) ProtoMessage()    {}
+func (m *NoReply) Reset()         { *m = NoReply{} }
+func (m *NoReply) String() string { return proto1.CompactTextString(m) }
+func (*NoReply) ProtoMessage()    {}
 
 type ConnArg struct {
 	UserId int64 `protobuf:"varint,1,opt,name=userId,proto3" json:"userId,omitempty"`
@@ -99,6 +100,22 @@ func (m *GetReply) Reset()         { *m = GetReply{} }
 func (m *GetReply) String() string { return proto1.CompactTextString(m) }
 func (*GetReply) ProtoMessage()    {}
 
+type GetAllReply struct {
+	UserIds  []int64     `protobuf:"varint,1,rep,name=userIds" json:"userIds,omitempty"`
+	Sessions []*GetReply `protobuf:"bytes,2,rep,name=sessions" json:"sessions,omitempty"`
+}
+
+func (m *GetAllReply) Reset()         { *m = GetAllReply{} }
+func (m *GetAllReply) String() string { return proto1.CompactTextString(m) }
+func (*GetAllReply) ProtoMessage()    {}
+
+func (m *GetAllReply) GetSessions() []*GetReply {
+	if m != nil {
+		return m.Sessions
+	}
+	return nil
+}
+
 type MGetArg struct {
 	UserIds []int64 `protobuf:"varint,1,rep,name=userIds" json:"userIds,omitempty"`
 }
@@ -108,7 +125,8 @@ func (m *MGetArg) String() string { return proto1.CompactTextString(m) }
 func (*MGetArg) ProtoMessage()    {}
 
 type MGetReply struct {
-	Sessions []*GetReply `protobuf:"bytes,1,rep,name=sessions" json:"sessions,omitempty"`
+	UserIds  []int64     `protobuf:"varint,1,rep,name=userIds" json:"userIds,omitempty"`
+	Sessions []*GetReply `protobuf:"bytes,2,rep,name=sessions" json:"sessions,omitempty"`
 }
 
 func (m *MGetReply) Reset()         { *m = MGetReply{} }
@@ -138,9 +156,7 @@ func (m *GetSeqCountReply) Reset()         { *m = GetSeqCountReply{} }
 func (m *GetSeqCountReply) String() string { return proto1.CompactTextString(m) }
 func (*GetSeqCountReply) ProtoMessage()    {}
 
-func init() {
-}
-func (m *PingArg) Unmarshal(data []byte) error {
+func (m *NoArg) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -181,7 +197,7 @@ func (m *PingArg) Unmarshal(data []byte) error {
 
 	return nil
 }
-func (m *PingReply) Unmarshal(data []byte) error {
+func (m *NoReply) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -245,6 +261,7 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
+			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -260,6 +277,7 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Server", wireType)
 			}
+			m.Server = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -317,6 +335,7 @@ func (m *ConnReply) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Seq", wireType)
 			}
+			m.Seq = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -374,6 +393,7 @@ func (m *DisconnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
+			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -389,6 +409,7 @@ func (m *DisconnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Seq", wireType)
 			}
+			m.Seq = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -505,6 +526,7 @@ func (m *GetArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
+			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -615,6 +637,90 @@ func (m *GetReply) Unmarshal(data []byte) error {
 
 	return nil
 }
+func (m *GetAllReply) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UserIds", wireType)
+			}
+			var v int64
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UserIds = append(m.UserIds, v)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sessions", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Sessions = append(m.Sessions, &GetReply{})
+			if err := m.Sessions[len(m.Sessions)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipRouter(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	return nil
+}
 func (m *MGetArg) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
@@ -694,6 +800,23 @@ func (m *MGetReply) Unmarshal(data []byte) error {
 		wireType := int(wire & 0x7)
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UserIds", wireType)
+			}
+			var v int64
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UserIds = append(m.UserIds, v)
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Sessions", wireType)
 			}
@@ -764,6 +887,7 @@ func (m *GetSeqCountArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
+			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -821,6 +945,7 @@ func (m *GetSeqCountReply) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Count", wireType)
 			}
+			m.Count = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -939,13 +1064,13 @@ func skipRouter(data []byte) (n int, err error) {
 	}
 	panic("unreachable")
 }
-func (m *PingArg) Size() (n int) {
+func (m *NoArg) Size() (n int) {
 	var l int
 	_ = l
 	return n
 }
 
-func (m *PingReply) Size() (n int) {
+func (m *NoReply) Size() (n int) {
 	var l int
 	_ = l
 	return n
@@ -1018,6 +1143,23 @@ func (m *GetReply) Size() (n int) {
 	return n
 }
 
+func (m *GetAllReply) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.UserIds) > 0 {
+		for _, e := range m.UserIds {
+			n += 1 + sovRouter(uint64(e))
+		}
+	}
+	if len(m.Sessions) > 0 {
+		for _, e := range m.Sessions {
+			l = e.Size()
+			n += 1 + l + sovRouter(uint64(l))
+		}
+	}
+	return n
+}
+
 func (m *MGetArg) Size() (n int) {
 	var l int
 	_ = l
@@ -1032,6 +1174,11 @@ func (m *MGetArg) Size() (n int) {
 func (m *MGetReply) Size() (n int) {
 	var l int
 	_ = l
+	if len(m.UserIds) > 0 {
+		for _, e := range m.UserIds {
+			n += 1 + sovRouter(uint64(e))
+		}
+	}
 	if len(m.Sessions) > 0 {
 		for _, e := range m.Sessions {
 			l = e.Size()
@@ -1072,7 +1219,7 @@ func sovRouter(x uint64) (n int) {
 func sozRouter(x uint64) (n int) {
 	return sovRouter(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *PingArg) Marshal() (data []byte, err error) {
+func (m *NoArg) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -1082,7 +1229,7 @@ func (m *PingArg) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *PingArg) MarshalTo(data []byte) (n int, err error) {
+func (m *NoArg) MarshalTo(data []byte) (n int, err error) {
 	var i int
 	_ = i
 	var l int
@@ -1090,7 +1237,7 @@ func (m *PingArg) MarshalTo(data []byte) (n int, err error) {
 	return i, nil
 }
 
-func (m *PingReply) Marshal() (data []byte, err error) {
+func (m *NoReply) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -1100,7 +1247,7 @@ func (m *PingReply) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *PingReply) MarshalTo(data []byte) (n int, err error) {
+func (m *NoReply) MarshalTo(data []byte) (n int, err error) {
 	var i int
 	_ = i
 	var l int
@@ -1270,6 +1417,43 @@ func (m *GetReply) MarshalTo(data []byte) (n int, err error) {
 	return i, nil
 }
 
+func (m *GetAllReply) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *GetAllReply) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.UserIds) > 0 {
+		for _, num := range m.UserIds {
+			data[i] = 0x8
+			i++
+			i = encodeVarintRouter(data, i, uint64(num))
+		}
+	}
+	if len(m.Sessions) > 0 {
+		for _, msg := range m.Sessions {
+			data[i] = 0x12
+			i++
+			i = encodeVarintRouter(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
 func (m *MGetArg) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -1310,9 +1494,16 @@ func (m *MGetReply) MarshalTo(data []byte) (n int, err error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.UserIds) > 0 {
+		for _, num := range m.UserIds {
+			data[i] = 0x8
+			i++
+			i = encodeVarintRouter(data, i, uint64(num))
+		}
+	}
 	if len(m.Sessions) > 0 {
 		for _, msg := range m.Sessions {
-			data[i] = 0xa
+			data[i] = 0x12
 			i++
 			i = encodeVarintRouter(data, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(data[i:])

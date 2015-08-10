@@ -74,7 +74,7 @@ type Config struct {
 	RPCPushAddrs     []string      `goconf:"push:rpc.addrs:,"`
 	RPCPushNetworks  []string      `goconf:"push:rpc.networks:,"`
 	// logic
-	LogicNetwork string `goconf:logic:network`
+	LogicNetwork string `goconf:"logic:network"`
 	LogicAddr    string `goconf:"logic:addr"`
 }
 
