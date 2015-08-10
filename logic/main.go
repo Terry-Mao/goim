@@ -29,6 +29,9 @@ func main() {
 	if err := InitRPC(NewDefaultAuther()); err != nil {
 		panic(err)
 	}
+	if err := InitKafka(Conf.KafkaAddrs); err != nil {
+		panic(err)
+	}
 	// block until a signal is received.
 	InitSignal()
 }

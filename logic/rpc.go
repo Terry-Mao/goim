@@ -21,7 +21,7 @@ func InitRPC(auther Auther) error {
 	return nil
 }
 
-func rpcListen(addr, network string) {
+func rpcListen(network, addr string) {
 	l, err := net.Listen(network, addr)
 	if err != nil {
 		log.Error("net.Listen(\"%s\", \"%s\") error(%v)", network, addr, err)

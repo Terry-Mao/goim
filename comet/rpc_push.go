@@ -18,9 +18,9 @@ func InitRPCPush() error {
 }
 
 func rpcListen(network, addr string) {
-	l, err := net.Listen("tcp", addr)
+	l, err := net.Listen(network, addr)
 	if err != nil {
-		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", addr, err)
+		log.Error("net.Listen(\"%s\", \"%s\") error(%v)", network, addr, err)
 		panic(err)
 	}
 	// if process exit, then close the rpc addr

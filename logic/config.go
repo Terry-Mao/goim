@@ -49,6 +49,8 @@ type Config struct {
 	// router RPC
 	RouterRPCNetworks []string `goconf:"router:networks:,"`
 	RouterRPCAddrs    []string `goconf:"router:addrs:,"`
+	// kafka
+	KafkaAddrs []string `goconf:"kafka:addrs"`
 }
 
 func NewConfig() *Config {
@@ -59,7 +61,6 @@ func NewConfig() *Config {
 		Log:        "./log/xml",
 		MaxProc:    runtime.NumCPU(),
 		PprofAddrs: []string{"localhost:6971"},
-		// router RPC
 	}
 }
 

@@ -58,6 +58,16 @@ func (b *Bucket) Get(userId int64) (seqs []int32, servers []int32) {
 	return
 }
 
+func (b *Bucket) AllUsers() (userIds []int64) {
+	b.bLock.RLock()
+	userIds = make([]int64, 0, len(b.sessions))
+	for userId, _ := range b.sessions {
+		userIds = append(userIds, userId)
+	}
+	b.bLock.RUnlock()
+	return
+}
+
 func (b *Bucket) Count(userId int64) (count int) {
 	b.bLock.RLock()
 	if s, ok := b.sessions[userId]; ok {
@@ -91,7 +101,7 @@ func (b *Bucket) DelSession(userId int64, seq int32) (ok bool) {
 		s     *Session
 		empty bool
 	)
-	b.bLock.RLock()
+	b.bLock.Lock()
 	if s, ok = b.sessions[userId]; ok {
 		// WARN:
 		// delete(b.sessions, userId)
@@ -100,7 +110,7 @@ func (b *Bucket) DelSession(userId int64, seq int32) (ok bool) {
 		// frequently new & free object, gc is slow!!!
 		empty = s.Del(seq)
 	}
-	b.bLock.RUnlock()
+	b.bLock.Unlock()
 	// lru
 	if empty {
 		b.cleaner.PushFront(userId, Conf.SessionExpire)
