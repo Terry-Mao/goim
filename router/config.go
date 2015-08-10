@@ -19,14 +19,15 @@ func init() {
 
 type Config struct {
 	// base section
-	PidFile   string   `goconf:"base:pidfile"`
-	Dir       string   `goconf:"base:dir"`
-	Log       string   `goconf:"base:log"`
-	MaxProc   int      `goconf:"base:maxproc"`
-	PprofBind []string `goconf:"base:pprof.bind:,"`
-	StatBind  []string `goconf:"base:stat.bind:,"`
+	PidFile    string   `goconf:"base:pidfile"`
+	Dir        string   `goconf:"base:dir"`
+	Log        string   `goconf:"base:log"`
+	MaxProc    int      `goconf:"base:maxproc"`
+	PprofAddrs []string `goconf:"base:pprof.addrs:,"`
+	StatAddrs  []string `goconf:"base:stat.addrs:,"`
 	// rpc
-	RPCBind []string `goconf:"rpc:bind:,"`
+	RPCNetworks []string `goconf:"rpc:networks:,"`
+	RPCAddrs    []string `goconf:"rpc:addrs:,"`
 	// bucket
 	Bucket            int           `goconf:"bucket:bucket"`
 	Server            int           `goconf:"bucket:server"`
@@ -40,14 +41,15 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		// base section
-		PidFile:   "/tmp/gopush-cluster-comet.pid",
-		Dir:       "./",
-		Log:       "./log/xml",
-		MaxProc:   runtime.NumCPU(),
-		PprofBind: []string{"localhost:6971"},
-		StatBind:  []string{"localhost:6972"},
+		PidFile:    "/tmp/gopush-cluster-comet.pid",
+		Dir:        "./",
+		Log:        "./log/xml",
+		MaxProc:    runtime.NumCPU(),
+		PprofAddrs: []string{"localhost:6971"},
+		StatAddrs:  []string{"localhost:6972"},
 		// rpc
-		RPCBind: []string{"localhost:9090"},
+		RPCNetworks: []string{"tcp"},
+		RPCAddrs:    []string{"localhost:9090"},
 		// bucket
 		Bucket:            runtime.NumCPU(),
 		Server:            5,

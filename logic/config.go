@@ -39,25 +39,28 @@ type Config struct {
 	Dir              string        `goconf:"base:dir"`
 	Log              string        `goconf:"base:log"`
 	MaxProc          int           `goconf:"base:maxproc"`
-	PprofBind        []string      `goconf:"base:pprof.bind:,"`
-	RpcBind          []string      `goconf:"base:rpc.bind:,"`
-	HTTPBind         []string      `goconf:"base:http.bind:,"`
+	PprofAddrs       []string      `goconf:"base:pprof.addrs:,"`
+	RPCAddrs         []string      `goconf:"base:rpc.addrs:,"`
+	RPCNetworks      []string      `goconf:"base:rpc.networks:,"`
+	HTTPAddrs        []string      `goconf:"base:http.addrs:,"`
+	HTTPNetworks     []string      `goconf:"base:http.networks:,"`
 	HTTPReadTimeout  time.Duration `goconf:"base:http.read.timeout:time"`
 	HTTPWriteTimeout time.Duration `goconf:"base:http.write.timeout:time"`
 	// router RPC
-	RouterPPCAddrs []string `goconf:"router:addrs:,"`
+	RouterRPCNetworks []string `goconf:"router:networks:,"`
+	RouterRPCAddrs    []string `goconf:"router:addrs:,"`
 	// kafka
-	KafkaAddrs []string `goconf:"kafka:addrs:,"`
+	KafkaAddrs []string `goconf:"kafka:addrs"`
 }
 
 func NewConfig() *Config {
 	return &Config{
 		// base section
-		PidFile:   "/tmp/gopush-cluster-logic.pid",
-		Dir:       "./",
-		Log:       "./log/xml",
-		MaxProc:   runtime.NumCPU(),
-		PprofBind: []string{"localhost:6971"},
+		PidFile:    "/tmp/gopush-cluster-logic.pid",
+		Dir:        "./",
+		Log:        "./log/xml",
+		MaxProc:    runtime.NumCPU(),
+		PprofAddrs: []string{"localhost:6971"},
 	}
 }
 
@@ -70,6 +73,9 @@ func InitConfig() (err error) {
 	}
 	if err := gconf.Unmarshal(Conf); err != nil {
 		return err
+	}
+	if len(Conf.RPCNetworks) != len(Conf.RPCAddrs) || len(Conf.RouterRPCNetworks) != len(Conf.RouterRPCAddrs) || len(Conf.HTTPNetworks) != len(Conf.HTTPAddrs) {
+		return ErrRPCConfig
 	}
 	return nil
 }

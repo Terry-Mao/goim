@@ -21,7 +21,7 @@ func main() {
 	defer log.Close()
 	log.Info("router[%s] start", VERSION)
 	// start prof
-	perf.Init(Conf.PprofBind)
+	perf.Init(Conf.PprofAddrs)
 	// start rpc
 	buckets := make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
