@@ -8,36 +8,34 @@ import (
 )
 
 var (
-	//routerRPC *RandLB
 	routerServiceMap = map[string]*rpc.Client{}
+	routerQuit       = make(chan struct{}, 1)
 	routerRing       *ketama.HashRing
 
 	routerService           = "RouterRPC"
-	routerServicePing       = "RouterRPC.Ping"
 	routerServiceConnect    = "RouterRPC.Connect"
 	routerServiceDisconnect = "RouterRPC.Disconnect"
 )
 
-func InitRouterRpc(addrs []string) (err error) {
+func InitRouter() (err error) {
 	var r *rpc.Client
 	routerRing = ketama.NewRing(ketama.Base)
-	for _, addr := range addrs {
-		r, err = rpc.Dial("tcp", addr)
+	for i := 0; i < len(Conf.RouterRPCAddrs); i++ {
+		r, err = rpc.Dial(Conf.RouterRPCNetworks[i], Conf.RouterRPCAddrs[i])
 		if err != nil {
-			log.Error("rpc.Dial(\"%s\") error(%s)", addr, err)
+			log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", Conf.RouterRPCNetworks[i], Conf.RouterRPCAddrs[i], err)
 			return
 		}
-		go r.Ping(&r)
-		log.Debug("router rpc addr:%s connect", addr)
-		routerServiceMap[addr] = r
-		routerRing.AddNode(addr, 1)
+		go rpc.Reconnect(&r, routerQuit, Conf.RouterRPCNetworks[i], Conf.RouterRPCAddrs[i])
+		log.Debug("router rpc addr:%s connect", Conf.RouterRPCAddrs[i])
+		routerServiceMap[Conf.RouterRPCAddrs[i]] = r
+		routerRing.AddNode(Conf.RouterRPCAddrs[i], 1)
 	}
 	routerRing.Bake()
-
 	return
 }
 
-func getRouterClient(userID int64) *rpc.Client {
+func RouterClient(userID int64) *rpc.Client {
 	node := routerRing.Hash(strconv.FormatInt(userID, 10))
 	return routerServiceMap[node]
 }
