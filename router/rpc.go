@@ -2,13 +2,13 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	proto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
+	proto "github.com/thinkboy/goim/proto/router"
 	"net"
 )
 
 func InitRPC(bs []*Bucket) error {
-	c := &RouterRPC{Buckets: bs, BucketIdx: int64(len(bs)) - 1}
+	c := &RouterRPC{Buckets: bs, BucketIdx: int64(len(bs))}
 	rpc.Register(c)
 	for _, bind := range Conf.RPCBind {
 		log.Info("start listen rpc addr: \"%s\"", bind)
@@ -44,11 +44,6 @@ func (r *RouterRPC) bucket(userId int64) *Bucket {
 	return r.Buckets[idx]
 }
 
-func (r *RouterRPC) Ping(arg *proto.PingArg, reply *proto.PingReply) error {
-	log.Debug("receive ping")
-	return nil
-}
-
 func (r *RouterRPC) Connect(arg *proto.ConnArg, reply *proto.ConnReply) error {
 	reply.Seq = r.bucket(arg.UserId).Put(arg.UserId, arg.Server)
 	return nil
@@ -66,20 +61,40 @@ func (r *RouterRPC) Get(arg *proto.GetArg, reply *proto.GetReply) error {
 	return nil
 }
 
+func (r *RouterRPC) GetAll(arg *proto.NoArg, reply *proto.GetAllReply) error {
+	var (
+		session *proto.GetReply
+		userIds []int64
+		i, j    = int64(0), 0
+	)
+	for i = 0; i < r.BucketIdx; i++ {
+		userIds = r.Buckets[i].AllUsers()
+		for j = 0; j < len(userIds); j++ {
+			session = new(proto.GetReply)
+			session.Seqs, session.Servers = r.bucket(userIds[j]).Get(userIds[j])
+			reply.Sessions = append(reply.Sessions, session)
+			log.Debug("seqs:%v servers:%v", session.Seqs, session.Servers)
+		}
+		reply.UserIds = append(reply.UserIds, userIds...)
+	}
+	return nil
+}
+
 func (r *RouterRPC) MGet(arg *proto.MGetArg, reply *proto.MGetReply) error {
 	var (
 		i       int
 		userId  int64
 		session *proto.GetReply
 	)
-	reply.Sessions = make([]*proto.GetReply, 0, len(arg.UserIds))
+	reply.Sessions = make([]*proto.GetReply, len(arg.UserIds))
+	reply.UserIds = make([]int64, len(arg.UserIds))
 	for i = 0; i < len(arg.UserIds); i++ {
 		userId = arg.UserIds[i]
-		seqs, servers := r.bucket(userId).Get(userId)
 		session = new(proto.GetReply)
-		session.Seqs = seqs
-		session.Servers = servers
+		session.Seqs, session.Servers = r.bucket(userId).Get(userId)
+		reply.UserIds[i] = userId
 		reply.Sessions[i] = session
+		log.Debug("seqs:%v servers:%v", session.Seqs, session.Servers)
 	}
 	return nil
 }

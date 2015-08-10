@@ -20,7 +20,8 @@ func InitLogicRpc(addr string) (err error) {
 		log.Error("rpc.Dial(\"%s\") error(%s)", addr, err)
 		return
 	}
-	go logicRpcClient.Ping(&logicRpcClient)
+	var quit chan struct{}
+	go protorpc.Reconnect(&logicRpcClient, quit, "tcp", addr)
 	log.Debug("logic rpc addr:%s connected", addr)
 
 	return

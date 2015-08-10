@@ -71,6 +71,7 @@ func InitConfig() (err error) {
 	if err := gconf.Unmarshal(Conf); err != nil {
 		return err
 	}
+
 	return nil
 }
 
