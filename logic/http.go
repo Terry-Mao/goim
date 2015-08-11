@@ -86,7 +86,7 @@ func Push(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// {"m":"{"test":1}","u":"1,2,3"}
+// {"m":{"test":1},"u":"1,2,3"}
 func Pushs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed", 405)
@@ -149,8 +149,8 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 }
 
 type pushsBodyMsg struct {
-	Msg     []byte  `json:"m"`
-	UserIds []int64 `json:"u"`
+	Msg     json.RawMessage `json:"m"`
+	UserIds []int64         `json:"u"`
 }
 
 func parsePushsBody(body []byte) (msg []byte, userIds []int64, err error) {
