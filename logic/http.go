@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -15,7 +14,7 @@ func InitHTTP() error {
 	// http listen
 	for i := 0; i < len(Conf.HTTPAddrs); i++ {
 		httpServeMux := http.NewServeMux()
-		httpServeMux.HandleFunc("/1/push", Push)
+		//httpServeMux.HandleFunc("/1/push", Push)
 		httpServeMux.HandleFunc("/1/pushs", Pushs)
 		httpServeMux.HandleFunc("/1/push/all", PushAll)
 		log.Info("start http listen:\"%s\"", Conf.HTTPAddrs[i])
@@ -52,6 +51,7 @@ func retPWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{
 	log.Info("req: \"%s\", post: \"%s\", res:\"%s\", ip:\"%s\", time:\"%fs\"", r.URL.String(), *body, dataStr, r.RemoteAddr, time.Now().Sub(start).Seconds())
 }
 
+/*
 func Push(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed", 405)
@@ -74,17 +74,16 @@ func Push(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = InternalErr
 		return
 	}
-
-	//推送到kafka
+	// push to queue
 	if err := pushTokafka(userId, bodyBytes); err != nil {
 		res["ret"] = InternalErr
 		log.Error("pushTokafka(%d) error(%v)", userId, err)
 		return
 	}
-
 	res["ret"] = OK
 	return
 }
+*/
 
 // {"m":"{"test":1}","u":"1,2,3"}
 func Pushs(w http.ResponseWriter, r *http.Request) {

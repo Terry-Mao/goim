@@ -5,12 +5,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"github.com/Shopify/sarama"
-	"strconv"
 )
 
 const (
-	KAFKA_TOPIC_PUSH  = "kafka_topic_push"
-	KAFKA_TOPIC_PUSHS = "kafka_topic_pushs"
+	// KAFKA_TOPIC_PUSH  = "kafka_topic_push"
+	KafkaPushsTopic = "KafkaPushsTopic"
 )
 
 var (
@@ -27,42 +26,36 @@ func InitKafka(kafkaAddrs []string) (err error) {
 	config.Producer.RequiredAcks = sarama.WaitForAll
 	config.Producer.Partitioner = sarama.NewHashPartitioner
 	producer, err = sarama.NewSyncProducer(kafkaAddrs, config)
-	if err != nil {
-		return err
-	}
-	return nil
+	return
 }
 
-//TODO:考虑是否使用异步
+/*
 func pushTokafka(userID int64, value []byte) (err error) {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(userID))
 	message := &sarama.ProducerMessage{Topic: KAFKA_TOPIC_PUSH, Key: sarama.ByteEncoder(b), Value: sarama.ByteEncoder(value)}
-	_, _, err = producer.SendMessage(message)
-	if err != nil {
+	if _, _, err = producer.SendMessage(message); err != nil {
 		return
 	}
-	log.Info("produce msg ok, key:%s", strconv.FormatInt(userID, 10))
+	log.Debug("produce msg ok, key:%s", strconv.FormatInt(userID, 10))
 	return
 }
+*/
 
-//TODO:考虑是否使用异步
 func pushsTokafka(serverId int32, subkeys []string, msg []byte) (err error) {
 	var (
 		vBytes []byte
 		v      = &KafkaPushs{Subkeys: subkeys, Msg: msg}
+		b      = make([]byte, 8)
 	)
-	vBytes, err = json.Marshal(v)
-	if err != nil {
+	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
-	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(serverId))
-	message := &sarama.ProducerMessage{Topic: KAFKA_TOPIC_PUSHS, Key: sarama.ByteEncoder(b), Value: sarama.ByteEncoder(vBytes)}
-	_, _, err = producer.SendMessage(message)
-	if err != nil {
+	message := &sarama.ProducerMessage{Topic: KafkaPushsTopic, Key: sarama.ByteEncoder(b), Value: sarama.ByteEncoder(vBytes)}
+	if _, _, err = producer.SendMessage(message); err != nil {
 		return
 	}
-	log.Info("produce msg ok, serverId:%d subkeys:%v", serverId, subkeys)
+	log.Debug("produce msg ok, serverId:%d subkeys:%v", serverId, subkeys)
 	return
 }
