@@ -41,14 +41,11 @@ type Config struct {
 	MaxProc          int           `goconf:"base:maxproc"`
 	PprofAddrs       []string      `goconf:"base:pprof.addrs:,"`
 	RPCAddrs         []string      `goconf:"base:rpc.addrs:,"`
-	RPCNetworks      []string      `goconf:"base:rpc.networks:,"`
 	HTTPAddrs        []string      `goconf:"base:http.addrs:,"`
-	HTTPNetworks     []string      `goconf:"base:http.networks:,"`
 	HTTPReadTimeout  time.Duration `goconf:"base:http.read.timeout:time"`
 	HTTPWriteTimeout time.Duration `goconf:"base:http.write.timeout:time"`
 	// router RPC
-	RouterRPCNetworks []string          `goconf:"router:networks:,"`
-	RouterRPCAddrs    map[string]string `-`
+	RouterRPCAddrs map[string]string `-`
 	// kafka
 	KafkaAddrs []string `goconf:"kafka:addrs"`
 }
@@ -74,9 +71,6 @@ func InitConfig() (err error) {
 	}
 	if err := gconf.Unmarshal(Conf); err != nil {
 		return err
-	}
-	if len(Conf.RPCNetworks) != len(Conf.RPCAddrs) || len(Conf.RouterRPCNetworks) != len(Conf.RouterRPCAddrs) || len(Conf.HTTPNetworks) != len(Conf.HTTPAddrs) {
-		return ErrRPCConfig
 	}
 	for _, serverID := range gconf.Get("router.addrs").Keys() {
 		addr, err := gconf.Get("router.addrs").String(serverID)

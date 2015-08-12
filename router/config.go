@@ -26,8 +26,7 @@ type Config struct {
 	PprofAddrs []string `goconf:"base:pprof.addrs:,"`
 	StatAddrs  []string `goconf:"base:stat.addrs:,"`
 	// rpc
-	RPCNetworks []string `goconf:"rpc:networks:,"`
-	RPCAddrs    []string `goconf:"rpc:addrs:,"`
+	RPCAddrs []string `goconf:"rpc:addrs:,"`
 	// bucket
 	Bucket            int           `goconf:"bucket:bucket"`
 	Server            int           `goconf:"bucket:server"`
@@ -48,8 +47,7 @@ func NewConfig() *Config {
 		PprofAddrs: []string{"localhost:6971"},
 		StatAddrs:  []string{"localhost:6972"},
 		// rpc
-		RPCNetworks: []string{"tcp"},
-		RPCAddrs:    []string{"localhost:9090"},
+		RPCAddrs: []string{"localhost:9090"},
 		// bucket
 		Bucket:            runtime.NumCPU(),
 		Server:            5,

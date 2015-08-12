@@ -3,21 +3,26 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"encoding/json"
+	inet "github.com/Terry-Mao/goim/libs/net"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"time"
 )
 
-func InitHTTPPush() error {
-	// http listen
+func InitHTTPPush() (err error) {
+	var network, addr string
 	for i := 0; i < len(Conf.HTTPPushAddrs); i++ {
 		httpServeMux := http.NewServeMux()
 		httpServeMux.HandleFunc("/1/push", Push)
 		log.Info("start http push listen:\"%s\"", Conf.HTTPPushAddrs[i])
-		go httpListen(httpServeMux, Conf.HTTPPushNetworks[i], Conf.HTTPPushAddrs[i])
+		if network, addr, err = inet.ParseNetwork(Conf.HTTPPushAddrs[i]); err != nil {
+			log.Error("inet.ParseNetwork() error(%v)", err)
+			return
+		}
+		go httpListen(httpServeMux, network, addr)
 	}
-	return nil
+	return
 }
 
 func httpListen(mux *http.ServeMux, network, addr string) {

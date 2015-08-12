@@ -3,6 +3,7 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/hash/ketama"
+	inet "github.com/Terry-Mao/goim/libs/net"
 	rproto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
 	"strconv"
@@ -24,17 +25,22 @@ const (
 
 func InitRouter() (err error) {
 	var (
-		r *rpc.Client
-		i = 0
+		r             *rpc.Client
+		i             = 0
+		network, addr string
 	)
 	routerRing = ketama.NewRing(ketama.Base)
-	for serverId, addr := range Conf.RouterRPCAddrs {
-		r, err = rpc.Dial(Conf.RouterRPCNetworks[i], addr)
-		if err != nil {
-			log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", Conf.RouterRPCNetworks[i], addr, err)
+	for serverId, addrs := range Conf.RouterRPCAddrs {
+		if network, addr, err = inet.ParseNetwork(addrs); err != nil {
+			log.Error("inet.ParseNetwork() error(%v)", err)
 			return
 		}
-		go rpc.Reconnect(&r, routerQuit, Conf.RouterRPCNetworks[i], addr)
+		r, err = rpc.Dial(network, addr)
+		if err != nil {
+			log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", network, addr, err)
+			return
+		}
+		go rpc.Reconnect(&r, routerQuit, network, addr)
 		log.Debug("router rpc addr:%s connect", addr)
 		routerServiceMap[serverId] = r
 		routerRing.AddNode(serverId, 1)
@@ -58,7 +64,7 @@ func getRouterNode(userID int64) string {
 }
 
 // divide userIds to corresponding
-// response: map[router.addrs]userIds
+// response: map[nodes]userIds
 func divideNode(userIds []int64) map[string][]int64 {
 	var (
 		m    = map[string][]int64{}
