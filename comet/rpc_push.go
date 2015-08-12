@@ -2,19 +2,27 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	inet "github.com/Terry-Mao/goim/libs/net"
 	proto "github.com/Terry-Mao/goim/proto/comet"
 	rpc "github.com/Terry-Mao/protorpc"
 	"net"
 )
 
-func InitRPCPush() error {
-	c := &PushRPC{}
+func InitRPCPush() (err error) {
+	var (
+		network, addr string
+		c             = &PushRPC{}
+	)
 	rpc.Register(c)
 	for i := 0; i < len(Conf.RPCPushAddrs); i++ {
 		log.Info("start listen rpc addr: \"%s\"", Conf.RPCPushAddrs[i])
-		go rpcListen(Conf.RPCPushNetworks[i], Conf.RPCPushAddrs[i])
+		if network, addr, err = inet.ParseNetwork(Conf.RPCPushAddrs[i]); err != nil {
+			log.Error("inet.ParseNetwork() error(%v)", err)
+			return
+		}
+		go rpcListen(network, addr)
 	}
-	return nil
+	return
 }
 
 func rpcListen(network, addr string) {
