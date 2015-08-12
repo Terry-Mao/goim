@@ -3,7 +3,6 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"encoding/json"
-	"fmt"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	"io/ioutil"
 	"net"
@@ -55,6 +54,21 @@ func retPWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{
 		log.Error("w.Write(\"%s\") error(%v)", dataStr, err)
 	}
 	log.Info("req: \"%s\", post: \"%s\", res:\"%s\", ip:\"%s\", time:\"%fs\"", r.URL.String(), *body, dataStr, r.RemoteAddr, time.Now().Sub(start).Seconds())
+}
+
+type pushsBodyMsg struct {
+	Msg     json.RawMessage `json:"m"`
+	UserIds []int64         `json:"u"`
+}
+
+func parsePushsBody(body []byte) (msg []byte, userIds []int64, err error) {
+	tmp := pushsBodyMsg{}
+	if err = json.Unmarshal(body, &tmp); err != nil {
+		return
+	}
+	msg = tmp.Msg
+	userIds = tmp.UserIds
+	return
 }
 
 /*
@@ -109,18 +123,16 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 	}
 	body = string(bodyBytes)
 	log.Debug("pushs msg:%s", body)
-
 	msg, userIds, err := parsePushsBody(bodyBytes)
 	if err != nil {
 		res["ret"] = InternalErr
 		log.Error("parsePushsBody(\"%s\") error(%s)", bodyBytes, err)
 		return
 	}
-
 	m := divideNode(userIds)
-	divide := make(map[int32][]string) //map[comet.serverId]userIds
+	divide := make(map[int32][]string, len(m)) //map[comet.serverId]userIds
 	for serverId, us := range m {
-		//TODO: muti-routine get
+		// TODO muti-routine get
 		reply, err := getSubkeys(serverId, us)
 		if err != nil {
 			res["ret"] = InternalErr
@@ -132,16 +144,15 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 			s := reply.Sessions[j]
 			log.Debug("sessions seqs:%v serverids:%v", s.Seqs, s.Servers)
 			for i := 0; i < len(s.Seqs); i++ {
-				subkey := fmt.Sprintf("%d_%d", reply.UserIds[j], s.Seqs[i])
+				subkey := Encode(reply.UserIds[j], s.Seqs[i])
 				subkeys, ok := divide[s.Servers[i]]
 				if !ok {
-					subkeys = make([]string, 0, 1000) //TODO:consider
+					subkeys = make([]string, 0, 1000) // TODO:consider
 				}
 				divide[s.Servers[i]] = append(subkeys, subkey)
 			}
 		}
 	}
-
 	for cometId, subkeys := range divide {
 		if err := pushsTokafka(cometId, subkeys, msg); err != nil {
 			res["ret"] = InternalErr
@@ -149,23 +160,7 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	res["ret"] = OK
-	return
-}
-
-type pushsBodyMsg struct {
-	Msg     json.RawMessage `json:"m"`
-	UserIds []int64         `json:"u"`
-}
-
-func parsePushsBody(body []byte) (msg []byte, userIds []int64, err error) {
-	tmp := pushsBodyMsg{}
-	if err = json.Unmarshal(body, &tmp); err != nil {
-		return
-	}
-	msg = tmp.Msg
-	userIds = tmp.UserIds
 	return
 }
 
@@ -186,11 +181,10 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 	}
 	body = string(bodyBytes)
 	log.Debug("pushall msg:%s", body)
-
 	divide := make(map[int32][]string) //map[comet.serverId]userIds
 	routers := getRouters()
 	for serverId, _ := range routers {
-		//TODO: muti-routine get
+		// TODO: muti-routine get
 		reply, err := getAllSubkeys(serverId)
 		if err != nil {
 			res["ret"] = InternalErr
@@ -202,7 +196,7 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 			s := reply.Sessions[j]
 			log.Debug("sessions seqs:%v serverids:%v", s.Seqs, s.Servers)
 			for i := 0; i < len(s.Seqs); i++ {
-				subkey := fmt.Sprintf("%d_%d", reply.UserIds[j], s.Seqs[i])
+				subkey := Encode(reply.UserIds[j], s.Seqs[i])
 				subkeys, ok := divide[s.Servers[i]]
 				if !ok {
 					subkeys = make([]string, 0, 1000) //TODO:consider
@@ -211,7 +205,6 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
 	for cometId, subkeys := range divide {
 		if err := pushsTokafka(cometId, subkeys, bodyBytes); err != nil {
 			res["ret"] = InternalErr
@@ -219,7 +212,6 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	res["ret"] = OK
 	return
 }

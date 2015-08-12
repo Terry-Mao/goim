@@ -64,7 +64,7 @@ func getRouterNode(userID int64) string {
 }
 
 // divide userIds to corresponding
-// response: map[router.addrs]userIds
+// response: map[nodes]userIds
 func divideNode(userIds []int64) map[string][]int64 {
 	var (
 		m    = map[string][]int64{}

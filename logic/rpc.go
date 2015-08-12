@@ -2,14 +2,11 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"fmt"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	lproto "github.com/Terry-Mao/goim/proto/logic"
 	rproto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
 	"net"
-	"strconv"
-	"strings"
 )
 
 func InitRPC(auther Auther) (err error) {
@@ -50,29 +47,6 @@ type RPC struct {
 	auther Auther
 }
 
-func (r *RPC) encode(userId int64, seq int32) string {
-	return fmt.Sprintf("%d_%d", userId, seq)
-}
-
-func (r *RPC) decode(key string) (userId int64, seq int32, err error) {
-	var (
-		idx int
-		t   int64
-	)
-	if idx = strings.IndexByte(key, '_'); idx == -1 {
-		err = ErrDecodeKey
-		return
-	}
-	if userId, err = strconv.ParseInt(key[:idx], 10, 64); err != nil {
-		return
-	}
-	if t, err = strconv.ParseInt(key[idx+1:], 10, 32); err != nil {
-		return
-	}
-	seq = int32(t)
-	return
-}
-
 // Connect auth and registe login
 func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 	if args == nil {
@@ -91,7 +65,7 @@ func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceConnect, *arg, err)
 		return
 	}
-	rep.Key = r.encode(userID, reply.Seq)
+	rep.Key = Encode(userID, reply.Seq)
 	return
 }
 
@@ -102,7 +76,7 @@ func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err
 		log.Error("Disconnect() error(%v)", err)
 		return
 	}
-	userID, seq, err := r.decode(args.Key)
+	userID, seq, err := Decode(args.Key)
 	if err != nil {
 		log.Error("decode(\"%s\") error(%s)", args.Key, err)
 		return
