@@ -13,5 +13,5 @@ func NewDefaultAuther() *DefaultAuther {
 }
 
 func (a *DefaultAuther) Auth(token string) (userID int64) {
-	return 111
+	return 0
 }
