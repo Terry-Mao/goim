@@ -5,13 +5,11 @@ import (
 	proto "github.com/Terry-Mao/goim/proto/router"
 	"github.com/Terry-Mao/gopush-cluster/ketama"
 	"github.com/Terry-Mao/protorpc"
+	rpc "github.com/Terry-Mao/protorpc"
 	"strconv"
 )
 
-var (
-	routerServiceMap = map[string]*protorpc.Client{}
-	routerRing       *ketama.HashRing
-
+const (
 	routerService            = "RouterRPC"
 	routerServicePing        = "RouterRPC.Ping"
 	routerServiceConnect     = "RouterRPC.Connect"
@@ -21,23 +19,31 @@ var (
 	routerServiceGetSeqCount = "RouterRPC.GetSeqCount"
 )
 
-func InitRouterRpc(addrs []string) (err error) {
-	var r *protorpc.Client
+var (
+	routerServiceMap = map[string]*protorpc.Client{}
+	routerRing       *ketama.HashRing
+	routerQuit       = make(chan struct{}, 1)
+)
+
+func InitRouter() (err error) {
+	var (
+		r *rpc.Client
+		i = 0
+	)
 	routerRing = ketama.NewRing(ketama.Base)
-	for _, addr := range addrs {
-		r, err = protorpc.Dial("tcp", addr)
+	for serverId, addr := range Conf.RouterRPCAddrs {
+		r, err = rpc.Dial(Conf.RouterRPCNetworks[i], addr)
 		if err != nil {
-			log.Error("protorpc.Dial(\"%s\") error(%s)", addr, err)
+			log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", Conf.RouterRPCNetworks[i], addr, err)
 			return
 		}
-		var quit chan struct{}
-		go protorpc.Reconnect(&r, quit, "tcp", addr)
-		log.Debug("router protorpc addr:%s connect", addr)
-		routerServiceMap[addr] = r
-		routerRing.AddNode(addr, 1)
+		go rpc.Reconnect(&r, routerQuit, Conf.RouterRPCNetworks[i], addr)
+		log.Debug("router rpc addr:%s connect", addr)
+		routerServiceMap[serverId] = r
+		routerRing.AddNode(serverId, 1)
+		i++
 	}
 	routerRing.Bake()
-
 	return
 }
 

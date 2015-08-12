@@ -183,7 +183,6 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 
 	divide := make(map[int32][]string) //map[comet.serverId]userIds
 	routers := getRouters()
-	l := len(routers)
 	for serverId, _ := range routers {
 		//TODO: muti-routine get
 		reply, err := getAllSubkeys(serverId)
