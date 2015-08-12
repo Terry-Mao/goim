@@ -302,13 +302,13 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 	} else {
 		proto.Body = nil
 	}
-	log.Debug("read proto: %s", proto)
+	log.Debug("read proto: %v", proto)
 	return
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
 func (server *Server) writeTCPResponse(wr *bufio.Writer, pb []byte, proto *Proto) (err error) {
-	log.Debug("write proto: %s", proto)
+	log.Debug("write proto: %v", proto)
 	BigEndian.PutInt32(pb[:packLenSize], int32(rawHeaderLen)+int32(len(proto.Body)))
 	if _, err = wr.Write(pb[:packLenSize]); err != nil {
 		return

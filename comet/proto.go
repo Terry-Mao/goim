@@ -1,8 +1,8 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"encoding/json"
+	"fmt"
 )
 
 const (
@@ -33,6 +33,6 @@ func (p *Proto) Reset() {
 	*p = emptyProto
 }
 
-func (p *Proto) String() {
-	log.Debug("\n-------- proto --------\nver: %d\nop: %d\nseq: %d\nbody: %s\n", p.Ver, p.Operation, p.SeqId, string(p.Body))
+func (p *Proto) String() string {
+	return fmt.Sprintf("\n-------- proto --------\nver: %d\nop: %d\nseq: %d\nbody: %s\n-----------------------", p.Ver, p.Operation, p.SeqId, string(p.Body))
 }
