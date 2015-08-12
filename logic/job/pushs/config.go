@@ -29,9 +29,10 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		Comets:     make(map[int32]string),
-		ZKRoot:     "",
-		KafkaTopic: "kafka_topic_push",
+		Comets:         make(map[int32]string),
+		ZKRoot:         "",
+		KafkaTopic:     "kafka_topic_push",
+		RouterRPCAddrs: make(map[int32]string),
 	}
 }
 
