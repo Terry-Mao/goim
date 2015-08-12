@@ -18,18 +18,19 @@ func main() {
 	defer log.Close()
 	log.Info("logic[%s] start", Ver)
 	perf.Init(Conf.PprofAddrs)
+	// router rpc
 	if err := InitRouter(); err != nil {
-		panic(err)
-	}
-	// init http
-	if err := InitHTTP(); err != nil {
-		panic(err)
+		log.Warn("router rpc current can't connect, retry")
 	}
 	// start rpc
 	if err := InitRPC(NewDefaultAuther()); err != nil {
 		panic(err)
 	}
 	if err := InitKafka(Conf.KafkaAddrs); err != nil {
+		panic(err)
+	}
+	// init http
+	if err := InitHTTP(); err != nil {
 		panic(err)
 	}
 	// block until a signal is received.

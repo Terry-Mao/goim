@@ -21,6 +21,10 @@ func main() {
 	defer log.Close()
 	log.Info("comet[%s] start", Ver)
 	perf.Init(Conf.PprofBind)
+	// logic rpc
+	if err := InitLogicRpc(Conf.LogicNetwork, Conf.LogicAddr); err != nil {
+		log.Warn("logic rpc current can't connect, retry")
+	}
 	// new server
 	buckets := make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
@@ -43,9 +47,6 @@ func main() {
 	}
 	// start rpc
 	if err := InitRPCPush(); err != nil {
-		panic(err)
-	}
-	if err := InitLogicRpc(Conf.LogicNetwork, Conf.LogicAddr); err != nil {
 		panic(err)
 	}
 	// block until a signal is received.

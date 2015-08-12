@@ -4,7 +4,6 @@ import (
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	lproto "github.com/Terry-Mao/goim/proto/logic"
-	rproto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
 	"net"
 )
@@ -54,18 +53,13 @@ func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 		log.Error("Connect() error(%v)", err)
 		return
 	}
-	// get userID from third implementation.
-	// developer could implement "ThirdAuth" interface for decide how get userID
-	userID := r.auther.Auth(args.Token)
-	// notice router which connected
-	c := RouterClient(userID)
-	arg := &rproto.ConnArg{UserId: userID, Server: args.Server}
-	reply := &rproto.ConnReply{}
-	if err = c.Call(routerServiceConnect, arg, reply); err != nil {
-		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceConnect, *arg, err)
-		return
+	var (
+		uid = r.auther.Auth(args.Token)
+		seq int32
+	)
+	if seq, err = connect(uid, args.Server); err == nil {
+		rep.Key = Encode(uid, seq)
 	}
-	rep.Key = Encode(userID, reply.Seq)
 	return
 }
 
@@ -76,19 +70,14 @@ func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err
 		log.Error("Disconnect() error(%v)", err)
 		return
 	}
-	userID, seq, err := Decode(args.Key)
-	if err != nil {
+	var (
+		uid int64
+		seq int32
+	)
+	if uid, seq, err = Decode(args.Key); err != nil {
 		log.Error("decode(\"%s\") error(%s)", args.Key, err)
 		return
 	}
-	// notice router which disconnected
-	c := RouterClient(userID)
-	arg := &rproto.DisconnArg{UserId: userID, Seq: seq}
-	reply := &rproto.DisconnReply{}
-	if err = c.Call(routerServiceDisconnect, arg, reply); err != nil {
-		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceDisconnect, *arg, err)
-		return
-	}
-	rep.Has = reply.Has
+	rep.Has, err = disconnect(uid, seq)
 	return
 }

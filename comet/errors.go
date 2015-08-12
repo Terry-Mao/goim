@@ -24,4 +24,6 @@ var (
 	ErrPushMsgsArg  = errors.New("rpc pushmsgs arg error")
 	ErrMPushMsgArg  = errors.New("rpc mpushmsg arg error")
 	ErrMPushMsgsArg = errors.New("rpc mpushmsgs arg error")
+	// rpc
+	ErrLogic = errors.New("logic rpc is not available")
 )
