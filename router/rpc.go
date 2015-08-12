@@ -55,9 +55,7 @@ func (r *RouterRPC) Disconnect(arg *proto.DisconnArg, reply *proto.DisconnReply)
 }
 
 func (r *RouterRPC) Get(arg *proto.GetArg, reply *proto.GetReply) error {
-	seqs, servers := r.bucket(arg.UserId).Get(arg.UserId)
-	reply.Seqs = seqs
-	reply.Servers = servers
+	reply.Seqs, reply.Servers = r.bucket(arg.UserId).Get(arg.UserId)
 	return nil
 }
 
@@ -95,7 +93,6 @@ func (r *RouterRPC) MGet(arg *proto.MGetArg, reply *proto.MGetReply) error {
 		session.Seqs, session.Servers = r.bucket(userId).Get(userId)
 		reply.UserIds[i] = userId
 		reply.Sessions[i] = session
-		log.Debug("seqs:%v servers:%v", session.Seqs, session.Servers)
 	}
 	return nil
 }
