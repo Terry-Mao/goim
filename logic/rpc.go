@@ -3,6 +3,7 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"fmt"
+	inet "github.com/Terry-Mao/goim/libs/net"
 	lproto "github.com/Terry-Mao/goim/proto/logic"
 	rproto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
@@ -11,14 +12,21 @@ import (
 	"strings"
 )
 
-func InitRPC(auther Auther) error {
-	c := &RPC{auther: auther}
+func InitRPC(auther Auther) (err error) {
+	var (
+		network, addr string
+		c             = &RPC{auther: auther}
+	)
 	rpc.Register(c)
 	for i := 0; i < len(Conf.RPCAddrs); i++ {
 		log.Info("start listen rpc addr: \"%s\"", Conf.RPCAddrs[i])
-		go rpcListen(Conf.RPCNetworks[i], Conf.RPCAddrs[i])
+		if network, addr, err = inet.ParseNetwork(Conf.RPCAddrs[i]); err != nil {
+			log.Error("inet.ParseNetwork() error(%v)", err)
+			return
+		}
+		go rpcListen(network, addr)
 	}
-	return nil
+	return
 }
 
 func rpcListen(network, addr string) {
