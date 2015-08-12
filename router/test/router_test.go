@@ -1,13 +1,13 @@
 package test
 
 import (
-	"github.com/Terry-Mao/goim/proto"
-	rpc "github.com/Terry-Mao/goim/protorpc"
+	proto "github.com/Terry-Mao/goim/proto/router"
+	rpc "github.com/Terry-Mao/protorpc"
 	"testing"
 )
 
 func TestRouterConnect(t *testing.T) {
-	c, err := rpc.Dial("tcp", "localhost:9090")
+	c, err := rpc.Dial("tcp", "localhost:7270")
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -37,7 +37,7 @@ func TestRouterConnect(t *testing.T) {
 }
 
 func TestRouterDisconnect(t *testing.T) {
-	c, err := rpc.Dial("tcp", "localhost:9090")
+	c, err := rpc.Dial("tcp", "localhost:7270")
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -69,7 +69,7 @@ func TestRouterDisconnect(t *testing.T) {
 }
 
 func TestRouterGet(t *testing.T) {
-	c, err := rpc.Dial("tcp", "localhost:9090")
+	c, err := rpc.Dial("tcp", "localhost:7270")
 	if err != nil {
 		t.Error(err)
 		t.FailNow()

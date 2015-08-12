@@ -15,7 +15,7 @@ func ParseNetwork(str string) (network, addr string, err error) {
 		return
 	} else {
 		network = str[:idx]
-		addr = str[idx:]
+		addr = str[idx+1:]
 		return
 	}
 }

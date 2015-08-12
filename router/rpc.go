@@ -15,7 +15,7 @@ func InitRPC(bs []*Bucket) (err error) {
 	)
 	rpc.Register(c)
 	for i := 0; i < len(Conf.RPCAddrs); i++ {
-		log.Info("start listen rpc addr: \"%s\":\"%s\"", Conf.RPCAddrs[i])
+		log.Info("start listen rpc addr: \"%s\"", Conf.RPCAddrs[i])
 		if network, addr, err = inet.ParseNetwork(Conf.RPCAddrs[i]); err != nil {
 			log.Error("inet.ParseNetwork() error(%v)", err)
 			return
