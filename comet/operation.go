@@ -2,7 +2,6 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	proto "github.com/Terry-Mao/goim/proto/logic"
 	"time"
 )
 
@@ -62,25 +61,16 @@ func (operator *DefaultOperator) Operate(p *Proto) error {
 }
 
 func (operator *DefaultOperator) Connect(p *Proto) (key string, heartbeat time.Duration, err error) {
-	arg := &proto.ConnArg{Token: string(p.Body), Server: Conf.ServerId}
-	reply := &proto.ConnReply{}
-	if err = logicRpcClient.Call(logicServiceConnect, arg, reply); err != nil {
-		log.Error("c.Call(\"%s\", 0, &ret) error(%v)", logicServiceConnect, err)
-		return
-	}
-	heartbeat = 5 * 60 * time.Second
-	key = reply.Key
+	key, heartbeat, err = connect(p)
 	return
 }
 
 func (operator *DefaultOperator) Disconnect(key string) (err error) {
-	arg := &proto.DisconnArg{Key: key}
-	reply := &proto.DisconnReply{}
-	if err = logicRpcClient.Call(logicServiceDisconnect, arg, reply); err != nil {
-		log.Error("c.Call(\"%s\", 0, &ret) error(%v)", logicServiceConnect, err)
+	var has bool
+	if has, err = disconnect(key); err != nil {
 		return
 	}
-	if !reply.Has {
+	if has {
 		log.Warn("disconnect key: \"%s\" not exists", key)
 	}
 	return
