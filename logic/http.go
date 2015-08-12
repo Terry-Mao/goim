@@ -85,7 +85,7 @@ func Push(w http.ResponseWriter, r *http.Request) {
 }
 */
 
-// {"m":"{"test":1}","u":"1,2,3"}
+// {"m":{"test":1},"u":"1,2,3"}
 func Pushs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed", 405)
@@ -113,14 +113,15 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 
 	m := divideNode(userIds)
 	divide := make(map[int32][]string) //map[comet.serverId]userIds
-	for addr, us := range m {
-		reply, err := getSubkeys(addr, us)
+	for serverId, us := range m {
+		//TODO: muti-routine get
+		reply, err := getSubkeys(serverId, us)
 		if err != nil {
 			res["ret"] = InternalErr
-			log.Error("getSubkeys(\"%s\") error(%s)", addr, err)
+			log.Error("getSubkeys(\"%s\") error(%s)", serverId, err)
 			return
 		}
-		log.Debug("getSubkeys:%v addr:%s", reply.UserIds, addr)
+		log.Debug("getSubkeys:%v serverId:%s", reply.UserIds, serverId)
 		for j := 0; j < len(reply.UserIds); j++ {
 			s := reply.Sessions[j]
 			log.Debug("sessions seqs:%v serverids:%v", s.Seqs, s.Servers)
@@ -148,8 +149,8 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 }
 
 type pushsBodyMsg struct {
-	Msg     []byte  `json:"m"`
-	UserIds []int64 `json:"u"`
+	Msg     json.RawMessage `json:"m"`
+	UserIds []int64         `json:"u"`
 }
 
 func parsePushsBody(body []byte) (msg []byte, userIds []int64, err error) {
@@ -182,15 +183,15 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 
 	divide := make(map[int32][]string) //map[comet.serverId]userIds
 	routers := getRouters()
-	for addr, _ := range routers {
+	for serverId, _ := range routers {
 		//TODO: muti-routine get
-		reply, err := getAllSubkeys(addr)
+		reply, err := getAllSubkeys(serverId)
 		if err != nil {
 			res["ret"] = InternalErr
-			log.Error("getAllSubkeys(\"%s\") error(%s)", addr, err)
+			log.Error("getAllSubkeys(\"%s\") error(%s)", serverId, err)
 			return
 		}
-		log.Debug("addr:%s getSubkeys:%v", addr, reply.UserIds)
+		log.Debug("serverId:%s getSubkeys:%v", serverId, reply.UserIds)
 		for j := 0; j < len(reply.UserIds); j++ {
 			s := reply.Sessions[j]
 			log.Debug("sessions seqs:%v serverids:%v", s.Seqs, s.Servers)

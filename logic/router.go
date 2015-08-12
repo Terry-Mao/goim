@@ -23,18 +23,22 @@ const (
 )
 
 func InitRouter() (err error) {
-	var r *rpc.Client
+	var (
+		r *rpc.Client
+		i = 0
+	)
 	routerRing = ketama.NewRing(ketama.Base)
-	for i := 0; i < len(Conf.RouterRPCAddrs); i++ {
-		r, err = rpc.Dial(Conf.RouterRPCNetworks[i], Conf.RouterRPCAddrs[i])
+	for serverId, addr := range Conf.RouterRPCAddrs {
+		r, err = rpc.Dial(Conf.RouterRPCNetworks[i], addr)
 		if err != nil {
-			log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", Conf.RouterRPCNetworks[i], Conf.RouterRPCAddrs[i], err)
+			log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", Conf.RouterRPCNetworks[i], addr, err)
 			return
 		}
-		go rpc.Reconnect(&r, routerQuit, Conf.RouterRPCNetworks[i], Conf.RouterRPCAddrs[i])
-		log.Debug("router rpc addr:%s connect", Conf.RouterRPCAddrs[i])
-		routerServiceMap[Conf.RouterRPCAddrs[i]] = r
-		routerRing.AddNode(Conf.RouterRPCAddrs[i], 1)
+		go rpc.Reconnect(&r, routerQuit, Conf.RouterRPCNetworks[i], addr)
+		log.Debug("router rpc addr:%s connect", addr)
+		routerServiceMap[serverId] = r
+		routerRing.AddNode(serverId, 1)
+		i++
 	}
 	routerRing.Bake()
 	return
@@ -73,19 +77,19 @@ func divideNode(userIds []int64) map[string][]int64 {
 	return m
 }
 
-func getSubkeys(routerAddr string, userIds []int64) (reply *rproto.MGetReply, err error) {
+func getSubkeys(serverId string, userIds []int64) (reply *rproto.MGetReply, err error) {
 	arg := &rproto.MGetArg{UserIds: userIds}
 	reply = &rproto.MGetReply{}
-	if err = routerServiceMap[routerAddr].Call(routerServiceMGet, arg, reply); err != nil {
-		log.Error("routerServiceMap[routerAddr].Call(\"%s\",\"%v\") error(%s)", routerServiceMGet, *arg, err)
+	if err = routerServiceMap[serverId].Call(routerServiceMGet, arg, reply); err != nil {
+		log.Error("routerServiceMap[serverId].Call(\"%s\",\"%v\") error(%s)", routerServiceMGet, *arg, err)
 	}
 	return
 }
 
-func getAllSubkeys(routerAddr string) (reply *rproto.GetAllReply, err error) {
+func getAllSubkeys(serverId string) (reply *rproto.GetAllReply, err error) {
 	reply = &rproto.GetAllReply{}
-	if err = routerServiceMap[routerAddr].Call(routerServiceGetAll, nil, reply); err != nil {
-		log.Error("routerServiceMap[routerAddr].Call(\"%s\") error(%s)", routerServiceGetAll, err)
+	if err = routerServiceMap[serverId].Call(routerServiceGetAll, nil, reply); err != nil {
+		log.Error("routerServiceMap[serverId].Call(\"%s\") error(%s)", routerServiceGetAll, err)
 	}
 	return
 }

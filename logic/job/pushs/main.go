@@ -37,7 +37,7 @@ func main() {
 	}
 
 	log.LoadConfiguration(Conf.Log)
-	if err := InitRouterRpc(Conf.RouterAddrs); err != nil {
+	if err := InitRouter(); err != nil {
 		panic(err)
 	}
 	if err := InitCometRpc(Conf.Comets); err != nil {

@@ -47,8 +47,8 @@ type Config struct {
 	HTTPReadTimeout  time.Duration `goconf:"base:http.read.timeout:time"`
 	HTTPWriteTimeout time.Duration `goconf:"base:http.write.timeout:time"`
 	// router RPC
-	RouterRPCNetworks []string `goconf:"router:networks:,"`
-	RouterRPCAddrs    []string `goconf:"router:addrs:,"`
+	RouterRPCNetworks []string          `goconf:"router:networks:,"`
+	RouterRPCAddrs    map[string]string `-`
 	// kafka
 	KafkaAddrs []string `goconf:"kafka:addrs"`
 }
@@ -56,11 +56,12 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		// base section
-		PidFile:    "/tmp/gopush-cluster-logic.pid",
-		Dir:        "./",
-		Log:        "./log/xml",
-		MaxProc:    runtime.NumCPU(),
-		PprofAddrs: []string{"localhost:6971"},
+		PidFile:        "/tmp/gopush-cluster-logic.pid",
+		Dir:            "./",
+		Log:            "./log/xml",
+		MaxProc:        runtime.NumCPU(),
+		PprofAddrs:     []string{"localhost:6971"},
+		RouterRPCAddrs: make(map[string]string),
 	}
 }
 
@@ -76,6 +77,13 @@ func InitConfig() (err error) {
 	}
 	if len(Conf.RPCNetworks) != len(Conf.RPCAddrs) || len(Conf.RouterRPCNetworks) != len(Conf.RouterRPCAddrs) || len(Conf.HTTPNetworks) != len(Conf.HTTPAddrs) {
 		return ErrRPCConfig
+	}
+	for _, serverID := range gconf.Get("router.addrs").Keys() {
+		addr, err := gconf.Get("router.addrs").String(serverID)
+		if err != nil {
+			return err
+		}
+		Conf.RouterRPCAddrs[serverID] = addr
 	}
 	return nil
 }
