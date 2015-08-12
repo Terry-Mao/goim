@@ -2,8 +2,8 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	proto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
-	proto "github.com/thinkboy/goim/proto/router"
 	"net"
 )
 
@@ -55,27 +55,26 @@ func (r *RouterRPC) Disconnect(arg *proto.DisconnArg, reply *proto.DisconnReply)
 }
 
 func (r *RouterRPC) Get(arg *proto.GetArg, reply *proto.GetReply) error {
-	seqs, servers := r.bucket(arg.UserId).Get(arg.UserId)
-	reply.Seqs = seqs
-	reply.Servers = servers
+	reply.Seqs, reply.Servers = r.bucket(arg.UserId).Get(arg.UserId)
 	return nil
 }
 
 func (r *RouterRPC) GetAll(arg *proto.NoArg, reply *proto.GetAllReply) error {
 	var (
-		session *proto.GetReply
-		userIds []int64
-		i, j    = int64(0), 0
+		i             int64
+		j             int
+		userIds       []int64
+		seqs, servers [][]int32
+		session       *proto.GetReply
 	)
 	for i = 0; i < r.BucketIdx; i++ {
-		userIds = r.Buckets[i].AllUsers()
+		userIds, seqs, servers = r.Buckets[i].GetAll()
+		reply.UserIds = append(reply.UserIds, userIds...)
 		for j = 0; j < len(userIds); j++ {
 			session = new(proto.GetReply)
-			session.Seqs, session.Servers = r.bucket(userIds[j]).Get(userIds[j])
+			session.Seqs, session.Servers = seqs[j], servers[j]
 			reply.Sessions = append(reply.Sessions, session)
-			log.Debug("seqs:%v servers:%v", session.Seqs, session.Servers)
 		}
-		reply.UserIds = append(reply.UserIds, userIds...)
 	}
 	return nil
 }
@@ -94,7 +93,6 @@ func (r *RouterRPC) MGet(arg *proto.MGetArg, reply *proto.MGetReply) error {
 		session.Seqs, session.Servers = r.bucket(userId).Get(userId)
 		reply.UserIds[i] = userId
 		reply.Sessions[i] = session
-		log.Debug("seqs:%v servers:%v", session.Seqs, session.Servers)
 	}
 	return nil
 }

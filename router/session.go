@@ -25,9 +25,19 @@ func (s *Session) Put(server int32) (seq int32) {
 	return
 }
 
-func (s *Session) Servers() map[int32]int32 {
-	// must readonly
-	return s.servers
+func (s *Session) Servers() (seqs []int32, servers []int32) {
+	var (
+		i           = len(s.servers)
+		seq, server int32
+	)
+	seqs = make([]int32, i)
+	servers = make([]int32, i)
+	for seq, server = range s.servers {
+		i--
+		seqs[i] = seq
+		servers[i] = server
+	}
+	return
 }
 
 // Del delete the session by sub key.

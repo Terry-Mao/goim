@@ -22,6 +22,5 @@ func InitLogicRpc(network, addr string) (err error) {
 	}
 	go protorpc.Reconnect(&logicRpcClient, logicRpcQuit, "tcp", addr)
 	log.Debug("logic rpc addr %s:%s connected", network, addr)
-
 	return
 }

@@ -3,8 +3,8 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/hash/ketama"
+	rproto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
-	rproto "github.com/thinkboy/goim/proto/router"
 	"strconv"
 )
 

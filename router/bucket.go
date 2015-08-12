@@ -39,30 +39,24 @@ func (b *Bucket) Put(userId int64, server int32) (seq int32) {
 }
 
 func (b *Bucket) Get(userId int64) (seqs []int32, servers []int32) {
-	var (
-		s      *Session
-		seq    int32
-		server int32
-		ok     bool
-	)
 	b.bLock.RLock()
-	if s, ok = b.sessions[userId]; ok {
-		seqs = make([]int32, 0, len(s.Servers()))
-		servers = make([]int32, 0, len(s.Servers()))
-		for seq, server = range s.Servers() {
-			seqs = append(seqs, seq)
-			servers = append(servers, server)
-		}
+	if s, ok := b.sessions[userId]; ok {
+		seqs, servers = s.Servers()
 	}
 	b.bLock.RUnlock()
 	return
 }
 
-func (b *Bucket) AllUsers() (userIds []int64) {
+func (b *Bucket) GetAll() (userIds []int64, seqs [][]int32, servers [][]int32) {
 	b.bLock.RLock()
-	userIds = make([]int64, 0, len(b.sessions))
-	for userId, _ := range b.sessions {
-		userIds = append(userIds, userId)
+	i := len(b.sessions)
+	userIds = make([]int64, i)
+	seqs = make([][]int32, i)
+	servers = make([][]int32, i)
+	for userId, session := range b.sessions {
+		i--
+		userIds[i] = userId
+		seqs[i], servers[i] = session.Servers()
 	}
 	b.bLock.RUnlock()
 	return
