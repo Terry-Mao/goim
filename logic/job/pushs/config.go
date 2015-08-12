@@ -32,7 +32,7 @@ func NewConfig() *Config {
 		Comets:         make(map[int32]string),
 		ZKRoot:         "",
 		KafkaTopic:     "kafka_topic_push",
-		RouterRPCAddrs: make(map[int32]string),
+		RouterRPCAddrs: make(map[string]string),
 	}
 }
 
