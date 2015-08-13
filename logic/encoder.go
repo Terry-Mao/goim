@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-func Encode(userId int64, seq int32) string {
+func encode(userId int64, seq int32) string {
 	return fmt.Sprintf("%d_%d", userId, seq)
 }
 
-func Decode(key string) (userId int64, seq int32, err error) {
+func decode(key string) (userId int64, seq int32, err error) {
 	var (
 		idx int
 		t   int64
