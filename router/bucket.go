@@ -53,10 +53,10 @@ func (b *Bucket) GetAll() (userIds []int64, seqs [][]int32, servers [][]int32) {
 	userIds = make([]int64, i)
 	seqs = make([][]int32, i)
 	servers = make([][]int32, i)
-	for userId, session := range b.sessions {
+	for userId, s := range b.sessions {
 		i--
 		userIds[i] = userId
-		seqs[i], servers[i] = session.Servers()
+		seqs[i], servers[i] = s.Servers()
 	}
 	b.bLock.RUnlock()
 	return

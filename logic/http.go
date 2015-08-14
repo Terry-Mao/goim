@@ -71,40 +71,6 @@ func parsePushsBody(body []byte) (msg []byte, userIds []int64, err error) {
 	return
 }
 
-/*
-func Push(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Method Not Allowed", 405)
-		return
-	}
-	body := ""
-	res := map[string]interface{}{"ret": OK}
-	defer retPWrite(w, r, res, &body, time.Now())
-	// param
-	bodyBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		res["ret"] = InternalErr
-		log.Error("ioutil.ReadAll() failed (%v)", err)
-		return
-	}
-	body = string(bodyBytes)
-	params := r.URL.Query()
-	userId, err := strconv.ParseInt(params.Get("userid"), 10, 64)
-	if err != nil {
-		res["ret"] = InternalErr
-		return
-	}
-	// push to queue
-	if err := pushTokafka(userId, bodyBytes); err != nil {
-		res["ret"] = InternalErr
-		log.Error("pushTokafka(%d) error(%v)", userId, err)
-		return
-	}
-	res["ret"] = OK
-	return
-}
-*/
-
 // {"m":{"test":1},"u":"1,2,3"}
 func Pushs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -144,7 +110,7 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 			s := reply.Sessions[j]
 			log.Debug("sessions seqs:%v serverids:%v", s.Seqs, s.Servers)
 			for i := 0; i < len(s.Seqs); i++ {
-				subkey := Encode(reply.UserIds[j], s.Seqs[i])
+				subkey := encode(reply.UserIds[j], s.Seqs[i])
 				subkeys, ok := divide[s.Servers[i]]
 				if !ok {
 					subkeys = make([]string, 0, 1000) // TODO:consider
@@ -196,7 +162,7 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 			s := reply.Sessions[j]
 			log.Debug("sessions seqs:%v serverids:%v", s.Seqs, s.Servers)
 			for i := 0; i < len(s.Seqs); i++ {
-				subkey := Encode(reply.UserIds[j], s.Seqs[i])
+				subkey := encode(reply.UserIds[j], s.Seqs[i])
 				subkeys, ok := divide[s.Servers[i]]
 				if !ok {
 					subkeys = make([]string, 0, 1000) //TODO:consider
