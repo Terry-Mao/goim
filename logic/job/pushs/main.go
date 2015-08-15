@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"runtime"
@@ -92,6 +91,7 @@ func main() {
 	}
 }
 
+//TODO move to public
 type KafkaPushs struct {
 	Subkeys []string `json:"subkeys"`
 	Msg     []byte   `json:"msg"`
@@ -118,14 +118,12 @@ func push(serverId int32, msg []byte) (err error) {
 		return
 	}
 
-	c, ok := cometServiceMap[serverId]
-	if !ok {
-		err = fmt.Errorf("no serverId:%d, then ignore", serverId)
-		log.Error(err)
+	c, err := getClient(serverId)
+	if err != nil {
+		log.Error("getClient(\"%d\") error(%v)", serverId, err)
 		return
 	}
 	log.Debug("push to comet serverId:%d", serverId)
-
 	i := 0
 	wg := sync.WaitGroup{}
 	loop := len(tmp.Subkeys) / PUSH_MAX_BLOCK
