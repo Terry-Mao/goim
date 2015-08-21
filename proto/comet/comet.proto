@@ -50,3 +50,9 @@ message MPushMsgsArg {
 message MPushMsgsReply {
     int32 index = 1;
 }
+
+message BoardcastArg {
+    int32 ver = 1;
+    int32 operation = 2;
+    bytes msg = 3;
+}
