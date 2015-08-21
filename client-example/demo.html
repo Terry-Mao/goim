@@ -1,0 +1,19 @@
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>client demo</title>
+  </head>
+  <body>
+    <h1>client demo</h1>
+    <script src="client.js"></script>
+    <script>
+      var client = new MyClient({
+        notify: function(data) {
+          alert(data);
+        }
+      });
+    </script>
+  </body>
+</html>
