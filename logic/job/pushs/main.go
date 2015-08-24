@@ -13,7 +13,6 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/Terry-Mao/goim/define"
 	cproto "github.com/Terry-Mao/goim/proto/comet"
-	rproto "github.com/Terry-Mao/goim/proto/router"
 	"github.com/Terry-Mao/protorpc"
 	"github.com/wvanbergen/kafka/consumergroup"
 )
@@ -36,9 +35,6 @@ func main() {
 	}
 
 	log.LoadConfiguration(Conf.Log)
-	if err := InitRouter(); err != nil {
-		panic(err)
-	}
 	if err := InitCometRpc(Conf.Comets); err != nil {
 		panic(err)
 	}
@@ -94,14 +90,10 @@ func main() {
 // run consume msg.
 func run(cg *consumergroup.ConsumerGroup) {
 	for msg := range cg.Messages() {
-		log.Info("begin deal topic:%s, partitionId:%d, Offset:%d", msg.Topic, msg.Partition, msg.Offset)
+		log.Info("deal with topic:%s, partitionId:%d, Offset:%d, Key:%s msg:%s", msg.Topic, msg.Partition, msg.Offset, msg.Key, msg.Value)
 		// key eg  : message type
 		// value eg: KafkaPushsMsg
-		if err := push(string(msg.Key), msg.Value); err != nil {
-			log.Error("push(\"%d\") error(%v), try again", msg.Key, err)
-		} else {
-			log.Info("end delt success, topic:%s, Offset:%d, Key:%s msg:%s", msg.Topic, msg.Offset, msg.Key, msg.Value)
-		}
+		push(string(msg.Key), msg.Value)
 		cg.CommitUpto(msg)
 	}
 }
@@ -113,35 +105,31 @@ func push(op string, msg []byte) (err error) {
 			log.Error("json.Unmarshal(%s) serverId:%d error(%s)", msg, err)
 			return
 		}
-		go multiPush(tmp.UserIds, tmp.Msg)
+		go multiPush(tmp.CometIds, tmp.Subkeys, tmp.Msg)
 	} else if op == define.KAFKA_MESSAGE_BROADCAST {
 		broadcast(msg)
+	} else {
+		log.Error("unknown message type:%s", op)
 	}
 
 	return
 }
 
 // multi-userids push
-func multiPush(userIds []int64, msg []byte) {
-	m := divideToRouter(userIds)    //m: map[router.serverId][]userId
-	divide, err := divideToComet(m) //divide: map[comet.serverId][]subkey
-	if err != nil {
-		log.Error("divideToComet() error(%v)", err)
-		return
-	}
-	for cometId, subkeys := range divide {
-		c, err := getCometByServerId(cometId)
+func multiPush(cometIds []int32, subkeys [][]string, msg []byte) {
+	for j := 0; j < len(cometIds); j++ {
+		c, err := getCometByServerId(cometIds[j])
 		if err != nil {
-			log.Error("getCometByServerId(\"%d\") error(%v)", cometId, err)
+			log.Error("getCometByServerId(\"%d\") error(%v)", cometIds[j], err)
 			return
 		}
-		log.Debug("push to comet serverId:%d", cometId)
+		log.Debug("push to comet serverId:%d", cometIds[j])
 		i := 0
-		loop := len(subkeys) / PUSH_MAX_BLOCK
+		loop := len(subkeys[j]) / PUSH_MAX_BLOCK
 		for i = 0; i < loop; i++ {
-			go pushsMsgToComet(cometId, c, subkeys[i*PUSH_MAX_BLOCK:(i+1)*PUSH_MAX_BLOCK], msg)
+			go pushsMsgToComet(cometIds[j], c, subkeys[j][i*PUSH_MAX_BLOCK:(i+1)*PUSH_MAX_BLOCK], msg)
 		}
-		go pushsMsgToComet(cometId, c, subkeys[i*PUSH_MAX_BLOCK:], msg)
+		go pushsMsgToComet(cometIds[j], c, subkeys[j][i*PUSH_MAX_BLOCK:], msg)
 	}
 }
 
@@ -154,34 +142,6 @@ func broadcast(msg []byte) {
 		}
 		go broadcastToComet(serverId, *c, msg)
 	}
-}
-
-// get subkeys from all routers and divide by comet-server-id
-func divideToComet(m map[string][]int64) (divide map[int32][]string, err error) {
-	divide = make(map[int32][]string) //map[comet.serverId][]subkey
-	for routerId, us := range m {
-		// TODO muti-routine get
-		var reply *rproto.MGetReply
-		reply, err = getSubkeys(routerId, us)
-		if err != nil {
-			log.Error("getSubkeys(\"%s\") error(%s)", routerId, err)
-			return
-		}
-		log.Debug("getSubkeys:%v routerId:%s", reply.UserIds, routerId)
-		for j := 0; j < len(reply.UserIds); j++ {
-			s := reply.Sessions[j]
-			log.Debug("sessions seqs:%v serverids:%v", s.Seqs, s.Servers)
-			for i := 0; i < len(s.Seqs); i++ {
-				subkey := define.Encode(reply.UserIds[j], s.Seqs[i])
-				subkeys, ok := divide[s.Servers[i]]
-				if !ok {
-					subkeys = make([]string, 0, 1000) // TODO:consider
-				}
-				divide[s.Servers[i]] = append(subkeys, subkey)
-			}
-		}
-	}
-	return
 }
 
 func pushsMsgToComet(serverId int32, c *protorpc.Client, subkeys []string, body []byte) {

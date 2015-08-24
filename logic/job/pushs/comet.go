@@ -2,9 +2,9 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/define"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	"github.com/Terry-Mao/protorpc"
-	"github.com/thinkboy/goim/define"
 )
 
 var (

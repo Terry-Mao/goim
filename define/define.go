@@ -7,6 +7,7 @@ const (
 )
 
 type KafkaPushsMsg struct {
-	UserIds []int64 `json:"userids"`
-	Msg     []byte  `json:"msg"`
+	CometIds []int32    `cometid`
+	Subkeys  [][]string `json:"subkeys"`
+	Msg      []byte     `json:"msg"`
 }

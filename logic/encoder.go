@@ -1,22 +1,24 @@
-package define
+package main
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/Terry-Mao/goim/define"
 )
 
-func Encode(userId int64, seq int32) string {
+func encode(userId int64, seq int32) string {
 	return fmt.Sprintf("%d_%d", userId, seq)
 }
 
-func Decode(key string) (userId int64, seq int32, err error) {
+func decode(key string) (userId int64, seq int32, err error) {
 	var (
 		idx int
 		t   int64
 	)
 	if idx = strings.IndexByte(key, '_'); idx == -1 {
-		err = ErrDecodeKey
+		err = define.ErrDecodeKey
 		return
 	}
 	if userId, err = strconv.ParseInt(key[:idx], 10, 64); err != nil {
