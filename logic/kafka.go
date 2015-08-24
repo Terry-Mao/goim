@@ -24,10 +24,10 @@ func InitKafka(kafkaAddrs []string) (err error) {
 	return
 }
 
-func multiPushTokafka(userIds []int64, msg []byte) (err error) {
+func multiPushTokafka(cometIds []int32, subkeys [][]string, msg []byte) (err error) {
 	var (
 		vBytes []byte
-		v      = &define.KafkaPushsMsg{UserIds: userIds, Msg: msg}
+		v      = &define.KafkaPushsMsg{CometIds: cometIds, Subkeys: subkeys, Msg: msg}
 	)
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
@@ -36,7 +36,7 @@ func multiPushTokafka(userIds []int64, msg []byte) (err error) {
 	if _, _, err = producer.SendMessage(message); err != nil {
 		return
 	}
-	log.Debug("produce msg ok, userids:%v msg:%s", userIds, msg)
+	log.Debug("produce msg ok, msg:%s", msg)
 	return
 }
 

@@ -60,7 +60,7 @@ func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 		seq int32
 	)
 	if seq, err = connect(uid, args.Server); err == nil {
-		rep.Key = define.Encode(uid, seq)
+		rep.Key = encode(uid, seq)
 	}
 	return
 }
@@ -76,7 +76,7 @@ func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err
 		uid int64
 		seq int32
 	)
-	if uid, seq, err = define.Decode(args.Key); err != nil {
+	if uid, seq, err = decode(args.Key); err != nil {
 		log.Error("decode(\"%s\") error(%s)", args.Key, err)
 		return
 	}
