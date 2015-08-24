@@ -5,7 +5,7 @@ import (
 
 	log "code.google.com/p/log4go"
 	"github.com/Shopify/sarama"
-	"github.com/thinkboy/goim/define"
+	"github.com/Terry-Mao/goim/define"
 )
 
 const (

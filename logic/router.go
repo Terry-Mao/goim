@@ -4,11 +4,11 @@ import (
 	"strconv"
 
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/define"
 	"github.com/Terry-Mao/goim/libs/hash/ketama"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	rproto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
-	"github.com/thinkboy/goim/define"
 )
 
 var (

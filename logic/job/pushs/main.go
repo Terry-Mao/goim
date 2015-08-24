@@ -11,10 +11,10 @@ import (
 
 	log "code.google.com/p/log4go"
 	"github.com/Shopify/sarama"
+	"github.com/Terry-Mao/goim/define"
 	cproto "github.com/Terry-Mao/goim/proto/comet"
 	rproto "github.com/Terry-Mao/goim/proto/router"
 	"github.com/Terry-Mao/protorpc"
-	"github.com/thinkboy/goim/define"
 	"github.com/wvanbergen/kafka/consumergroup"
 )
 

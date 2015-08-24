@@ -4,11 +4,11 @@ import (
 	"strconv"
 
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/define"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	rproto "github.com/Terry-Mao/goim/proto/router"
 	"github.com/Terry-Mao/gopush-cluster/ketama"
 	rpc "github.com/Terry-Mao/protorpc"
-	"github.com/thinkboy/goim/define"
 )
 
 const (
