@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/Terry-Mao/goim/define"
 )
 
 func encode(userId int64, seq int32) string {
@@ -18,7 +16,7 @@ func decode(key string) (userId int64, seq int32, err error) {
 		t   int64
 	)
 	if idx = strings.IndexByte(key, '_'); idx == -1 {
-		err = define.ErrDecodeKey
+		err = ErrDecodeKey
 		return
 	}
 	if userId, err = strconv.ParseInt(key[:idx], 10, 64); err != nil {

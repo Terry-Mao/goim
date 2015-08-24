@@ -33,39 +33,30 @@ func main() {
 	if err := InitConfig(); err != nil {
 		panic(err)
 	}
-
 	log.LoadConfiguration(Conf.Log)
 	if err := InitCometRpc(Conf.Comets); err != nil {
 		panic(err)
 	}
-
 	log.Info("start topic:%s consumer", Conf.KafkaTopic)
 	runtime.GOMAXPROCS(runtime.NumCPU())
-
 	log.Info("consumer group name:%s", KAFKA_GROUP_NAME)
-
 	config := consumergroup.NewConfig()
 	config.Offsets.Initial = sarama.OffsetNewest
 	config.Offsets.ProcessingTimeout = OFFSETS_PROCESSING_TIMEOUT_SECONDS
 	config.Offsets.CommitInterval = OFFSETS_COMMIT_INTERVAL
 	config.Zookeeper.Chroot = Conf.ZKRoot
-
 	kafkaTopics := []string{Conf.KafkaTopic}
-
 	cg, err := consumergroup.JoinConsumerGroup(KAFKA_GROUP_NAME, kafkaTopics, Conf.ZKAddrs, config)
 	if err != nil {
 		panic(err)
 		return
 	}
-
 	go func() {
 		for err := range cg.Errors() {
 			log.Error("consumer error(%v)", err)
 		}
 	}()
-
 	go run(cg)
-
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, syscall.SIGSTOP)
 	for {
@@ -90,9 +81,8 @@ func main() {
 // run consume msg.
 func run(cg *consumergroup.ConsumerGroup) {
 	for msg := range cg.Messages() {
+		// key eg  : message type, value eg: KafkaPushsMsg
 		log.Info("deal with topic:%s, partitionId:%d, Offset:%d, Key:%s msg:%s", msg.Topic, msg.Partition, msg.Offset, msg.Key, msg.Value)
-		// key eg  : message type
-		// value eg: KafkaPushsMsg
 		push(string(msg.Key), msg.Value)
 		cg.CommitUpto(msg)
 	}
@@ -111,7 +101,6 @@ func push(op string, msg []byte) (err error) {
 	} else {
 		log.Error("unknown message type:%s", op)
 	}
-
 	return
 }
 
@@ -137,32 +126,36 @@ func multiPush(cometIds []int32, subkeys [][]string, msg []byte) {
 func broadcast(msg []byte) {
 	for serverId, c := range cometServiceMap {
 		if *c == nil {
-			log.Error("broadcast error(%v)", define.ErrComet)
+			log.Error("broadcast error(%v)", ErrComet)
 			return
 		}
-		go broadcastToComet(serverId, *c, msg)
+		go broadcastToComet(*c, serverId, msg)
 	}
 }
 
 func pushsMsgToComet(serverId int32, c *protorpc.Client, subkeys []string, body []byte) {
-	now := time.Now()
-	args := &cproto.MPushMsgArg{Keys: subkeys, Operation: OP_SEND_SMS_REPLY, Msg: body}
-	rep := &cproto.MPushMsgReply{}
-	if err := c.Call(CometServiceMPushMsg, args, rep); err != nil {
+	var (
+		now  = time.Now()
+		args = &cproto.MPushMsgArg{Keys: subkeys, Operation: OP_SEND_SMS_REPLY, Msg: body}
+		rep  = &cproto.MPushMsgReply{}
+		err  error
+	)
+	if err = c.Call(CometServiceMPushMsg, args, rep); err != nil {
 		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceMPushMsg, *args, err)
-		return
+	} else {
+		log.Info("push msg to serverId:%d index:%d(%f)", serverId, rep.Index, time.Now().Sub(now).Seconds())
 	}
-	log.Info("push msg to serverId:%d index:%d", serverId, rep.Index)
-	log.Debug("push seconds %f", time.Now().Sub(now).Seconds())
 }
 
-func broadcastToComet(serverId int32, c *protorpc.Client, msg []byte) {
-	now := time.Now()
-	args := &cproto.BoardcastArg{Ver: 0, Operation: OP_SEND_SMS_REPLY, Msg: msg}
-	if err := c.Call(CometServiceBroadcast, args, nil); err != nil {
+func broadcastToComet(c *protorpc.Client, serverId int32, msg []byte) {
+	var (
+		now  = time.Now()
+		args = &cproto.BoardcastArg{Ver: 0, Operation: OP_SEND_SMS_REPLY, Msg: msg}
+		err  error
+	)
+	if err = c.Call(CometServiceBroadcast, args, nil); err != nil {
 		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceBroadcast, *args, err)
-		return
+	} else {
+		log.Info("broadcast msg to serverId:%d msg:%s(%f)", serverId, msg, time.Now().Sub(now).Seconds())
 	}
-	log.Info("broadcast msg to serverId:%d msg:%s", serverId, msg)
-	log.Debug("push seconds %f", time.Now().Sub(now).Seconds())
 }

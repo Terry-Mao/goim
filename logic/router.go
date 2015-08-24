@@ -1,14 +1,12 @@
 package main
 
 import (
-	"strconv"
-
 	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/define"
 	"github.com/Terry-Mao/goim/libs/hash/ketama"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	rproto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
+	"strconv"
 )
 
 var (
@@ -58,7 +56,7 @@ func getRouters() map[string]**rpc.Client {
 
 func getRouterByServer(server string) (*rpc.Client, error) {
 	if client, ok := routerServiceMap[server]; !ok || *client == nil {
-		return nil, define.ErrRouter
+		return nil, ErrRouter
 	} else {
 		return *client, nil
 	}
@@ -70,26 +68,6 @@ func getRouterByUID(userID int64) (*rpc.Client, error) {
 
 func getRouterNode(userID int64) string {
 	return routerRing.Hash(strconv.FormatInt(userID, 10))
-}
-
-// divide userIds to corresponding
-// response: map[nodes]userIds
-func divideToRouter(userIds []int64) map[string][]int64 {
-	var (
-		m    = map[string][]int64{}
-		node string
-	)
-	for i := 0; i < len(userIds); i++ {
-		node = getRouterNode(userIds[i])
-		ids, ok := m[node]
-		if !ok {
-			ids = []int64{userIds[i]}
-		} else {
-			ids = append(ids, userIds[i])
-		}
-		m[node] = ids
-	}
-	return m
 }
 
 func connect(userID int64, server int32) (seq int32, err error) {
@@ -135,14 +113,49 @@ func getSubkeys(serverId string, userIds []int64) (reply *rproto.MGetReply, err 
 	return
 }
 
-func getAllSubkeys(serverId string) (reply *rproto.GetAllReply, err error) {
-	var client *rpc.Client
-	if client, err = getRouterByServer(serverId); err != nil {
-		return
+func divideToRouter(userIds []int64) (divide map[int32][]string, err error) {
+	var (
+		i, j         int
+		node, subkey string
+		subkeys      []string
+		reply        *rproto.MGetReply
+		server       int32
+		session      *rproto.GetReply
+		uid          int64
+		ids          []int64
+		ok           bool
+		m            = make(map[string][]int64)
+	)
+	divide = make(map[int32][]string) //map[comet.serverId][]subkey
+	for i = 0; i < len(userIds); i++ {
+		node = getRouterNode(userIds[i])
+		if ids, ok = m[node]; !ok {
+			ids = []int64{userIds[i]}
+		} else {
+			ids = append(ids, userIds[i])
+		}
+		m[node] = ids
 	}
-	reply = &rproto.GetAllReply{}
-	if err = client.Call(routerServiceGetAll, nil, reply); err != nil {
-		log.Error("client.Call(\"%s\") error(%s)", routerServiceGetAll, err)
+	// TODO muti-routine get
+	for node, ids = range m {
+		if reply, err = getSubkeys(node, ids); err != nil {
+			log.Error("getSubkeys(\"%s\") error(%s)", node, err)
+			return
+		}
+		for j = 0; j < len(reply.UserIds); j++ {
+			session = reply.Sessions[j]
+			uid = reply.UserIds[j]
+			for i = 0; i < len(session.Seqs); i++ {
+				subkey = encode(uid, session.Seqs[i])
+				server = session.Servers[i]
+				if subkeys, ok = divide[server]; !ok {
+					subkeys = []string{subkey}
+				} else {
+					subkeys = append(subkeys, subkey)
+				}
+				divide[server] = subkeys
+			}
+		}
 	}
 	return
 }

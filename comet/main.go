@@ -42,9 +42,6 @@ func main() {
 	if err := InitHTTP(); err != nil {
 		panic(err)
 	}
-	if err := InitHTTPPush(); err != nil {
-		panic(err)
-	}
 	// start rpc
 	if err := InitRPCPush(); err != nil {
 		panic(err)

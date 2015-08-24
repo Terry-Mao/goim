@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	// TODO config
 	KafkaPushsTopic = "KafkaPushsTopic"
 )
 
@@ -29,6 +30,7 @@ func multiPushTokafka(cometIds []int32, subkeys [][]string, msg []byte) (err err
 		vBytes []byte
 		v      = &define.KafkaPushsMsg{CometIds: cometIds, Subkeys: subkeys, Msg: msg}
 	)
+	// TODO PB
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}

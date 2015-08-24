@@ -109,10 +109,7 @@ func NewConfig() *Config {
 		SvrProto: 1024,
 		Channel:  1024,
 		// push
-		HTTPPushAddrs:    []string{"localhost:8082"},
-		HTTPReadTimeout:  5 * time.Second,
-		HTTPWriteTimeout: 5 * time.Second,
-		RPCPushAddrs:     []string{"localhost:8083"},
+		RPCPushAddrs: []string{"localhost:8083"},
 	}
 }
 

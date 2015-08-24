@@ -2,7 +2,6 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/define"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	"github.com/Terry-Mao/protorpc"
 )
@@ -32,25 +31,21 @@ func InitCometRpc(addrs map[int32]string) (err error) {
 			log.Error("inet.ParseNetwork() error(%v)", err)
 			return
 		}
-		rpcClient, err = protorpc.Dial(network, addr)
-		if err != nil {
+		if rpcClient, err = protorpc.Dial(network, addr); err != nil {
 			log.Error("protorpc.Dial(\"%s\") error(%s)", addr, err)
 			return
 		}
-
 		go protorpc.Reconnect(&rpcClient, quit, network, addr)
 		log.Info("rpc addr:%s connected", addr)
-
 		cometServiceMap[serverID] = &rpcClient
 	}
-
 	return
 }
 
 // get comet server client by server id
 func getCometByServerId(serverID int32) (*protorpc.Client, error) {
 	if client, ok := cometServiceMap[serverID]; !ok || *client == nil {
-		return nil, define.ErrComet
+		return nil, ErrComet
 	} else {
 		return *client, nil
 	}
