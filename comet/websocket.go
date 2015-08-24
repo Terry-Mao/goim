@@ -170,6 +170,7 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
+				log.Warn("ch.SvrProto.Get() error(%v)", err)
 				break
 			}
 			// just forward the message
@@ -183,7 +184,7 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 failed:
 	// wake reader up
 	if err = conn.Close(); err != nil {
-		log.Error("conn.Close() error(%v)", err)
+		log.Warn("conn.Close() error(%v)", err)
 	}
 	// deltimer
 	tr.Del(trd)

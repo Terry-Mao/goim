@@ -122,9 +122,9 @@ func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsRe
 	return
 }
 
-func (this *PushRPC) Boardcast(arg *proto.BoardcastArg, reply *proto.NoReply) (err error) {
+func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *proto.NoReply) (err error) {
 	for _, bucket := range DefaultServer.Buckets {
-		go bucket.Boardcast(int16(arg.Ver), arg.Operation, arg.Msg)
+		go bucket.Broadcast(int16(arg.Ver), arg.Operation, arg.Msg)
 	}
 	return
 }

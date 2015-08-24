@@ -5,6 +5,8 @@ import (
 	inet "github.com/Terry-Mao/goim/libs/net"
 	lproto "github.com/Terry-Mao/goim/proto/logic"
 	rpc "github.com/Terry-Mao/protorpc"
+	"github.com/thinkboy/goim/define"
+
 	"net"
 )
 
@@ -49,7 +51,7 @@ type RPC struct {
 // Connect auth and registe login
 func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 	if args == nil {
-		err = ErrArgs
+		err = define.ErrArgs
 		log.Error("Connect() error(%v)", err)
 		return
 	}
@@ -58,7 +60,7 @@ func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 		seq int32
 	)
 	if seq, err = connect(uid, args.Server); err == nil {
-		rep.Key = encode(uid, seq)
+		rep.Key = define.Encode(uid, seq)
 	}
 	return
 }
@@ -66,7 +68,7 @@ func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 // Disconnect notice router offline
 func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err error) {
 	if args == nil {
-		err = ErrArgs
+		err = define.ErrArgs
 		log.Error("Disconnect() error(%v)", err)
 		return
 	}
@@ -74,7 +76,7 @@ func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err
 		uid int64
 		seq int32
 	)
-	if uid, seq, err = decode(args.Key); err != nil {
+	if uid, seq, err = define.Decode(args.Key); err != nil {
 		log.Error("decode(\"%s\") error(%s)", args.Key, err)
 		return
 	}

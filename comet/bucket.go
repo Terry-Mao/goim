@@ -45,7 +45,7 @@ func (b *Bucket) Del(subKey string) {
 	b.cLock.Unlock()
 }
 
-func (b *Bucket) Boardcast(ver int16, operation int32, msg []byte) {
+func (b *Bucket) Broadcast(ver int16, operation int32, msg []byte) {
 	var (
 		chl int
 		ch  *Channel
