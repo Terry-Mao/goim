@@ -27,7 +27,7 @@ package proto
 
 import proto1 "github.com/golang/protobuf/proto"
 
-// discarding unused import gogoproto "gogo/protobuf/gogoproto"
+// discarding unused import gogoproto "gogo/protobuf/gogoproto/gogo.pb"
 
 import io "io"
 import fmt "fmt"
@@ -156,6 +156,8 @@ func (m *GetSeqCountReply) Reset()         { *m = GetSeqCountReply{} }
 func (m *GetSeqCountReply) String() string { return proto1.CompactTextString(m) }
 func (*GetSeqCountReply) ProtoMessage()    {}
 
+func init() {
+}
 func (m *NoArg) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
@@ -261,7 +263,6 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
-			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -277,7 +278,6 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Server", wireType)
 			}
-			m.Server = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -335,7 +335,6 @@ func (m *ConnReply) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Seq", wireType)
 			}
-			m.Seq = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -393,7 +392,6 @@ func (m *DisconnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
-			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -409,7 +407,6 @@ func (m *DisconnArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Seq", wireType)
 			}
-			m.Seq = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -526,7 +523,6 @@ func (m *GetArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
-			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -887,7 +883,6 @@ func (m *GetSeqCountArg) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserId", wireType)
 			}
-			m.UserId = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -945,7 +940,6 @@ func (m *GetSeqCountReply) Unmarshal(data []byte) error {
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Count", wireType)
 			}
-			m.Count = 0
 			for shift := uint(0); ; shift += 7 {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF

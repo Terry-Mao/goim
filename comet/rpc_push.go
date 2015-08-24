@@ -45,7 +45,7 @@ func rpcListen(network, addr string) {
 type PushRPC struct {
 }
 
-// Push push a message to a specified sub key, must goroutine safe.
+// Push push a message to a specified sub key
 func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *proto.NoReply) (err error) {
 	if arg == nil {
 		err = ErrPushMsgArg
@@ -58,7 +58,7 @@ func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *proto.NoReply) (err e
 	return
 }
 
-// Pushs push multiple messages to a specified sub key, must goroutine safe.
+// Pushs push multiple messages to a specified sub key
 func (this *PushRPC) PushMsgs(arg *proto.PushMsgsArg, reply *proto.PushMsgsReply) (err error) {
 	reply.Index = -1
 	if arg == nil || len(arg.Vers) != len(arg.Operations) || len(arg.Operations) != len(arg.Msgs) {
@@ -72,7 +72,7 @@ func (this *PushRPC) PushMsgs(arg *proto.PushMsgsArg, reply *proto.PushMsgsReply
 	return
 }
 
-// Push push a message to a specified sub key, must goroutine safe.
+// Push push a message to a specified sub key
 func (this *PushRPC) MPushMsg(arg *proto.MPushMsgArg, reply *proto.MPushMsgReply) (err error) {
 	var (
 		bucket  *Bucket
@@ -97,7 +97,7 @@ func (this *PushRPC) MPushMsg(arg *proto.MPushMsgArg, reply *proto.MPushMsgReply
 	return
 }
 
-// Push push a message to a specified sub key, must goroutine safe.
+// Push push a message to a specified sub key
 func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsReply) (err error) {
 	var (
 		bucket  *Bucket
@@ -118,6 +118,13 @@ func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsRe
 			}
 			reply.Index = int32(n)
 		}
+	}
+	return
+}
+
+func (this *PushRPC) Boardcast(arg *proto.BoardcastArg, reply *proto.NoReply) (err error) {
+	for _, bucket := range DefaultServer.Buckets {
+		go bucket.Boardcast(int16(arg.Ver), arg.Operation, arg.Msg)
 	}
 	return
 }
