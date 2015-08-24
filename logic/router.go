@@ -1,12 +1,14 @@
 package main
 
 import (
+	"strconv"
+
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/define"
 	"github.com/Terry-Mao/goim/libs/hash/ketama"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	rproto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
-	"strconv"
 )
 
 var (
@@ -56,7 +58,7 @@ func getRouters() map[string]**rpc.Client {
 
 func getRouterByServer(server string) (*rpc.Client, error) {
 	if client, ok := routerServiceMap[server]; !ok || *client == nil {
-		return nil, ErrRouter
+		return nil, define.ErrRouter
 	} else {
 		return *client, nil
 	}

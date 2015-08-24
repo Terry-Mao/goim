@@ -4,6 +4,7 @@ import (
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	"github.com/Terry-Mao/protorpc"
+	"github.com/thinkboy/goim/define"
 )
 
 var (
@@ -17,6 +18,7 @@ const (
 	CometServicePushMsgs  = "PushRPC.PushMsgs"
 	CometServiceMPushMsg  = "PushRPC.MPushMsg"
 	CometServiceMPushMsgs = "PushRPC.MPushMsgs"
+	CometServiceBroadcast = "PushRPC.Broadcast"
 )
 
 func InitCometRpc(addrs map[int32]string) (err error) {
@@ -45,10 +47,10 @@ func InitCometRpc(addrs map[int32]string) (err error) {
 	return
 }
 
-// 通过serverID获取机器client
-func getClient(serverID int32) (*protorpc.Client, error) {
+// get comet server client by server id
+func getCometByServerId(serverID int32) (*protorpc.Client, error) {
 	if client, ok := cometServiceMap[serverID]; !ok || *client == nil {
-		return nil, ErrComet
+		return nil, define.ErrComet
 	} else {
 		return *client, nil
 	}

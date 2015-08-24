@@ -1,13 +1,14 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
-	inet "github.com/Terry-Mao/goim/libs/net"
-	proto "github.com/Terry-Mao/goim/proto/router"
-	"github.com/Terry-Mao/gopush-cluster/ketama"
-	"github.com/Terry-Mao/protorpc"
-	rpc "github.com/Terry-Mao/protorpc"
 	"strconv"
+
+	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/define"
+	inet "github.com/Terry-Mao/goim/libs/net"
+	rproto "github.com/Terry-Mao/goim/proto/router"
+	"github.com/Terry-Mao/gopush-cluster/ketama"
+	rpc "github.com/Terry-Mao/protorpc"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 )
 
 var (
-	routerServiceMap = map[string]**protorpc.Client{}
+	routerServiceMap = map[string]**rpc.Client{}
 	routerRing       *ketama.HashRing
 	routerQuit       = make(chan struct{}, 1)
 )
@@ -54,15 +55,62 @@ func InitRouter() (err error) {
 	return
 }
 
-func getRouterClient(userID int64) (*protorpc.Client, error) {
-	node := routerRing.Hash(strconv.FormatInt(userID, 10))
+/*
+func getRouterByUserId(userId int64) (*rpc.Client, error) {
+	node := routerRing.Hash(strconv.FormatInt(userId, 10))
 	if client, ok := routerServiceMap[node]; !ok || *client == nil {
 		return nil, ErrRouter
 	} else {
 		return *client, nil
 	}
 }
+*/
+func getRouterByServer(server string) (*rpc.Client, error) {
+	if client, ok := routerServiceMap[server]; !ok || *client == nil {
+		return nil, define.ErrRouter
+	} else {
+		return *client, nil
+	}
+}
 
+func getRouterNode(userId int64) string {
+	return routerRing.Hash(strconv.FormatInt(userId, 10))
+}
+
+// divide userIds to corresponding
+// response: map[nodes]userIds
+func divideToRouter(userIds []int64) map[string][]int64 {
+	var (
+		m    = map[string][]int64{}
+		node string
+	)
+	for i := 0; i < len(userIds); i++ {
+		node = getRouterNode(userIds[i])
+		ids, ok := m[node]
+		if !ok {
+			ids = []int64{userIds[i]}
+		} else {
+			ids = append(ids, userIds[i])
+		}
+		m[node] = ids
+	}
+	return m
+}
+
+func getSubkeys(serverId string, userIds []int64) (reply *rproto.MGetReply, err error) {
+	var client *rpc.Client
+	if client, err = getRouterByServer(serverId); err != nil {
+		return
+	}
+	arg := &rproto.MGetArg{UserIds: userIds}
+	reply = &rproto.MGetReply{}
+	if err = client.Call(routerServiceMGet, arg, reply); err != nil {
+		log.Error("client.Call(\"%s\",\"%v\") error(%s)", routerServiceMGet, arg, err)
+	}
+	return
+}
+
+/*
 // 获取在线数量
 func getOnlineCount(userID int64) (count int32, err error) {
 	c, err := getRouterClient(userID)
@@ -78,3 +126,4 @@ func getOnlineCount(userID int64) (count int32, err error) {
 	}
 	return reply.Count, nil
 }
+*/

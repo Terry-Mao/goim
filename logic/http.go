@@ -15,7 +15,6 @@ func InitHTTP() (err error) {
 	var network, addr string
 	for i := 0; i < len(Conf.HTTPAddrs); i++ {
 		httpServeMux := http.NewServeMux()
-		//httpServeMux.HandleFunc("/1/push", Push)
 		httpServeMux.HandleFunc("/1/pushs", Pushs)
 		httpServeMux.HandleFunc("/1/push/all", PushAll)
 		log.Info("start http listen:\"%s\"", Conf.HTTPAddrs[i])
@@ -95,37 +94,13 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 		log.Error("parsePushsBody(\"%s\") error(%s)", bodyBytes, err)
 		return
 	}
-	m := divideNode(userIds)
-	divide := make(map[int32][]string, len(m)) //map[comet.serverId]userIds
-	for serverId, us := range m {
-		// TODO muti-routine get
-		reply, err := getSubkeys(serverId, us)
-		if err != nil {
-			res["ret"] = InternalErr
-			log.Error("getSubkeys(\"%s\") error(%s)", serverId, err)
-			return
-		}
-		log.Debug("getSubkeys:%v serverId:%s", reply.UserIds, serverId)
-		for j := 0; j < len(reply.UserIds); j++ {
-			s := reply.Sessions[j]
-			log.Debug("sessions seqs:%v serverids:%v", s.Seqs, s.Servers)
-			for i := 0; i < len(s.Seqs); i++ {
-				subkey := encode(reply.UserIds[j], s.Seqs[i])
-				subkeys, ok := divide[s.Servers[i]]
-				if !ok {
-					subkeys = make([]string, 0, 1000) // TODO:consider
-				}
-				divide[s.Servers[i]] = append(subkeys, subkey)
-			}
-		}
+
+	if err := multiPushTokafka(userIds, msg); err != nil {
+		res["ret"] = InternalErr
+		log.Error("pushsTokafka(\"%s\") error(%s)", msg, err)
+		return
 	}
-	for cometId, subkeys := range divide {
-		if err := pushsTokafka(cometId, subkeys, msg); err != nil {
-			res["ret"] = InternalErr
-			log.Error("pushsTokafka(cometId:\"%d\") error(%s)", cometId, err)
-			return
-		}
-	}
+
 	res["ret"] = OK
 	return
 }
@@ -146,37 +121,10 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body = string(bodyBytes)
-	log.Debug("pushall msg:%s", body)
-	divide := make(map[int32][]string) //map[comet.serverId]userIds
-	routers := getRouters()
-	for serverId, _ := range routers {
-		// TODO: muti-routine get
-		reply, err := getAllSubkeys(serverId)
-		if err != nil {
-			res["ret"] = InternalErr
-			log.Error("getAllSubkeys(\"%s\") error(%s)", serverId, err)
-			return
-		}
-		log.Debug("serverId:%s getSubkeys:%v", serverId, reply.UserIds)
-		for j := 0; j < len(reply.UserIds); j++ {
-			s := reply.Sessions[j]
-			log.Debug("sessions seqs:%v serverids:%v", s.Seqs, s.Servers)
-			for i := 0; i < len(s.Seqs); i++ {
-				subkey := encode(reply.UserIds[j], s.Seqs[i])
-				subkeys, ok := divide[s.Servers[i]]
-				if !ok {
-					subkeys = make([]string, 0, 1000) //TODO:consider
-				}
-				divide[s.Servers[i]] = append(subkeys, subkey)
-			}
-		}
-	}
-	for cometId, subkeys := range divide {
-		if err := pushsTokafka(cometId, subkeys, bodyBytes); err != nil {
-			res["ret"] = InternalErr
-			log.Error("pushsTokafka(cometId:\"%d\") error(%s)", cometId, err)
-			return
-		}
+	if err := broadcastTokafka(bodyBytes); err != nil {
+		res["ret"] = InternalErr
+		log.Error("broadcastTokafka(\"%s\") error(%s)", bodyBytes, err)
+		return
 	}
 	res["ret"] = OK
 	return

@@ -195,7 +195,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 				}
 			}
 			if err = server.writeTCPResponse(wr, pb, p); err != nil {
-				log.Error("server.sendTCPResponse() error(%v)", err)
+				log.Error("server.writeTCPResponse() error(%v)", err)
 				goto failed
 			}
 			ch.CliProto.GetAdv()
@@ -203,11 +203,12 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
+				log.Warn("ch.SvrProto.Get() error(%v)", err)
 				break
 			}
 			// just forward the message
 			if err = server.writeTCPResponse(wr, pb, p); err != nil {
-				log.Error("server.sendTCPResponse() error(%v)", err)
+				log.Error("server.writeTCPResponse() error(%v)", err)
 				goto failed
 			}
 			ch.SvrProto.GetAdv()
@@ -216,7 +217,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 failed:
 	// wake reader up
 	if err = conn.Close(); err != nil {
-		log.Error("conn.Close() error(%v)", err)
+		log.Warn("conn.Close() error(%v)", err)
 	}
 	// deltimer
 	tr.Del(trd)

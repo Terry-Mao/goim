@@ -1,4 +1,4 @@
-package main
+package define
 
 import (
 	"errors"
@@ -10,4 +10,7 @@ var (
 	ErrArgs      = errors.New("rpc args error")
 	// rpc
 	ErrRouter = errors.New("router rpc is not available")
+	ErrComet  = errors.New("comet rpc is not available")
+
+	ErrNetworkAddr = errors.New("network addrs error, must network@address")
 )
