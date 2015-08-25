@@ -100,31 +100,32 @@ func disconnect(userID int64, seq int32) (has bool, err error) {
 	return
 }
 
-func getSubkeys(serverId string, userIds []int64) (reply *rproto.MGetReply, err error) {
-	var client *rpc.Client
-	if client, err = getRouterByServer(serverId); err != nil {
-		return
+func getSubKeys(res chan *rproto.MGetReply, serverId string, userIds []int64) {
+	var reply *rproto.MGetReply
+	if client, err := getRouterByServer(serverId); err == nil {
+		arg := &rproto.MGetArg{UserIds: userIds}
+		reply = &rproto.MGetReply{}
+		if err = client.Call(routerServiceMGet, arg, reply); err != nil {
+			log.Error("client.Call(\"%s\",\"%v\") error(%s)", routerServiceMGet, arg, err)
+			reply = nil
+		}
 	}
-	arg := &rproto.MGetArg{UserIds: userIds}
-	reply = &rproto.MGetReply{}
-	if err = client.Call(routerServiceMGet, arg, reply); err != nil {
-		log.Error("client.Call(\"%s\",\"%v\") error(%s)", routerServiceMGet, arg, err)
-	}
-	return
+	res <- reply
 }
 
-func divideToRouter(userIds []int64) (divide map[int32][]string, err error) {
+func divideRouter(userIds []int64) (divide map[int32][]string) {
 	var (
-		i, j         int
+		i, j, k      int
 		node, subkey string
 		subkeys      []string
-		reply        *rproto.MGetReply
 		server       int32
 		session      *rproto.GetReply
+		reply        *rproto.MGetReply
 		uid          int64
 		ids          []int64
 		ok           bool
 		m            = make(map[string][]int64)
+		res          = make(chan *rproto.MGetReply, 1)
 	)
 	divide = make(map[int32][]string) //map[comet.serverId][]subkey
 	for i = 0; i < len(userIds); i++ {
@@ -136,11 +137,14 @@ func divideToRouter(userIds []int64) (divide map[int32][]string, err error) {
 		}
 		m[node] = ids
 	}
-	// TODO muti-routine get
 	for node, ids = range m {
-		if reply, err = getSubkeys(node, ids); err != nil {
-			log.Error("getSubkeys(\"%s\") error(%s)", node, err)
-			return
+		k++
+		getSubKeys(res, node, ids)
+	}
+	for k > 0 {
+		k--
+		if reply = <-res; reply == nil {
+			continue
 		}
 		for j = 0; j < len(reply.UserIds); j++ {
 			session = reply.Sessions[j]

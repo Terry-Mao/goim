@@ -77,38 +77,29 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var (
-		body string
-		res  = map[string]interface{}{"ret": OK}
+		body           string
+		msg, bodyBytes []byte
+		userIds        []int64
+		err            error
+		res            = map[string]interface{}{"ret": OK}
+		divide         map[int32][]string
 	)
 	defer retPWrite(w, r, res, &body, time.Now())
 	// param
-	bodyBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
+	if bodyBytes, err = ioutil.ReadAll(r.Body); err != nil {
 		log.Error("ioutil.ReadAll() failed (%s)", err)
 		res["ret"] = InternalErr
 		return
 	}
 	body = string(bodyBytes)
-	msg, userIds, err := parsePushsBody(bodyBytes)
-	if err != nil {
+	if msg, userIds, err = parsePushsBody(bodyBytes); err != nil {
 		log.Error("parsePushsBody(\"%s\") error(%s)", body, err)
 		res["ret"] = InternalErr
 		return
 	}
-	// TODO
-	divide, err := divideToRouter(userIds) // divide: map[comet.serverId][]subkey
-	if err != nil {
-		log.Error("divideToComet() error(%v)", err)
-		res["ret"] = InternalErr
-		return
-	}
-	if len(divide) == 0 {
-		log.Debug("no online users")
-		res["ret"] = OK
-		return
-	}
+	divide = divideRouter(userIds)
 	for server, subkeys := range divide {
-		if err := multiPushTokafka(server, subkeys, msg); err != nil {
+		if err = mpushKafka(server, subkeys, msg); err != nil {
 			res["ret"] = InternalErr
 			return
 		}
@@ -135,8 +126,8 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 		ret = InternalErr
 	} else {
 		body = string(bodyBytes)
-		if err := broadcastTokafka(bodyBytes); err != nil {
-			log.Error("broadcastTokafka(\"%s\") error(%s)", body, err)
+		if err := broadcastKafka(bodyBytes); err != nil {
+			log.Error("broadcastKafka(\"%s\") error(%s)", body, err)
 			ret = InternalErr
 		}
 	}
