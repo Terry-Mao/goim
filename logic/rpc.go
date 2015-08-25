@@ -2,7 +2,6 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/define"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	lproto "github.com/Terry-Mao/goim/proto/logic"
 	rpc "github.com/Terry-Mao/protorpc"
@@ -51,7 +50,7 @@ type RPC struct {
 // Connect auth and registe login
 func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 	if args == nil {
-		err = define.ErrArgs
+		err = ErrConnectArgs
 		log.Error("Connect() error(%v)", err)
 		return
 	}
@@ -68,7 +67,7 @@ func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 // Disconnect notice router offline
 func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err error) {
 	if args == nil {
-		err = define.ErrArgs
+		err = ErrDisconnectArgs
 		log.Error("Disconnect() error(%v)", err)
 		return
 	}

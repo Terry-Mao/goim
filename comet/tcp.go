@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/define"
 	"net"
 	"sync"
 	"time"
@@ -173,7 +174,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 			if p, err = ch.CliProto.Get(); err != nil {
 				break
 			}
-			if p.Operation == OP_HEARTBEAT {
+			if p.Operation == define.OP_HEARTBEAT {
 				// Use a previous timer value if difference between it and a new
 				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
 				// to minimize the minheap operations for fast connections.
@@ -186,7 +187,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 				}
 				// heartbeat
 				p.Body = nil
-				p.Operation = OP_HEARTBEAT_REPLY
+				p.Operation = define.OP_HEARTBEAT_REPLY
 			} else {
 				// process message
 				if err = server.operator.Operate(p); err != nil {
@@ -237,7 +238,7 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, pb []byte, ch 
 	if err = server.readTCPRequest(rr, pb, p); err != nil {
 		return
 	}
-	if p.Operation != OP_AUTH {
+	if p.Operation != define.OP_AUTH {
 		log.Warn("auth operation not valid: %d", p.Operation)
 		err = ErrOperation
 		return
@@ -247,7 +248,7 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, pb []byte, ch 
 		return
 	}
 	p.Body = nil
-	p.Operation = OP_AUTH_REPLY
+	p.Operation = define.OP_AUTH_REPLY
 	if err = server.writeTCPResponse(wr, pb, p); err != nil {
 		log.Error("[%s] server.sendTCPResponse() error(%v)", subKey, err)
 	}

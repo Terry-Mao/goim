@@ -4,6 +4,7 @@ import (
 	"bufio"
 	log "code.google.com/p/log4go"
 	"encoding/json"
+	"github.com/Terry-Mao/goim/define"
 	"math/rand"
 	"net"
 	"net/http"
@@ -173,7 +174,7 @@ func (server *Server) authHTTP(r *http.Request, p *Proto) (subKey, callback stri
 		return
 	}
 	p.SeqId = int32(pInt)
-	if p.Operation != OP_AUTH {
+	if p.Operation != define.OP_AUTH {
 		log.Warn("auth operation not valid: %d", p.Operation)
 		err = ErrOperation
 		return
