@@ -2,31 +2,8 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/define"
 	"time"
-)
-
-const (
-	// handshake
-	OP_HANDSHAKE       = int32(0)
-	OP_HANDSHAKE_REPLY = int32(1)
-	// heartbeat
-	OP_HEARTBEAT       = int32(2)
-	OP_HEARTBEAT_REPLY = int32(3)
-	// send text messgae
-	OP_SEND_SMS       = int32(4)
-	OP_SEND_SMS_REPLY = int32(5)
-	// kick user
-	OP_DISCONNECT_REPLY = int32(6)
-	// auth user
-	OP_AUTH       = int32(7)
-	OP_AUTH_REPLY = int32(8)
-	// handshake with sid
-	OP_HANDSHAKE_SID       = int32(9)
-	OP_HANDSHAKE_SID_REPLY = int32(10)
-
-	// for test
-	OP_TEST       = int32(254)
-	OP_TEST_REPLY = int32(255)
 )
 
 type Operator interface {
@@ -45,14 +22,14 @@ func (operator *DefaultOperator) Operate(p *Proto) error {
 	var (
 		body []byte
 	)
-	if p.Operation == OP_SEND_SMS {
+	if p.Operation == define.OP_SEND_SMS {
 		// call suntao's api
 		// p.Body = nil
-		p.Operation = OP_SEND_SMS_REPLY
+		p.Operation = define.OP_SEND_SMS_REPLY
 		log.Info("send sms proto: %v", p)
-	} else if p.Operation == OP_TEST {
+	} else if p.Operation == define.OP_TEST {
 		log.Debug("test operation: %s", body)
-		p.Operation = OP_TEST_REPLY
+		p.Operation = define.OP_TEST_REPLY
 		p.Body = []byte("{\"test\":\"come on\"}")
 	} else {
 		return ErrOperation

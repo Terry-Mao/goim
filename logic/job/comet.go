@@ -2,8 +2,11 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/define"
 	inet "github.com/Terry-Mao/goim/libs/net"
+	cproto "github.com/Terry-Mao/goim/proto/comet"
 	"github.com/Terry-Mao/protorpc"
+	"time"
 )
 
 var (
@@ -20,7 +23,7 @@ const (
 	CometServiceBroadcast = "PushRPC.Broadcast"
 )
 
-func InitCometRpc(addrs map[int32]string) (err error) {
+func InitComet(addrs map[int32]string) (err error) {
 	for serverID, addrs := range addrs {
 		var (
 			rpcClient     *protorpc.Client
@@ -48,5 +51,32 @@ func getCometByServerId(serverID int32) (*protorpc.Client, error) {
 		return nil, ErrComet
 	} else {
 		return *client, nil
+	}
+}
+
+func mpushComet(c *protorpc.Client, serverId int32, subkeys []string, body []byte) {
+	var (
+		now  = time.Now()
+		args = &cproto.MPushMsgArg{Keys: subkeys, Operation: define.OP_SEND_SMS_REPLY, Msg: body}
+		rep  = &cproto.MPushMsgReply{}
+		err  error
+	)
+	if err = c.Call(CometServiceMPushMsg, args, rep); err != nil {
+		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceMPushMsg, *args, err)
+	} else {
+		log.Info("push msg to serverId:%d index:%d(%f)", serverId, rep.Index, time.Now().Sub(now).Seconds())
+	}
+}
+
+func broadcastComet(c *protorpc.Client, serverId int32, msg []byte) {
+	var (
+		now  = time.Now()
+		args = &cproto.BoardcastArg{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Msg: msg}
+		err  error
+	)
+	if err = c.Call(CometServiceBroadcast, args, nil); err != nil {
+		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceBroadcast, *args, err)
+	} else {
+		log.Info("broadcast msg to serverId:%d msg:%s(%f)", serverId, msg, time.Now().Sub(now).Seconds())
 	}
 }

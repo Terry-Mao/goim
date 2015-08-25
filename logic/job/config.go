@@ -24,6 +24,8 @@ type Config struct {
 	KafkaTopic        string            `goconf:"kafka:topic"`
 	Comets            map[int32]string  `goconf:"-"`
 	RouterRPCNetworks []string          `goconf:"router:networks:,"`
+	PushChan          int               `goconf:"push:chan"`
+	PushChanSize      int               `goconf:"push:chan.size"`
 	RouterRPCAddrs    map[string]string `-`
 }
 
@@ -33,6 +35,8 @@ func NewConfig() *Config {
 		ZKRoot:         "",
 		KafkaTopic:     "kafka_topic_push",
 		RouterRPCAddrs: make(map[string]string),
+		PushChan:       4,
+		PushChanSize:   100,
 	}
 }
 

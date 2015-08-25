@@ -8,6 +8,12 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
+message PushsMsg {
+    int32 server = 1;
+    repeated string subKeys = 2;
+    bytes msg = 3;
+}
+
 message PingArg {
 }
 

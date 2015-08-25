@@ -1,15 +1,14 @@
 package main
 
 import (
-	"encoding/json"
-
 	log "code.google.com/p/log4go"
 	"github.com/Shopify/sarama"
 	"github.com/Terry-Mao/goim/define"
+	lproto "github.com/Terry-Mao/goim/proto/logic"
+	"github.com/gogo/protobuf/proto"
 )
 
 const (
-	// TODO config
 	KafkaPushsTopic = "KafkaPushsTopic"
 )
 
@@ -25,13 +24,12 @@ func InitKafka(kafkaAddrs []string) (err error) {
 	return
 }
 
-func multiPushTokafka(cometIds []int32, subkeys [][]string, msg []byte) (err error) {
+func multiPushTokafka(server int32, subkeys []string, msg []byte) (err error) {
 	var (
 		vBytes []byte
-		v      = &define.KafkaPushsMsg{CometIds: cometIds, Subkeys: subkeys, Msg: msg}
+		v      = &lproto.PushsMsg{Server: server, SubKeys: subkeys, Msg: msg}
 	)
-	// TODO PB
-	if vBytes, err = json.Marshal(v); err != nil {
+	if vBytes, err = proto.Marshal(v); err != nil {
 		return
 	}
 	message := &sarama.ProducerMessage{Topic: KafkaPushsTopic, Key: sarama.StringEncoder(define.KAFKA_MESSAGE_MULTI), Value: sarama.ByteEncoder(vBytes)}

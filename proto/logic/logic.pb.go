@@ -9,6 +9,7 @@
 		logic.proto
 
 	It has these top-level messages:
+		PushsMsg
 		PingArg
 		PingReply
 		ConnArg
@@ -27,6 +28,16 @@ import fmt "fmt"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto1.Marshal
+
+type PushsMsg struct {
+	Server  int32    `protobuf:"varint,1,opt,name=server,proto3" json:"server,omitempty"`
+	SubKeys []string `protobuf:"bytes,2,rep,name=subKeys" json:"subKeys,omitempty"`
+	Msg     []byte   `protobuf:"bytes,3,opt,name=msg,proto3" json:"msg,omitempty"`
+}
+
+func (m *PushsMsg) Reset()         { *m = PushsMsg{} }
+func (m *PushsMsg) String() string { return proto1.CompactTextString(m) }
+func (*PushsMsg) ProtoMessage()    {}
 
 type PingArg struct {
 }
@@ -76,6 +87,107 @@ func (m *DisconnReply) String() string { return proto1.CompactTextString(m) }
 func (*DisconnReply) ProtoMessage()    {}
 
 func init() {
+}
+func (m *PushsMsg) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Server", wireType)
+			}
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Server |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SubKeys", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := iNdEx + int(stringLen)
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SubKeys = append(m.SubKeys, string(data[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Msg", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Msg = append([]byte{}, data[iNdEx:postIndex]...)
+			iNdEx = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipLogic(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	return nil
 }
 func (m *PingArg) Unmarshal(data []byte) error {
 	l := len(data)
@@ -509,6 +621,27 @@ func skipLogic(data []byte) (n int, err error) {
 	}
 	panic("unreachable")
 }
+func (m *PushsMsg) Size() (n int) {
+	var l int
+	_ = l
+	if m.Server != 0 {
+		n += 1 + sovLogic(uint64(m.Server))
+	}
+	if len(m.SubKeys) > 0 {
+		for _, s := range m.SubKeys {
+			l = len(s)
+			n += 1 + l + sovLogic(uint64(l))
+		}
+	}
+	if m.Msg != nil {
+		l = len(m.Msg)
+		if l > 0 {
+			n += 1 + l + sovLogic(uint64(l))
+		}
+	}
+	return n
+}
+
 func (m *PingArg) Size() (n int) {
 	var l int
 	_ = l
@@ -576,6 +709,52 @@ func sovLogic(x uint64) (n int) {
 func sozLogic(x uint64) (n int) {
 	return sovLogic(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
+func (m *PushsMsg) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *PushsMsg) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Server != 0 {
+		data[i] = 0x8
+		i++
+		i = encodeVarintLogic(data, i, uint64(m.Server))
+	}
+	if len(m.SubKeys) > 0 {
+		for _, s := range m.SubKeys {
+			data[i] = 0x12
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			data[i] = uint8(l)
+			i++
+			i += copy(data[i:], s)
+		}
+	}
+	if m.Msg != nil {
+		if len(m.Msg) > 0 {
+			data[i] = 0x1a
+			i++
+			i = encodeVarintLogic(data, i, uint64(len(m.Msg)))
+			i += copy(data[i:], m.Msg)
+		}
+	}
+	return i, nil
+}
+
 func (m *PingArg) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)

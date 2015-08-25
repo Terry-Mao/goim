@@ -95,6 +95,7 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = InternalErr
 		return
 	}
+	// TODO
 	divide, err := divideToRouter(userIds) // divide: map[comet.serverId][]subkey
 	if err != nil {
 		log.Error("divideToComet() error(%v)", err)
@@ -106,8 +107,12 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = OK
 		return
 	}
-	// TODO
-	log.Debug(divide, msg)
+	for server, subkeys := range divide {
+		if err := multiPushTokafka(server, subkeys, msg); err != nil {
+			res["ret"] = InternalErr
+			return
+		}
+	}
 	res["ret"] = OK
 	return
 }
