@@ -97,7 +97,7 @@ func (this *PushRPC) MPushMsg(arg *proto.MPushMsgArg, reply *proto.MPushMsgReply
 	return
 }
 
-// Push push a message to a specified sub key
+// MPushMsgs push msgs to multiple user.
 func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsReply) (err error) {
 	var (
 		bucket  *Bucket

@@ -138,9 +138,9 @@ func divideRouter(userIds []int64) (divide map[int32][]string) {
 		m[node] = ids
 	}
 	for node, ids = range m {
-		k++
-		getSubKeys(res, node, ids)
+		go getSubKeys(res, node, ids)
 	}
+	k = len(m)
 	for k > 0 {
 		k--
 		if reply = <-res; reply == nil {
