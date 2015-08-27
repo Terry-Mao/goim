@@ -103,13 +103,20 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	// auth
 	if trd, err = tr.Add(Conf.HandshakeTimeout, conn); err != nil {
 		log.Error("handshake: timer.Add() error(%v)", err)
-		goto failed
+	} else {
+		if key, hb, err = server.authWebsocket(conn, p); err != nil {
+			log.Error("handshake: server.auth error(%v)", err)
+		}
+		//deltimer
+		tr.Del(trd)
 	}
-	key, hb, err = server.authTCP(rr, wr, pb, ch)
-	tr.Del(trd)
+	// failed
 	if err != nil {
-		log.Error("server.authTCP() error(%v)", err)
-		goto failed
+		if err = conn.Close(); err != nil {
+			log.Error("handshake: conn.Close() error(%v)", err)
+		}
+		PutBufioReader(rrp, rr)
+		return
 	}
 	// register key->channel
 	b = server.Bucket(key)
@@ -138,11 +145,9 @@ failed:
 		log.Error("reader: conn.Close() error(%v)")
 	}
 	PutBufioReader(rrp, rr)
-	if b != nil {
-		b.Del(key)
-		log.Debug("wake up dispatch goroutine")
-		ch.Finish()
-	}
+	b.Del(key)
+	log.Debug("wake up dispatch goroutine")
+	ch.Finish()
 	if err = server.operator.Disconnect(key); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
