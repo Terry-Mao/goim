@@ -18,6 +18,7 @@ const (
 	routerService           = "RouterRPC"
 	routerServiceConnect    = "RouterRPC.Connect"
 	routerServiceDisconnect = "RouterRPC.Disconnect"
+	routerServiceGet        = "RouterRPC.Get"
 	routerServiceMGet       = "RouterRPC.MGet"
 	routerServiceGetAll     = "RouterRPC.GetAll"
 )
@@ -100,6 +101,36 @@ func disconnect(userID int64, seq int32) (has bool, err error) {
 	return
 }
 
+func genSubKey(userId int64) (res map[int32][]string) {
+	var (
+		i      int
+		ok     bool
+		key    string
+		keys   []string
+		client *rpc.Client
+		err    error
+		arg    = &rproto.GetArg{UserId: userId}
+		reply  = &rproto.GetReply{}
+	)
+	res = make(map[int32][]string)
+	if client, err = getRouterByUID(userId); err != nil {
+		return
+	}
+	if err = client.Call(routerServiceGet, arg, reply); err != nil {
+		log.Error("client.Call(\"%s\",\"%v\") error(%s)", routerServiceGet, arg, err)
+		return
+	}
+	for i = 0; i < len(reply.Servers); i++ {
+		key = encode(userId, reply.Seqs[i])
+		if keys, ok = res[reply.Servers[i]]; !ok {
+			keys = []string{}
+		}
+		keys = append(keys, key)
+		res[reply.Servers[i]] = keys
+	}
+	return
+}
+
 func getSubKeys(res chan *rproto.MGetReply, serverId string, userIds []int64) {
 	var reply *rproto.MGetReply
 	if client, err := getRouterByServer(serverId); err == nil {
@@ -113,7 +144,7 @@ func getSubKeys(res chan *rproto.MGetReply, serverId string, userIds []int64) {
 	res <- reply
 }
 
-func divideRouter(userIds []int64) (divide map[int32][]string) {
+func genSubKeys(userIds []int64) (divide map[int32][]string) {
 	var (
 		i, j, k      int
 		node, subkey string
@@ -131,10 +162,9 @@ func divideRouter(userIds []int64) (divide map[int32][]string) {
 	for i = 0; i < len(userIds); i++ {
 		node = getRouterNode(userIds[i])
 		if ids, ok = m[node]; !ok {
-			ids = []int64{userIds[i]}
-		} else {
-			ids = append(ids, userIds[i])
+			ids = []int64{}
 		}
+		ids = append(ids, userIds[i])
 		m[node] = ids
 	}
 	for node, ids = range m {
