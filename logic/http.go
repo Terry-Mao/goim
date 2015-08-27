@@ -55,6 +55,60 @@ func retPWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{
 	log.Info("req: \"%s\", post: \"%s\", res:\"%s\", ip:\"%s\", time:\"%fs\"", r.URL.String(), *body, dataStr, r.RemoteAddr, time.Now().Sub(start).Seconds())
 }
 
+type pushBodyMsg struct {
+	Msg    json.RawMessage `json:"m"`
+	UserId int64           `json:"u"`
+}
+
+func parsePushBody(body []byte) (msg []byte, userId int64, err error) {
+	tmp := pushBodyMsg{}
+	if err = json.Unmarshal(body, &tmp); err != nil {
+		return
+	}
+	msg = tmp.Msg
+	userId = tmp.UserId
+	return
+}
+
+// {"m":{"test":1},"u":"1,2,3"}
+func Push(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method Not Allowed", 405)
+		return
+	}
+	var (
+		body      string
+		server    int32
+		keys      []string
+		subKeys   map[int32][]string
+		bodyBytes []byte
+		userId    int64
+		err       error
+		res       = map[string]interface{}{"ret": OK}
+	)
+	defer retPWrite(w, r, res, &body, time.Now())
+	if bodyBytes, err = ioutil.ReadAll(r.Body); err != nil {
+		log.Error("ioutil.ReadAll() failed (%s)", err)
+		res["ret"] = InternalErr
+		return
+	}
+	body = string(bodyBytes)
+	if bodyBytes, userId, err = parsePushBody(bodyBytes); err != nil {
+		log.Error("parsePushsBody(\"%s\") error(%s)", body, err)
+		res["ret"] = InternalErr
+		return
+	}
+	subKeys = genSubKey(userId)
+	for server, keys = range subKeys {
+		if err = mpushKafka(server, keys, bodyBytes); err != nil {
+			res["ret"] = InternalErr
+			return
+		}
+	}
+	res["ret"] = OK
+	return
+}
+
 type pushsBodyMsg struct {
 	Msg     json.RawMessage `json:"m"`
 	UserIds []int64         `json:"u"`
@@ -77,29 +131,30 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var (
-		body           string
-		msg, bodyBytes []byte
-		userIds        []int64
-		err            error
-		res            = map[string]interface{}{"ret": OK}
-		divide         map[int32][]string
+		body      string
+		bodyBytes []byte
+		server    int32
+		userIds   []int64
+		err       error
+		res       = map[string]interface{}{"ret": OK}
+		subKeys   map[int32][]string
+		keys      []string
 	)
 	defer retPWrite(w, r, res, &body, time.Now())
-	// param
 	if bodyBytes, err = ioutil.ReadAll(r.Body); err != nil {
 		log.Error("ioutil.ReadAll() failed (%s)", err)
 		res["ret"] = InternalErr
 		return
 	}
 	body = string(bodyBytes)
-	if msg, userIds, err = parsePushsBody(bodyBytes); err != nil {
+	if bodyBytes, userIds, err = parsePushsBody(bodyBytes); err != nil {
 		log.Error("parsePushsBody(\"%s\") error(%s)", body, err)
 		res["ret"] = InternalErr
 		return
 	}
-	divide = divideRouter(userIds)
-	for server, subkeys := range divide {
-		if err = mpushKafka(server, subkeys, msg); err != nil {
+	subKeys = genSubKeys(userIds)
+	for server, keys = range subKeys {
+		if err = mpushKafka(server, keys, bodyBytes); err != nil {
 			res["ret"] = InternalErr
 			return
 		}

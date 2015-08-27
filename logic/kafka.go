@@ -1,7 +1,6 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"github.com/Shopify/sarama"
 	"github.com/Terry-Mao/goim/define"
 	lproto "github.com/Terry-Mao/goim/proto/logic"
@@ -24,10 +23,10 @@ func InitKafka(kafkaAddrs []string) (err error) {
 	return
 }
 
-func mpushKafka(server int32, subkeys []string, msg []byte) (err error) {
+func mpushKafka(server int32, keys []string, msg []byte) (err error) {
 	var (
 		vBytes []byte
-		v      = &lproto.PushsMsg{Server: server, SubKeys: subkeys, Msg: msg}
+		v      = &lproto.PushsMsg{Server: server, SubKeys: keys, Msg: msg}
 	)
 	if vBytes, err = proto.Marshal(v); err != nil {
 		return
@@ -36,7 +35,6 @@ func mpushKafka(server int32, subkeys []string, msg []byte) (err error) {
 	if _, _, err = producer.SendMessage(message); err != nil {
 		return
 	}
-	log.Debug("produce msg ok, msg:%s", msg)
 	return
 }
 
@@ -45,6 +43,5 @@ func broadcastKafka(msg []byte) (err error) {
 	if _, _, err = producer.SendMessage(message); err != nil {
 		return
 	}
-	log.Debug("produce msg ok, broadcast msg:%s", msg)
 	return
 }
