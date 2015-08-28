@@ -104,7 +104,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	if trd, err = tr.Add(Conf.HandshakeTimeout, conn); err != nil {
 		log.Error("handshake: timer.Add() error(%v)", err)
 	} else {
-		if key, hb, err = server.authWebsocket(conn, p); err != nil {
+		if key, hb, err = server.authTCP(rr, wr, pb, ch); err != nil {
 			log.Error("handshake: server.auth error(%v)", err)
 		}
 		//deltimer
