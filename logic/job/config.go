@@ -63,12 +63,5 @@ func InitConfig() (err error) {
 
 		Conf.Comets[int32(serverIDi)] = addr
 	}
-	for _, serverID := range gconf.Get("router.addrs").Keys() {
-		addr, err := gconf.Get("router.addrs").String(serverID)
-		if err != nil {
-			return err
-		}
-		Conf.RouterRPCAddrs[serverID] = addr
-	}
-	return nil
+	return
 }
