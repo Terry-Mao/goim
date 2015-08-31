@@ -17,26 +17,22 @@ func init() {
 }
 
 type Config struct {
-	Log               string            `goconf:"base:log"`
-	RouterAddrs       []string          `goconf:"router:addr:,"`
-	ZKAddrs           []string          `goconf:"kafka:zookeeper.list:,"`
-	ZKRoot            string            `goconf:"kafka:zkroot"`
-	KafkaTopic        string            `goconf:"kafka:topic"`
-	Comets            map[int32]string  `goconf:"-"`
-	RouterRPCNetworks []string          `goconf:"router:networks:,"`
-	PushChan          int               `goconf:"push:chan"`
-	PushChanSize      int               `goconf:"push:chan.size"`
-	RouterRPCAddrs    map[string]string `-`
+	Log          string           `goconf:"base:log"`
+	ZKAddrs      []string         `goconf:"kafka:zookeeper.list:,"`
+	ZKRoot       string           `goconf:"kafka:zkroot"`
+	KafkaTopic   string           `goconf:"kafka:topic"`
+	Comets       map[int32]string `goconf:"-"`
+	PushChan     int              `goconf:"push:chan"`
+	PushChanSize int              `goconf:"push:chan.size"`
 }
 
 func NewConfig() *Config {
 	return &Config{
-		Comets:         make(map[int32]string),
-		ZKRoot:         "",
-		KafkaTopic:     "kafka_topic_push",
-		RouterRPCAddrs: make(map[string]string),
-		PushChan:       4,
-		PushChanSize:   100,
+		Comets:       make(map[int32]string),
+		ZKRoot:       "",
+		KafkaTopic:   "kafka_topic_push",
+		PushChan:     4,
+		PushChanSize: 100,
 	}
 }
 
@@ -63,12 +59,5 @@ func InitConfig() (err error) {
 
 		Conf.Comets[int32(serverIDi)] = addr
 	}
-	for _, serverID := range gconf.Get("router.addrs").Keys() {
-		addr, err := gconf.Get("router.addrs").String(serverID)
-		if err != nil {
-			return err
-		}
-		Conf.RouterRPCAddrs[serverID] = addr
-	}
-	return nil
+	return
 }
