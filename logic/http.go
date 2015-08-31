@@ -15,6 +15,7 @@ func InitHTTP() (err error) {
 	var network, addr string
 	for i := 0; i < len(Conf.HTTPAddrs); i++ {
 		httpServeMux := http.NewServeMux()
+		httpServeMux.HandleFunc("/1/push", Push)
 		httpServeMux.HandleFunc("/1/pushs", Pushs)
 		httpServeMux.HandleFunc("/1/push/all", PushAll)
 		log.Info("start http listen:\"%s\"", Conf.HTTPAddrs[i])
