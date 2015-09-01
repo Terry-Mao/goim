@@ -24,7 +24,7 @@ gopush-cluster
  * 可拓扑的架构（job、logic模块可动态无限扩展）
  * 基于Kafka做异步消息推送
 
-## CentOS下安装(版本1.0)
+## 安装
 ### 一、安装依赖
 ```sh
 $ yum -y install java-1.7.0-openjdk
