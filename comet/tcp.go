@@ -93,11 +93,11 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	var (
 		b   *Bucket
 		p   *Proto
-		hb  time.Duration // heartbeat
 		key string
+		hb  time.Duration // heartbeat
 		err error
 		trd *TimerData
-		ch  = NewChannel(Conf.CliProto, Conf.SvrProto)
+		ch  = NewChannel(Conf.CliProto, Conf.SvrProto, define.NoRoom)
 		pb  = make([]byte, maxPackIntBuf)
 	)
 	// auth
@@ -248,7 +248,7 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, pb []byte, ch 
 		err = ErrOperation
 		return
 	}
-	if subKey, heartbeat, err = server.operator.Connect(p); err != nil {
+	if subKey, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
 		log.Error("operator.Connect error(%v)", err)
 		return
 	}

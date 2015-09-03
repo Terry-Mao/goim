@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -18,6 +19,7 @@ func InitHTTP() (err error) {
 		httpServeMux.HandleFunc("/1/push", Push)
 		httpServeMux.HandleFunc("/1/pushs", Pushs)
 		httpServeMux.HandleFunc("/1/push/all", PushAll)
+		httpServeMux.HandleFunc("/1/push/room", PushRoom)
 		log.Info("start http listen:\"%s\"", Conf.HTTPAddrs[i])
 		if network, addr, err = inet.ParseNetwork(Conf.HTTPAddrs[i]); err != nil {
 			log.Error("inet.ParseNetwork() error(%v)", err)
@@ -185,6 +187,39 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 		if err := broadcastKafka(bodyBytes); err != nil {
 			log.Error("broadcastKafka(\"%s\") error(%s)", body, err)
 			ret = InternalErr
+		}
+	}
+	res["ret"] = ret
+	return
+}
+
+func PushRoom(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method Not Allowed", 405)
+		return
+	}
+	var (
+		bodyBytes []byte
+		body      string
+		err       error
+		ret       = OK
+		ridStr    = r.URL.Query().Get("rid")
+		res       = map[string]interface{}{"ret": ret}
+	)
+	defer retPWrite(w, r, res, &body, time.Now())
+	if bodyBytes, err = ioutil.ReadAll(r.Body); err != nil {
+		log.Error("ioutil.ReadAll() failed (%v)", err)
+		ret = InternalErr
+	} else {
+		body = string(bodyBytes)
+		if _, err = strconv.Atoi(ridStr); err != nil {
+			log.Error("strconv.Atoi(\"%s\") error(%v)", ridStr, err)
+			ret = InternalErr
+		} else {
+			if err := broadcastRoomKafka(ridStr, bodyBytes); err != nil {
+				log.Error("broadcastKafka(\"%s\") error(%s)", body, err)
+				ret = InternalErr
+			}
 		}
 	}
 	res["ret"] = ret

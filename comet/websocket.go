@@ -52,19 +52,19 @@ func serveWebsocket(conn *websocket.Conn) {
 
 func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	var (
+		p   *Proto
 		b   *Bucket
-		ch  *Channel
 		hb  time.Duration // heartbeat
 		key string
 		err error
 		trd *TimerData
-		p   = new(Proto)
+		ch  = NewChannel(Conf.CliProto, Conf.SvrProto, define.NoRoom)
 	)
 	// auth
 	if trd, err = tr.Add(Conf.HandshakeTimeout, conn); err != nil {
 		log.Error("handshake: timer.Add() error(%v)", err)
 	} else {
-		if key, hb, err = server.authWebsocket(conn, p); err != nil {
+		if key, hb, err = server.authWebsocket(conn, ch); err != nil {
 			log.Error("handshake: server.auth error(%v)", err)
 		}
 		//deltimer
@@ -77,10 +77,8 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 		}
 		return
 	}
-	// TODO how to reuse channel
 	// register key->channel
 	b = server.Bucket(key)
-	ch = NewChannel(Conf.CliProto, Conf.SvrProto)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
 	go server.dispatchWebsocket(conn, ch, hb, tr)
@@ -194,7 +192,13 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authWebsocket(conn *websocket.Conn, p *Proto) (subKey string, heartbeat time.Duration, err error) {
+func (server *Server) authWebsocket(conn *websocket.Conn, ch *Channel) (subKey string, heartbeat time.Duration, err error) {
+	var p *Proto
+	// WARN
+	// don't adv the cli proto, after auth simply discard it.
+	if p, err = ch.CliProto.Set(); err != nil {
+		return
+	}
 	if err = server.readWebsocketRequest(conn, p); err != nil {
 		return
 	}
@@ -203,7 +207,7 @@ func (server *Server) authWebsocket(conn *websocket.Conn, p *Proto) (subKey stri
 		err = ErrOperation
 		return
 	}
-	if subKey, heartbeat, err = server.operator.Connect(p); err != nil {
+	if subKey, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
 		log.Error("operator.Connect error(%v)", err)
 		return
 	}

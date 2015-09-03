@@ -55,9 +55,10 @@ func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
 		return
 	}
 	var (
-		uid = r.auther.Auth(args.Token)
+		uid int64
 		seq int32
 	)
+	uid, rep.RoomId = r.auther.Auth(args.Token)
 	if seq, err = connect(uid, args.Server); err == nil {
 		rep.Key = encode(uid, seq)
 	}

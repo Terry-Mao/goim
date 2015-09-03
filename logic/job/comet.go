@@ -14,13 +14,14 @@ var (
 )
 
 const (
-	CometService          = "PushRPC"
-	CometServicePing      = "PushRPC.Ping"
-	CometServicePushMsg   = "PushRPC.PushMsg"
-	CometServicePushMsgs  = "PushRPC.PushMsgs"
-	CometServiceMPushMsg  = "PushRPC.MPushMsg"
-	CometServiceMPushMsgs = "PushRPC.MPushMsgs"
-	CometServiceBroadcast = "PushRPC.Broadcast"
+	CometService              = "PushRPC"
+	CometServicePing          = "PushRPC.Ping"
+	CometServicePushMsg       = "PushRPC.PushMsg"
+	CometServicePushMsgs      = "PushRPC.PushMsgs"
+	CometServiceMPushMsg      = "PushRPC.MPushMsg"
+	CometServiceMPushMsgs     = "PushRPC.MPushMsgs"
+	CometServiceBroadcast     = "PushRPC.Broadcast"
+	CometServiceBroadcastRoom = "PushRPC.BroadcastRoom"
 )
 
 func InitComet(addrs map[int32]string) (err error) {
@@ -54,7 +55,7 @@ func getCometByServerId(serverID int32) (*protorpc.Client, error) {
 	}
 }
 
-func mpushComet(c *protorpc.Client, serverId int32, subkeys []string, body []byte) {
+func mpushComet(c *protorpc.Client, subkeys []string, body []byte) {
 	var (
 		now  = time.Now()
 		args = &cproto.MPushMsgArg{Keys: subkeys, Operation: define.OP_SEND_SMS_REPLY, Msg: body}
@@ -64,11 +65,11 @@ func mpushComet(c *protorpc.Client, serverId int32, subkeys []string, body []byt
 	if err = c.Call(CometServiceMPushMsg, args, rep); err != nil {
 		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceMPushMsg, *args, err)
 	} else {
-		log.Info("push msg to serverId:%d index:%d(%f)", serverId, rep.Index, time.Now().Sub(now).Seconds())
+		log.Info("push msg to index:%d(%f)", rep.Index, time.Now().Sub(now).Seconds())
 	}
 }
 
-func broadcastComet(c *protorpc.Client, serverId int32, msg []byte) {
+func broadcastComet(c *protorpc.Client, msg []byte) {
 	var (
 		now  = time.Now()
 		args = &cproto.BoardcastArg{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Msg: msg}
@@ -77,6 +78,19 @@ func broadcastComet(c *protorpc.Client, serverId int32, msg []byte) {
 	if err = c.Call(CometServiceBroadcast, args, nil); err != nil {
 		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceBroadcast, *args, err)
 	} else {
-		log.Info("broadcast msg to serverId:%d msg:%s(%f)", serverId, msg, time.Now().Sub(now).Seconds())
+		log.Info("broadcast msg to msg:%s(%f)", msg, time.Now().Sub(now).Seconds())
+	}
+}
+
+func broadcastRoomComet(c *protorpc.Client, roomId int32, msg []byte) {
+	var (
+		now  = time.Now()
+		args = &cproto.BoardcastRoomArg{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Msg: msg, RoomId: roomId}
+		err  error
+	)
+	if err = c.Call(CometServiceBroadcastRoom, args, nil); err != nil {
+		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceBroadcastRoom, *args, err)
+	} else {
+		log.Info("broadcast msg to msg:%s room:%d(%f)", msg, roomId, time.Now().Sub(now).Seconds())
 	}
 }

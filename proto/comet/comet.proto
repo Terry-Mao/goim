@@ -56,3 +56,10 @@ message BoardcastArg {
     int32 operation = 2;
     bytes msg = 3;
 }
+
+message BoardcastRoomArg {
+    int32 ver = 1;
+    int32 operation = 2;
+    bytes msg = 3;
+    int32 roomId = 4;
+}

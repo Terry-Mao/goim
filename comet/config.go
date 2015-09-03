@@ -62,10 +62,12 @@ type Config struct {
 	Timer     int `goconf:"proto:timer"`
 	TimerSize int `goconf:"proto:timer.size"`
 	// bucket
-	Bucket   int `goconf:"bucket:bucket.num"`
-	CliProto int `goconf:"bucket:cli.proto.num"`
-	SvrProto int `goconf:"bucket:svr.proto.num"`
-	Channel  int `goconf:"bucket:channel.num"`
+	Bucket      int `goconf:"bucket:bucket.num"`
+	CliProto    int `goconf:"bucket:cli.proto.num"`
+	SvrProto    int `goconf:"bucket:svr.proto.num"`
+	Channel     int `goconf:"bucket:channel.num"`
+	Room        int `goconf:"bucket:room.num"`
+	RoomChannel int `goconf:"bucket.room.channel.num"`
 	// push
 	HTTPPushAddrs    []string      `goconf:"push:http.addrs:,"`
 	HTTPReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`

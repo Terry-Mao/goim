@@ -128,3 +128,10 @@ func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *proto.NoReply) (e
 	}
 	return
 }
+
+func (this *PushRPC) BroadcastRoom(arg *proto.BoardcastRoomArg, reply *proto.NoReply) (err error) {
+	for _, bucket := range DefaultServer.Buckets {
+		go bucket.BroadcastRoom(arg.RoomId, int16(arg.Ver), arg.Operation, arg.Msg)
+	}
+	return
+}

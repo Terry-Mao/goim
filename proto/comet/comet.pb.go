@@ -18,6 +18,7 @@
 		MPushMsgsArg
 		MPushMsgsReply
 		BoardcastArg
+		BoardcastRoomArg
 */
 package comet
 
@@ -115,6 +116,17 @@ type BoardcastArg struct {
 func (m *BoardcastArg) Reset()         { *m = BoardcastArg{} }
 func (m *BoardcastArg) String() string { return proto.CompactTextString(m) }
 func (*BoardcastArg) ProtoMessage()    {}
+
+type BoardcastRoomArg struct {
+	Ver       int32  `protobuf:"varint,1,opt,name=ver,proto3" json:"ver,omitempty"`
+	Operation int32  `protobuf:"varint,2,opt,name=operation,proto3" json:"operation,omitempty"`
+	Msg       []byte `protobuf:"bytes,3,opt,name=msg,proto3" json:"msg,omitempty"`
+	RoomId    int32  `protobuf:"varint,4,opt,name=roomId,proto3" json:"roomId,omitempty"`
+}
+
+func (m *BoardcastRoomArg) Reset()         { *m = BoardcastRoomArg{} }
+func (m *BoardcastRoomArg) String() string { return proto.CompactTextString(m) }
+func (*BoardcastRoomArg) ProtoMessage()    {}
 
 func init() {
 }
@@ -898,6 +910,115 @@ func (m *BoardcastArg) Unmarshal(data []byte) error {
 
 	return nil
 }
+func (m *BoardcastRoomArg) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ver", wireType)
+			}
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Ver |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Operation", wireType)
+			}
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Operation |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Msg", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Msg = append([]byte{}, data[iNdEx:postIndex]...)
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RoomId", wireType)
+			}
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.RoomId |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipComet(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	return nil
+}
 func skipComet(data []byte) (n int, err error) {
 	l := len(data)
 	iNdEx := 0
@@ -1129,6 +1250,27 @@ func (m *BoardcastArg) Size() (n int) {
 		if l > 0 {
 			n += 1 + l + sovComet(uint64(l))
 		}
+	}
+	return n
+}
+
+func (m *BoardcastRoomArg) Size() (n int) {
+	var l int
+	_ = l
+	if m.Ver != 0 {
+		n += 1 + sovComet(uint64(m.Ver))
+	}
+	if m.Operation != 0 {
+		n += 1 + sovComet(uint64(m.Operation))
+	}
+	if m.Msg != nil {
+		l = len(m.Msg)
+		if l > 0 {
+			n += 1 + l + sovComet(uint64(l))
+		}
+	}
+	if m.RoomId != 0 {
+		n += 1 + sovComet(uint64(m.RoomId))
 	}
 	return n
 }
@@ -1459,6 +1601,47 @@ func (m *BoardcastArg) MarshalTo(data []byte) (n int, err error) {
 			i = encodeVarintComet(data, i, uint64(len(m.Msg)))
 			i += copy(data[i:], m.Msg)
 		}
+	}
+	return i, nil
+}
+
+func (m *BoardcastRoomArg) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *BoardcastRoomArg) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Ver != 0 {
+		data[i] = 0x8
+		i++
+		i = encodeVarintComet(data, i, uint64(m.Ver))
+	}
+	if m.Operation != 0 {
+		data[i] = 0x10
+		i++
+		i = encodeVarintComet(data, i, uint64(m.Operation))
+	}
+	if m.Msg != nil {
+		if len(m.Msg) > 0 {
+			data[i] = 0x1a
+			i++
+			i = encodeVarintComet(data, i, uint64(len(m.Msg)))
+			i += copy(data[i:], m.Msg)
+		}
+	}
+	if m.RoomId != 0 {
+		data[i] = 0x20
+		i++
+		i = encodeVarintComet(data, i, uint64(m.RoomId))
 	}
 	return i, nil
 }

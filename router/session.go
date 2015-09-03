@@ -2,7 +2,7 @@ package main
 
 type Session struct {
 	seq     int32
-	servers map[int32]int32 // map[user_id] ->  map[sub_id] -> server_id
+	servers map[int32]int32 // seq:server
 }
 
 // NewSession new a session struct. store the seq and serverid.
