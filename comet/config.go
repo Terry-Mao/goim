@@ -67,7 +67,7 @@ type Config struct {
 	SvrProto    int `goconf:"bucket:svr.proto.num"`
 	Channel     int `goconf:"bucket:channel.num"`
 	Room        int `goconf:"bucket:room.num"`
-	RoomChannel int `goconf:"bucket.room.channel.num"`
+	RoomChannel int `goconf:"bucket:room.channel.num"`
 	// push
 	HTTPPushAddrs    []string      `goconf:"push:http.addrs:,"`
 	HTTPReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
