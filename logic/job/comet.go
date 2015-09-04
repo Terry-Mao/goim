@@ -6,7 +6,6 @@ import (
 	inet "github.com/Terry-Mao/goim/libs/net"
 	cproto "github.com/Terry-Mao/goim/proto/comet"
 	"github.com/Terry-Mao/protorpc"
-	"time"
 )
 
 var (
@@ -15,7 +14,7 @@ var (
 
 const (
 	CometService              = "PushRPC"
-	CometServicePing          = "PushRPC.Ping"
+	CometServiceRooms         = "PushRPC.Rooms"
 	CometServicePushMsg       = "PushRPC.PushMsg"
 	CometServicePushMsgs      = "PushRPC.PushMsgs"
 	CometServiceMPushMsg      = "PushRPC.MPushMsg"
@@ -57,40 +56,43 @@ func getCometByServerId(serverID int32) (*protorpc.Client, error) {
 
 func mpushComet(c *protorpc.Client, subkeys []string, body []byte) {
 	var (
-		now  = time.Now()
 		args = &cproto.MPushMsgArg{Keys: subkeys, Operation: define.OP_SEND_SMS_REPLY, Msg: body}
 		rep  = &cproto.MPushMsgReply{}
 		err  error
 	)
 	if err = c.Call(CometServiceMPushMsg, args, rep); err != nil {
 		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceMPushMsg, *args, err)
-	} else {
-		log.Info("push msg to index:%d(%f)", rep.Index, time.Now().Sub(now).Seconds())
 	}
 }
 
 func broadcastComet(c *protorpc.Client, msg []byte) {
 	var (
-		now  = time.Now()
 		args = &cproto.BoardcastArg{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Msg: msg}
 		err  error
 	)
 	if err = c.Call(CometServiceBroadcast, args, nil); err != nil {
 		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceBroadcast, *args, err)
-	} else {
-		log.Info("broadcast msg to msg:%s(%f)", msg, time.Now().Sub(now).Seconds())
 	}
 }
 
 func broadcastRoomComet(c *protorpc.Client, roomId int32, msg []byte) {
 	var (
-		now  = time.Now()
 		args = &cproto.BoardcastRoomArg{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Msg: msg, RoomId: roomId}
 		err  error
 	)
 	if err = c.Call(CometServiceBroadcastRoom, args, nil); err != nil {
 		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceBroadcastRoom, *args, err)
-	} else {
-		log.Info("broadcast msg to msg:%s room:%d(%f)", msg, roomId, time.Now().Sub(now).Seconds())
 	}
+}
+
+func roomsComet(c *protorpc.Client) map[int32]bool {
+	var (
+		reply = &cproto.RoomsReply{}
+		err   error
+	)
+	if err = c.Call(CometServiceRooms, nil, reply); err != nil {
+		log.Error("c.Call(\"%s\", nil, reply) error(%v)", CometServiceRooms, err)
+		return nil
+	}
+	return reply.Rooms
 }

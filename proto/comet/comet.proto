@@ -8,6 +8,9 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
+message NoArgs {
+}
+
 message NoReply {
 }
 
@@ -62,4 +65,8 @@ message BoardcastRoomArg {
     int32 operation = 2;
     bytes msg = 3;
     int32 roomId = 4;
+}
+
+message RoomsReply {
+    map<int32, bool> rooms = 1;
 }

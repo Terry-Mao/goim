@@ -9,6 +9,7 @@
 		comet.proto
 
 	It has these top-level messages:
+		NoArgs
 		NoReply
 		PushMsgArg
 		PushMsgsArg
@@ -19,6 +20,7 @@
 		MPushMsgsReply
 		BoardcastArg
 		BoardcastRoomArg
+		RoomsReply
 */
 package comet
 
@@ -29,8 +31,17 @@ import proto "github.com/golang/protobuf/proto"
 import io "io"
 import fmt "fmt"
 
+import github_com_gogo_protobuf_sortkeys "github.com/gogo/protobuf/sortkeys"
+
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+
+type NoArgs struct {
+}
+
+func (m *NoArgs) Reset()         { *m = NoArgs{} }
+func (m *NoArgs) String() string { return proto.CompactTextString(m) }
+func (*NoArgs) ProtoMessage()    {}
 
 type NoReply struct {
 }
@@ -128,7 +139,63 @@ func (m *BoardcastRoomArg) Reset()         { *m = BoardcastRoomArg{} }
 func (m *BoardcastRoomArg) String() string { return proto.CompactTextString(m) }
 func (*BoardcastRoomArg) ProtoMessage()    {}
 
+type RoomsReply struct {
+	Rooms map[int32]bool `protobuf:"bytes,1,rep,name=rooms" json:"rooms,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+}
+
+func (m *RoomsReply) Reset()         { *m = RoomsReply{} }
+func (m *RoomsReply) String() string { return proto.CompactTextString(m) }
+func (*RoomsReply) ProtoMessage()    {}
+
+func (m *RoomsReply) GetRooms() map[int32]bool {
+	if m != nil {
+		return m.Rooms
+	}
+	return nil
+}
+
 func init() {
+}
+func (m *NoArgs) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		switch fieldNum {
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipComet(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	return nil
 }
 func (m *NoReply) Unmarshal(data []byte) error {
 	l := len(data)
@@ -1019,6 +1086,122 @@ func (m *BoardcastRoomArg) Unmarshal(data []byte) error {
 
 	return nil
 }
+func (m *RoomsReply) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rooms", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var keykey uint64
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				keykey |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var mapkey int32
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				mapkey |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var valuekey uint64
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				valuekey |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var mapvaluetemp int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				mapvaluetemp |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			mapvalue := bool(mapvaluetemp != 0)
+			if m.Rooms == nil {
+				m.Rooms = make(map[int32]bool)
+			}
+			m.Rooms[mapkey] = mapvalue
+			iNdEx = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipComet(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	return nil
+}
 func skipComet(data []byte) (n int, err error) {
 	l := len(data)
 	iNdEx := 0
@@ -1103,6 +1286,12 @@ func skipComet(data []byte) (n int, err error) {
 	}
 	panic("unreachable")
 }
+func (m *NoArgs) Size() (n int) {
+	var l int
+	_ = l
+	return n
+}
+
 func (m *NoReply) Size() (n int) {
 	var l int
 	_ = l
@@ -1275,6 +1464,20 @@ func (m *BoardcastRoomArg) Size() (n int) {
 	return n
 }
 
+func (m *RoomsReply) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Rooms) > 0 {
+		for k, v := range m.Rooms {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + sovComet(uint64(k)) + 1 + 1
+			n += mapEntrySize + 1 + sovComet(uint64(mapEntrySize))
+		}
+	}
+	return n
+}
+
 func sovComet(x uint64) (n int) {
 	for {
 		n++
@@ -1288,6 +1491,24 @@ func sovComet(x uint64) (n int) {
 func sozComet(x uint64) (n int) {
 	return sovComet(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
+func (m *NoArgs) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *NoArgs) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	return i, nil
+}
+
 func (m *NoReply) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -1642,6 +1863,49 @@ func (m *BoardcastRoomArg) MarshalTo(data []byte) (n int, err error) {
 		data[i] = 0x20
 		i++
 		i = encodeVarintComet(data, i, uint64(m.RoomId))
+	}
+	return i, nil
+}
+
+func (m *RoomsReply) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *RoomsReply) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Rooms) > 0 {
+		keysForRooms := make([]int32, 0, len(m.Rooms))
+		for k, _ := range m.Rooms {
+			keysForRooms = append(keysForRooms, k)
+		}
+		github_com_gogo_protobuf_sortkeys.Int32s(keysForRooms)
+		for _, k := range keysForRooms {
+			data[i] = 0xa
+			i++
+			v := m.Rooms[k]
+			mapSize := 1 + sovComet(uint64(k)) + 1 + 1
+			i = encodeVarintComet(data, i, uint64(mapSize))
+			data[i] = 0x8
+			i++
+			i = encodeVarintComet(data, i, uint64(k))
+			data[i] = 0x10
+			i++
+			if v {
+				data[i] = 1
+			} else {
+				data[i] = 0
+			}
+			i++
+		}
 	}
 	return i, nil
 }

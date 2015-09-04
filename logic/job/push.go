@@ -50,12 +50,19 @@ func mpush(server int32, subkeys []string, msg []byte) {
 
 // mssage broadcast room
 func broadcastRoom(roomId int32, msg []byte) {
-	for _, c := range cometServiceMap {
-		if *c == nil {
-			log.Error("broadcast error(%v)", ErrComet)
-			return
+	var (
+		c        *protorpc.Client
+		ok       bool
+		err      error
+		serverId int32
+		servers  map[int32]struct{}
+	)
+	if servers, ok = RoomServersMap[roomId]; ok {
+		for serverId, _ = range servers {
+			if c, err = getCometByServerId(serverId); err == nil {
+				pushChs[rand.Int()%Conf.PushChan] <- &pushArg{C: c, Msg: msg, RoomId: roomId}
+			}
 		}
-		pushChs[rand.Int()%Conf.PushChan] <- &pushArg{C: *c, Msg: msg, RoomId: roomId}
 	}
 }
 

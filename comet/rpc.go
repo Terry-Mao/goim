@@ -47,12 +47,16 @@ type PushRPC struct {
 
 // Push push a message to a specified sub key
 func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *proto.NoReply) (err error) {
+	var (
+		bucket  *Bucket
+		channel *Channel
+	)
 	if arg == nil {
 		err = ErrPushMsgArg
 		return
 	}
-	bucket := DefaultServer.Bucket(arg.Key)
-	if channel := bucket.Get(arg.Key); channel != nil {
+	bucket = DefaultServer.Bucket(arg.Key)
+	if channel = bucket.Get(arg.Key); channel != nil {
 		err = channel.PushMsg(int16(arg.Ver), arg.Operation, arg.Msg)
 	}
 	return
@@ -60,13 +64,17 @@ func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *proto.NoReply) (err e
 
 // Pushs push multiple messages to a specified sub key
 func (this *PushRPC) PushMsgs(arg *proto.PushMsgsArg, reply *proto.PushMsgsReply) (err error) {
+	var (
+		bucket  *Bucket
+		channel *Channel
+	)
 	reply.Index = -1
 	if arg == nil || len(arg.Vers) != len(arg.Operations) || len(arg.Operations) != len(arg.Msgs) {
 		err = ErrPushMsgsArg
 		return
 	}
-	bucket := DefaultServer.Bucket(arg.Key)
-	if channel := bucket.Get(arg.Key); channel != nil {
+	bucket = DefaultServer.Bucket(arg.Key)
+	if channel = bucket.Get(arg.Key); channel != nil {
 		reply.Index, err = channel.PushMsgs(arg.Vers, arg.Operations, arg.Msgs)
 	}
 	return
@@ -123,15 +131,32 @@ func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsRe
 }
 
 func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *proto.NoReply) (err error) {
-	for _, bucket := range DefaultServer.Buckets {
+	var bucket *Bucket
+	for _, bucket = range DefaultServer.Buckets {
 		go bucket.Broadcast(int16(arg.Ver), arg.Operation, arg.Msg)
 	}
 	return
 }
 
 func (this *PushRPC) BroadcastRoom(arg *proto.BoardcastRoomArg, reply *proto.NoReply) (err error) {
-	for _, bucket := range DefaultServer.Buckets {
+	var bucket *Bucket
+	for _, bucket = range DefaultServer.Buckets {
 		go bucket.BroadcastRoom(arg.RoomId, int16(arg.Ver), arg.Operation, arg.Msg)
 	}
+	return
+}
+
+func (this *PushRPC) Rooms(arg *proto.NoArgs, reply *proto.RoomsReply) (err error) {
+	var (
+		roomId int32
+		bucket *Bucket
+		rooms  = make(map[int32]bool)
+	)
+	for _, bucket = range DefaultServer.Buckets {
+		for roomId, _ = range bucket.Rooms() {
+			rooms[roomId] = true
+		}
+	}
+	reply.Rooms = rooms
 	return
 }
