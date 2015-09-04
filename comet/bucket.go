@@ -113,16 +113,16 @@ func (b *Bucket) BroadcastRoom(rid int32, ver int16, operation int32, msg []byte
 }
 
 // Rooms get all room id where online number > 0.
-func (b *Bucket) Rooms() (res map[int32]bool) {
+func (b *Bucket) Rooms() (res map[int32]struct{}) {
 	var (
 		roomId int32
 		room   map[*Channel]struct{}
 	)
 	b.cLock.RLock()
-	res = make(map[int32]bool, len(b.rooms))
+	res = make(map[int32]struct{}, len(b.rooms))
 	for roomId, room = range b.rooms {
 		if len(room) > 0 {
-			res[roomId] = true
+			res[roomId] = struct{}{}
 		}
 	}
 	b.cLock.RUnlock()
