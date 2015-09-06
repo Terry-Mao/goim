@@ -24,11 +24,11 @@ func main() {
 	}
 	MergeRoomCount()
 	go SyncRoomCount()
-	if err := InitKafka(Conf.KafkaAddrs); err != nil {
-		panic(err)
-	}
 	// logic rpc
 	if err := InitRPC(NewDefaultAuther()); err != nil {
+		panic(err)
+	}
+	if err := InitKafka(Conf.KafkaAddrs); err != nil {
 		panic(err)
 	}
 	if err := InitHTTP(); err != nil {

@@ -79,8 +79,7 @@ type Config struct {
 	HTTPWriteTimeout time.Duration `goconf:"push:http.write.timeout:time"`
 	RPCPushAddrs     []string      `goconf:"push:rpc.addrs:,"`
 	// logic
-	LogicNetwork string `goconf:"logic:network"`
-	LogicAddr    string `goconf:"logic:addr"`
+	LogicAddr string `goconf:"logic:rpc.addrs"`
 }
 
 func NewConfig() *Config {
