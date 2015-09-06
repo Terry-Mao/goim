@@ -43,12 +43,12 @@ func connect(p *Proto) (key string, rid int32, heartbeat time.Duration, err erro
 	return
 }
 
-func disconnect(key string) (has bool, err error) {
+func disconnect(key string, roomId int32) (has bool, err error) {
 	if logicRpcClient == nil {
 		err = ErrLogic
 		return
 	}
-	arg := &proto.DisconnArg{Key: key}
+	arg := &proto.DisconnArg{Key: key, RoomId: roomId}
 	reply := &proto.DisconnReply{}
 	if err = logicRpcClient.Call(logicServiceDisconnect, arg, reply); err != nil {
 		log.Error("c.Call(\"%s\", \"%v\", &ret) error(%v)", logicServiceConnect, arg, err)

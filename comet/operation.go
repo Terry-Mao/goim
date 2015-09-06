@@ -12,7 +12,7 @@ type Operator interface {
 	// Connect used for auth user and return a subkey, roomid, hearbeat.
 	Connect(*Proto) (string, int32, time.Duration, error)
 	// Disconnect used for revoke the subkey.
-	Disconnect(string) error
+	Disconnect(string, int32) error
 }
 
 type DefaultOperator struct {
@@ -42,9 +42,9 @@ func (operator *DefaultOperator) Connect(p *Proto) (key string, rid int32, heart
 	return
 }
 
-func (operator *DefaultOperator) Disconnect(key string) (err error) {
+func (operator *DefaultOperator) Disconnect(key string, rid int32) (err error) {
 	var has bool
-	if has, err = disconnect(key); err != nil {
+	if has, err = disconnect(key, rid); err != nil {
 		return
 	}
 	if has {

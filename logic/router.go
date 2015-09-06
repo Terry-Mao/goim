@@ -71,12 +71,12 @@ func getRouterNode(userID int64) string {
 	return routerRing.Hash(strconv.FormatInt(userID, 10))
 }
 
-func connect(userID int64, server int32) (seq int32, err error) {
+func connect(userID int64, server, roomId int32) (seq int32, err error) {
 	var client *rpc.Client
 	if client, err = getRouterByUID(userID); err != nil {
 		return
 	}
-	arg := &rproto.ConnArg{UserId: userID, Server: server}
+	arg := &rproto.ConnArg{UserId: userID, Server: server, RoomId: roomId}
 	reply := &rproto.ConnReply{}
 	if err = client.Call(routerServiceConnect, arg, reply); err != nil {
 		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceConnect, arg, err)
@@ -86,12 +86,12 @@ func connect(userID int64, server int32) (seq int32, err error) {
 	return
 }
 
-func disconnect(userID int64, seq int32) (has bool, err error) {
+func disconnect(userID int64, seq, roomId int32) (has bool, err error) {
 	var client *rpc.Client
 	if client, err = getRouterByUID(userID); err != nil {
 		return
 	}
-	arg := &rproto.DisconnArg{UserId: userID, Seq: seq}
+	arg := &rproto.DisconnArg{UserId: userID, Seq: seq, RoomId: roomId}
 	reply := &rproto.DisconnReply{}
 	if err = client.Call(routerServiceDisconnect, arg, reply); err != nil {
 		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceDisconnect, *arg, err)

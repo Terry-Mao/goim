@@ -17,6 +17,7 @@ message NoReply {
 message ConnArg {
     int64 userId = 1; 
     int32 server = 2;
+    int32 roomId = 3;
 }
 
 message ConnReply {
@@ -26,6 +27,7 @@ message ConnReply {
 message DisconnArg {
     int64 userId = 1;
     int32 seq = 2;
+    int32 roomId = 3;
 }
 
 message DisconnReply {
@@ -55,10 +57,22 @@ message MGetReply {
     repeated GetReply sessions= 2;
 }
 
-message GetSeqCountArg {
+message UserCountArg {
     int64 userId = 1;
 }
 
-message GetSeqCountReply {
+message UserCountReply {
+    int32 count = 1;
+}
+
+message CountReply {
+    int32 count = 1;
+}
+
+message RoomCountArg {
+    int32 roomId = 1;
+}
+
+message RoomCountReply {
     int32 count = 1;
 }

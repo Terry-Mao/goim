@@ -113,7 +113,7 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 	// don't use close chan, Signal can be reused
 	// if chan full, writer goroutine next fetch from chan will exit
 	// if chan empty, send a 0(close) let the writer exit
-	if err = server.operator.Disconnect(key); err != nil {
+	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
 	log.Debug("%s serverconn goroutine exit", key)

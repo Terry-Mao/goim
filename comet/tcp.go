@@ -148,7 +148,7 @@ failed:
 	b.Del(key)
 	log.Debug("wake up dispatch goroutine")
 	ch.Finish()
-	if err = server.operator.Disconnect(key); err != nil {
+	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
 	log.Debug("%s serverconn goroutine exit", key)

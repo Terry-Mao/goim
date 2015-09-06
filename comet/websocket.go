@@ -109,7 +109,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	}
 	ch.Finish()
 	b.Del(key)
-	if err = server.operator.Disconnect(key); err != nil {
+	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
 	log.Debug("%s serverconn goroutine exit", key)
