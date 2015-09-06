@@ -26,7 +26,7 @@ func InitLogicRpc(network, addr string) (err error) {
 	return
 }
 
-func connect(p *Proto) (key string, heartbeat time.Duration, err error) {
+func connect(p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	if logicRpcClient == nil {
 		err = ErrLogic
 		return
@@ -38,16 +38,17 @@ func connect(p *Proto) (key string, heartbeat time.Duration, err error) {
 		return
 	}
 	key = reply.Key
+	rid = reply.RoomId
 	heartbeat = 5 * 60 * time.Second
 	return
 }
 
-func disconnect(key string) (has bool, err error) {
+func disconnect(key string, roomId int32) (has bool, err error) {
 	if logicRpcClient == nil {
 		err = ErrLogic
 		return
 	}
-	arg := &proto.DisconnArg{Key: key}
+	arg := &proto.DisconnArg{Key: key, RoomId: roomId}
 	reply := &proto.DisconnReply{}
 	if err = logicRpcClient.Call(logicServiceDisconnect, arg, reply); err != nil {
 		log.Error("c.Call(\"%s\", \"%v\", &ret) error(%v)", logicServiceConnect, arg, err)

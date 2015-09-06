@@ -16,6 +16,8 @@ func main() {
 	if err := InitComet(Conf.Comets); err != nil {
 		panic(err)
 	}
+	MergeRoomServers()
+	go SyncRoomServers()
 	InitPush()
 	if err := InitKafka(); err != nil {
 		panic(err)

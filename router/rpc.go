@@ -53,12 +53,12 @@ func (r *RouterRPC) bucket(userId int64) *Bucket {
 }
 
 func (r *RouterRPC) Connect(arg *proto.ConnArg, reply *proto.ConnReply) error {
-	reply.Seq = r.bucket(arg.UserId).Put(arg.UserId, arg.Server)
+	reply.Seq = r.bucket(arg.UserId).Put(arg.UserId, arg.Server, arg.RoomId)
 	return nil
 }
 
 func (r *RouterRPC) Disconnect(arg *proto.DisconnArg, reply *proto.DisconnReply) error {
-	reply.Has = r.bucket(arg.UserId).DelSession(arg.UserId, arg.Seq)
+	reply.Has = r.bucket(arg.UserId).Del(arg.UserId, arg.Seq, arg.RoomId)
 	return nil
 }
 
@@ -105,7 +105,41 @@ func (r *RouterRPC) MGet(arg *proto.MGetArg, reply *proto.MGetReply) error {
 	return nil
 }
 
-func (r *RouterRPC) GetSeqCount(arg *proto.GetSeqCountArg, reply *proto.GetSeqCountReply) error {
-	reply.Count = int32(r.bucket(arg.UserId).Count(arg.UserId))
+func (r *RouterRPC) Count(arg *proto.NoArg, reply *proto.CountReply) error {
+	var (
+		bucket *Bucket
+	)
+	for _, bucket = range r.Buckets {
+		reply.Count += bucket.Count()
+	}
+	return nil
+}
+
+func (r *RouterRPC) RoomCount(arg *proto.RoomCountArg, reply *proto.RoomCountReply) error {
+	var (
+		bucket *Bucket
+	)
+	for _, bucket = range r.Buckets {
+		reply.Count += bucket.RoomCount(arg.RoomId)
+	}
+	return nil
+}
+
+func (r *RouterRPC) AllRoomCount(arg *proto.NoArg, reply *proto.AllRoomCountReply) error {
+	var (
+		bucket        *Bucket
+		roomId, count int32
+	)
+	reply.Counter = make(map[int32]int32)
+	for _, bucket = range r.Buckets {
+		for roomId, count = range bucket.AllRoomCount() {
+			reply.Counter[roomId] += count
+		}
+	}
+	return nil
+}
+
+func (r *RouterRPC) UserCount(arg *proto.UserCountArg, reply *proto.UserCountReply) error {
+	reply.Count = int32(r.bucket(arg.UserId).UserCount(arg.UserId))
 	return nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Terry-Mao/goim/define"
 	"sync"
 	"time"
 )
@@ -8,8 +9,9 @@ import (
 type Bucket struct {
 	bLock    sync.RWMutex       // protect the session map
 	sessions map[int64]*Session // map[user_id] ->  map[sub_id] -> server_id
-	server   int
+	counter  map[int32]int32    // map[roomid] -> count, if noroom then all
 	cleaner  *Cleaner
+	server   int // session cache server number
 }
 
 // NewBucket new a bucket struct. store the subkey with im channel.
@@ -23,7 +25,7 @@ func NewBucket(session, server, cleaner int) *Bucket {
 }
 
 // Put put a channel according with user id.
-func (b *Bucket) Put(userId int64, server int32) (seq int32) {
+func (b *Bucket) Put(userId int64, server int32, roomId int32) (seq int32) {
 	var (
 		s  *Session
 		ok bool
@@ -33,7 +35,12 @@ func (b *Bucket) Put(userId int64, server int32) (seq int32) {
 		s = NewSession(b.server)
 		b.sessions[userId] = s
 	}
-	seq = s.Put(server)
+	if roomId != define.NoRoom {
+		seq = s.PutRoom(server, roomId)
+	} else {
+		seq = s.Put(server)
+	}
+	b.counter[roomId]++
 	b.bLock.Unlock()
 	return
 }
@@ -62,38 +69,29 @@ func (b *Bucket) GetAll() (userIds []int64, seqs [][]int32, servers [][]int32) {
 	return
 }
 
-func (b *Bucket) Count(userId int64) (count int) {
-	b.bLock.RLock()
-	if s, ok := b.sessions[userId]; ok {
-		count = s.Size()
-	}
-	b.bLock.RUnlock()
-	return
-}
-
 func (b *Bucket) del(userId int64) {
 	var (
 		s  *Session
 		ok bool
 	)
 	if s, ok = b.sessions[userId]; ok {
-		if s.Size() == 0 {
+		if s.Count() == 0 {
 			delete(b.sessions, userId)
 		}
 	}
 }
 
-func (b *Bucket) Del(userId int64) {
-	b.bLock.Lock()
-	b.del(userId)
-	b.bLock.Unlock()
-}
+//func (b *Bucket) Del(userId int64) {
+//	b.bLock.Lock()
+//	b.del(userId)
+//	b.bLock.Unlock()
+//}
 
 // Del delete the channel by sub key.
-func (b *Bucket) DelSession(userId int64, seq int32) (ok bool) {
+func (b *Bucket) Del(userId int64, seq int32, roomId int32) (ok bool) {
 	var (
-		s     *Session
-		empty bool
+		s          *Session
+		has, empty bool
 	)
 	b.bLock.Lock()
 	if s, ok = b.sessions[userId]; ok {
@@ -102,13 +100,59 @@ func (b *Bucket) DelSession(userId int64, seq int32) (ok bool) {
 		// empty is a dirty data, we use here for try lru clean discard session.
 		// when one user flapped connect & disconnect, this also can reduce
 		// frequently new & free object, gc is slow!!!
-		empty = s.Del(seq)
+		if roomId != define.NoRoom {
+			has, empty = s.DelRoom(seq, roomId)
+		} else {
+			has, empty = s.Del(seq)
+		}
+		if has {
+			b.counter[roomId]--
+		}
 	}
 	b.bLock.Unlock()
 	// lru
 	if empty {
 		b.cleaner.PushFront(userId, Conf.SessionExpire)
 	}
+	return
+}
+
+func (b *Bucket) count(roomId int32) (count int32) {
+	b.bLock.RLock()
+	count = b.counter[roomId]
+	b.bLock.RUnlock()
+	return
+}
+
+func (b *Bucket) Count() (count int32) {
+	count = b.count(define.NoRoom)
+	return
+}
+
+func (b *Bucket) RoomCount(roomId int32) (count int32) {
+	count = b.count(roomId)
+	return
+}
+
+func (b *Bucket) AllRoomCount() (counter map[int32]int32) {
+	var roomId, count int32
+	b.bLock.RLock()
+	counter = make(map[int32]int32, len(b.counter))
+	for roomId, count = range b.counter {
+		if roomId != define.NoRoom {
+			counter[roomId] = count
+		}
+	}
+	b.bLock.RUnlock()
+	return
+}
+
+func (b *Bucket) UserCount(userId int64) (count int32) {
+	b.bLock.RLock()
+	if s, ok := b.sessions[userId]; ok {
+		count = int32(s.Count())
+	}
+	b.bLock.RUnlock()
 	return
 }
 

@@ -7,6 +7,7 @@ import (
 	lproto "github.com/Terry-Mao/goim/proto/logic"
 	"github.com/gogo/protobuf/proto"
 	"github.com/wvanbergen/kafka/consumergroup"
+	"strconv"
 	"time"
 )
 
@@ -55,7 +56,11 @@ func push(op string, msg []byte) (err error) {
 	} else if op == define.KAFKA_MESSAGE_BROADCAST {
 		broadcast(msg)
 	} else {
-		log.Error("unknown message type:%s", op)
+		if roomId, err := strconv.Atoi(op); err != nil {
+			log.Warn("strconv.Atoi(\"%s\") error(%v)", op, err)
+		} else {
+			broadcastRoom(int32(roomId), msg)
+		}
 	}
 	return
 }

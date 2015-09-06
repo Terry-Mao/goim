@@ -28,7 +28,7 @@ func main() {
 	// new server
 	buckets := make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
-		buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
+		buckets[i] = NewBucket(Conf.Channel, Conf.Room, Conf.RoomChannel, Conf.CliProto, Conf.SvrProto)
 	}
 	round := NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize)
 	operator := new(DefaultOperator)

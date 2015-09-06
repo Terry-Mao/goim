@@ -12,14 +12,16 @@ const (
 
 // Channel used by message pusher send msg to write goroutine.
 type Channel struct {
+	RoomId   int32
 	signal   chan int
 	CliProto Ring
 	SvrProto Ring
 	cLock    sync.Mutex
 }
 
-func NewChannel(cliProto, svrProto int) *Channel {
+func NewChannel(cliProto, svrProto int, rid int32) *Channel {
 	c := new(Channel)
+	c.RoomId = rid
 	c.signal = make(chan int, signalNum)
 	InitRing(&c.CliProto, cliProto)
 	InitRing(&c.SvrProto, svrProto)

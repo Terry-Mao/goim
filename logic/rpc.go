@@ -48,25 +48,26 @@ type RPC struct {
 }
 
 // Connect auth and registe login
-func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
-	if args == nil {
+func (r *RPC) Connect(arg *lproto.ConnArg, reply *lproto.ConnReply) (err error) {
+	if arg == nil {
 		err = ErrConnectArgs
 		log.Error("Connect() error(%v)", err)
 		return
 	}
 	var (
-		uid = r.auther.Auth(args.Token)
+		uid int64
 		seq int32
 	)
-	if seq, err = connect(uid, args.Server); err == nil {
-		rep.Key = encode(uid, seq)
+	uid, reply.RoomId = r.auther.Auth(arg.Token)
+	if seq, err = connect(uid, arg.Server, reply.RoomId); err == nil {
+		reply.Key = encode(uid, seq)
 	}
 	return
 }
 
 // Disconnect notice router offline
-func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err error) {
-	if args == nil {
+func (r *RPC) Disconnect(arg *lproto.DisconnArg, reply *lproto.DisconnReply) (err error) {
+	if arg == nil {
 		err = ErrDisconnectArgs
 		log.Error("Disconnect() error(%v)", err)
 		return
@@ -75,10 +76,10 @@ func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err
 		uid int64
 		seq int32
 	)
-	if uid, seq, err = decode(args.Key); err != nil {
-		log.Error("decode(\"%s\") error(%s)", args.Key, err)
+	if uid, seq, err = decode(arg.Key); err != nil {
+		log.Error("decode(\"%s\") error(%s)", arg.Key, err)
 		return
 	}
-	rep.Has, err = disconnect(uid, seq)
+	reply.Has, err = disconnect(uid, seq, arg.RoomId)
 	return
 }

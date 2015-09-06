@@ -63,7 +63,8 @@ func (m *ConnArg) String() string { return proto1.CompactTextString(m) }
 func (*ConnArg) ProtoMessage()    {}
 
 type ConnReply struct {
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Key    string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	RoomId int32  `protobuf:"varint,2,opt,name=roomId,proto3" json:"roomId,omitempty"`
 }
 
 func (m *ConnReply) Reset()         { *m = ConnReply{} }
@@ -71,7 +72,8 @@ func (m *ConnReply) String() string { return proto1.CompactTextString(m) }
 func (*ConnReply) ProtoMessage()    {}
 
 type DisconnArg struct {
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Key    string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	RoomId int32  `protobuf:"varint,2,opt,name=roomId,proto3" json:"roomId,omitempty"`
 }
 
 func (m *DisconnArg) Reset()         { *m = DisconnArg{} }
@@ -391,6 +393,21 @@ func (m *ConnReply) Unmarshal(data []byte) error {
 			}
 			m.Key = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RoomId", wireType)
+			}
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.RoomId |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			var sizeOfWire int
 			for {
@@ -455,6 +472,21 @@ func (m *DisconnArg) Unmarshal(data []byte) error {
 			}
 			m.Key = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RoomId", wireType)
+			}
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.RoomId |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			var sizeOfWire int
 			for {
@@ -674,6 +706,9 @@ func (m *ConnReply) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovLogic(uint64(l))
 	}
+	if m.RoomId != 0 {
+		n += 1 + sovLogic(uint64(m.RoomId))
+	}
 	return n
 }
 
@@ -683,6 +718,9 @@ func (m *DisconnArg) Size() (n int) {
 	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovLogic(uint64(l))
+	}
+	if m.RoomId != 0 {
+		n += 1 + sovLogic(uint64(m.RoomId))
 	}
 	return n
 }
@@ -841,6 +879,11 @@ func (m *ConnReply) MarshalTo(data []byte) (n int, err error) {
 		i = encodeVarintLogic(data, i, uint64(len(m.Key)))
 		i += copy(data[i:], m.Key)
 	}
+	if m.RoomId != 0 {
+		data[i] = 0x10
+		i++
+		i = encodeVarintLogic(data, i, uint64(m.RoomId))
+	}
 	return i, nil
 }
 
@@ -864,6 +907,11 @@ func (m *DisconnArg) MarshalTo(data []byte) (n int, err error) {
 		i++
 		i = encodeVarintLogic(data, i, uint64(len(m.Key)))
 		i += copy(data[i:], m.Key)
+	}
+	if m.RoomId != 0 {
+		data[i] = 0x10
+		i++
+		i = encodeVarintLogic(data, i, uint64(m.RoomId))
 	}
 	return i, nil
 }

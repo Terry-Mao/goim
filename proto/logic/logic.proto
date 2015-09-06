@@ -27,10 +27,12 @@ message ConnArg {
 
 message ConnReply {
     string key = 1;
+    int32 roomId = 2;
 }
 
 message DisconnArg {
     string key = 1;
+    int32 roomId = 2;
 }
 
 message DisconnReply {

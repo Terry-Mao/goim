@@ -15,12 +15,13 @@ var (
 )
 
 const (
-	routerService           = "RouterRPC"
-	routerServiceConnect    = "RouterRPC.Connect"
-	routerServiceDisconnect = "RouterRPC.Disconnect"
-	routerServiceGet        = "RouterRPC.Get"
-	routerServiceMGet       = "RouterRPC.MGet"
-	routerServiceGetAll     = "RouterRPC.GetAll"
+	routerService             = "RouterRPC"
+	routerServiceConnect      = "RouterRPC.Connect"
+	routerServiceDisconnect   = "RouterRPC.Disconnect"
+	routerServiceAllRoomCount = "RouterRPC.AllRoomCount"
+	routerServiceGet          = "RouterRPC.Get"
+	routerServiceMGet         = "RouterRPC.MGet"
+	routerServiceGetAll       = "RouterRPC.GetAll"
 )
 
 func InitRouter() (err error) {
@@ -71,12 +72,12 @@ func getRouterNode(userID int64) string {
 	return routerRing.Hash(strconv.FormatInt(userID, 10))
 }
 
-func connect(userID int64, server int32) (seq int32, err error) {
+func connect(userID int64, server, roomId int32) (seq int32, err error) {
 	var client *rpc.Client
 	if client, err = getRouterByUID(userID); err != nil {
 		return
 	}
-	arg := &rproto.ConnArg{UserId: userID, Server: server}
+	arg := &rproto.ConnArg{UserId: userID, Server: server, RoomId: roomId}
 	reply := &rproto.ConnReply{}
 	if err = client.Call(routerServiceConnect, arg, reply); err != nil {
 		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceConnect, arg, err)
@@ -86,17 +87,31 @@ func connect(userID int64, server int32) (seq int32, err error) {
 	return
 }
 
-func disconnect(userID int64, seq int32) (has bool, err error) {
-	var client *rpc.Client
+func disconnect(userID int64, seq, roomId int32) (has bool, err error) {
+	var (
+		client *rpc.Client
+		arg    = &rproto.DisconnArg{UserId: userID, Seq: seq, RoomId: roomId}
+		reply  = &rproto.DisconnReply{}
+	)
 	if client, err = getRouterByUID(userID); err != nil {
 		return
 	}
-	arg := &rproto.DisconnArg{UserId: userID, Seq: seq}
-	reply := &rproto.DisconnReply{}
 	if err = client.Call(routerServiceDisconnect, arg, reply); err != nil {
 		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceDisconnect, *arg, err)
 	} else {
 		has = reply.Has
+	}
+	return
+}
+
+func allRoomCount(client *rpc.Client) (counter map[int32]int32, err error) {
+	var (
+		reply = &rproto.AllRoomCountReply{}
+	)
+	if err = client.Call(routerServiceAllRoomCount, nil, reply); err != nil {
+		log.Error("c.Call(\"%s\", nil) error(%s)", routerServiceAllRoomCount, nil, err)
+	} else {
+		counter = reply.Counter
 	}
 	return
 }

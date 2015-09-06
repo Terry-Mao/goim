@@ -45,3 +45,11 @@ func broadcastKafka(msg []byte) (err error) {
 	}
 	return
 }
+
+func broadcastRoomKafka(ridStr string, msg []byte) (err error) {
+	message := &sarama.ProducerMessage{Topic: KafkaPushsTopic, Key: sarama.StringEncoder(ridStr), Value: sarama.ByteEncoder(msg)}
+	if _, _, err = producer.SendMessage(message); err != nil {
+		return
+	}
+	return
+}
