@@ -22,7 +22,7 @@ func main() {
 	log.Info("comet[%s] start", Ver)
 	perf.Init(Conf.PprofBind)
 	// logic rpc
-	if err := InitLogicRpc(Conf.LogicNetwork, Conf.LogicAddr); err != nil {
+	if err := InitLogicRpc(Conf.LogicAddr); err != nil {
 		log.Warn("logic rpc current can't connect, retry")
 	}
 	// new server

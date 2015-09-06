@@ -18,6 +18,7 @@ type Bucket struct {
 func NewBucket(session, server, cleaner int) *Bucket {
 	b := new(Bucket)
 	b.sessions = make(map[int64]*Session, session)
+	b.counter = make(map[int32]int32)
 	b.server = server
 	b.cleaner = NewCleaner(cleaner)
 	go b.clean()

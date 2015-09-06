@@ -41,7 +41,7 @@ func InitRouter() (err error) {
 		}
 		r, err = rpc.Dial(network, addr)
 		if err != nil {
-			log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", network, addr, err)
+			log.Error("rpc.Dial(\"%s\", \"%s\") error(%v)", network, addr, err)
 		}
 		go rpc.Reconnect(&r, routerQuit, network, addr)
 		log.Debug("router rpc addr:%s connect", addr)
@@ -80,7 +80,7 @@ func connect(userID int64, server, roomId int32) (seq int32, err error) {
 	arg := &rproto.ConnArg{UserId: userID, Server: server, RoomId: roomId}
 	reply := &rproto.ConnReply{}
 	if err = client.Call(routerServiceConnect, arg, reply); err != nil {
-		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceConnect, arg, err)
+		log.Error("c.Call(\"%s\",\"%v\") error(%v)", routerServiceConnect, arg, err)
 	} else {
 		seq = reply.Seq
 	}
@@ -97,7 +97,7 @@ func disconnect(userID int64, seq, roomId int32) (has bool, err error) {
 		return
 	}
 	if err = client.Call(routerServiceDisconnect, arg, reply); err != nil {
-		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceDisconnect, *arg, err)
+		log.Error("c.Call(\"%s\",\"%v\") error(%v)", routerServiceDisconnect, *arg, err)
 	} else {
 		has = reply.Has
 	}
@@ -109,7 +109,7 @@ func allRoomCount(client *rpc.Client) (counter map[int32]int32, err error) {
 		reply = &rproto.AllRoomCountReply{}
 	)
 	if err = client.Call(routerServiceAllRoomCount, nil, reply); err != nil {
-		log.Error("c.Call(\"%s\", nil) error(%s)", routerServiceAllRoomCount, nil, err)
+		log.Error("c.Call(\"%s\", nil) error(%v)", routerServiceAllRoomCount, err)
 	} else {
 		counter = reply.Counter
 	}
@@ -132,7 +132,7 @@ func genSubKey(userId int64) (res map[int32][]string) {
 		return
 	}
 	if err = client.Call(routerServiceGet, arg, reply); err != nil {
-		log.Error("client.Call(\"%s\",\"%v\") error(%s)", routerServiceGet, arg, err)
+		log.Error("client.Call(\"%s\",\"%v\") error(%v)", routerServiceGet, arg, err)
 		return
 	}
 	for i = 0; i < len(reply.Servers); i++ {
@@ -152,7 +152,7 @@ func getSubKeys(res chan *rproto.MGetReply, serverId string, userIds []int64) {
 		arg := &rproto.MGetArg{UserIds: userIds}
 		reply = &rproto.MGetReply{}
 		if err = client.Call(routerServiceMGet, arg, reply); err != nil {
-			log.Error("client.Call(\"%s\",\"%v\") error(%s)", routerServiceMGet, arg, err)
+			log.Error("client.Call(\"%s\",\"%v\") error(%v)", routerServiceMGet, arg, err)
 			reply = nil
 		}
 	}

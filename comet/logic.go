@@ -2,6 +2,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	inet "github.com/Terry-Mao/goim/libs/net"
 	proto "github.com/Terry-Mao/goim/proto/logic"
 	"github.com/Terry-Mao/protorpc"
 	"time"
@@ -16,7 +17,12 @@ var (
 	logicServiceDisconnect = "RPC.Disconnect"
 )
 
-func InitLogicRpc(network, addr string) (err error) {
+func InitLogicRpc(addrs string) (err error) {
+	var network, addr string
+	if network, addr, err = inet.ParseNetwork(addrs); err != nil {
+		log.Error("inet.ParseNetwork() error(%v)", err)
+		return
+	}
 	logicRpcClient, err = protorpc.Dial(network, addr)
 	if err != nil {
 		log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", network, addr, err)
