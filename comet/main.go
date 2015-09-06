@@ -39,6 +39,11 @@ func main() {
 	if err := InitWebsocket(); err != nil {
 		panic(err)
 	}
+	if Conf.WebsocketTLSOpen {
+		if err := InitWebsocketWithTLS(); err != nil {
+			panic(err)
+		}
+	}
 	if err := InitHTTP(); err != nil {
 		panic(err)
 	}

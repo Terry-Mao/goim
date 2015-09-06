@@ -47,8 +47,13 @@ type Config struct {
 	TCPSndbuf    int      `goconf:"tcp:sndbuf:memory"`
 	TCPRcvbuf    int      `goconf:"tcp:rcvbuf:memory"`
 	TCPKeepalive bool     `goconf:"tcp:keepalive"`
+
 	// websocket
-	WebsocketBind []string `goconf:"websocket:bind:,"`
+	WebsocketBind    []string `goconf:"websocket:bind:,"`
+	WebsocketTLSOpen bool     `goconf:"websocket:tls.open"`
+	WebsocketTLSBind []string `goconf:"websocket:tls.bind:,"`
+	CertFile         string   `goconf:"websocket:cert.file"`
+	PrivateFile      string   `goconf:"websocket:private.file"`
 	// http
 	HTTPBind []string `goconf:"http:bind:,"`
 	// proto section
