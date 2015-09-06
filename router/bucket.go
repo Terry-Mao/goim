@@ -134,6 +134,19 @@ func (b *Bucket) RoomCount(roomId int32) (count int32) {
 	return
 }
 
+func (b *Bucket) AllRoomCount() (counter map[int32]int32) {
+	var roomId, count int32
+	b.bLock.RLock()
+	counter = make(map[int32]int32, len(b.counter))
+	for roomId, count = range b.counter {
+		if roomId != define.NoRoom {
+			counter[roomId] = count
+		}
+	}
+	b.bLock.RUnlock()
+	return
+}
+
 func (b *Bucket) UserCount(userId int64) (count int32) {
 	b.bLock.RLock()
 	if s, ok := b.sessions[userId]; ok {

@@ -25,6 +25,7 @@
 		CountReply
 		RoomCountArg
 		RoomCountReply
+		AllRoomCountReply
 */
 package proto
 
@@ -34,6 +35,8 @@ import proto1 "github.com/golang/protobuf/proto"
 
 import io "io"
 import fmt "fmt"
+
+import github_com_gogo_protobuf_sortkeys "github.com/gogo/protobuf/sortkeys"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto1.Marshal
@@ -184,6 +187,21 @@ type RoomCountReply struct {
 func (m *RoomCountReply) Reset()         { *m = RoomCountReply{} }
 func (m *RoomCountReply) String() string { return proto1.CompactTextString(m) }
 func (*RoomCountReply) ProtoMessage()    {}
+
+type AllRoomCountReply struct {
+	Counter map[int32]int32 `protobuf:"bytes,1,rep,name=counter" json:"counter,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+}
+
+func (m *AllRoomCountReply) Reset()         { *m = AllRoomCountReply{} }
+func (m *AllRoomCountReply) String() string { return proto1.CompactTextString(m) }
+func (*AllRoomCountReply) ProtoMessage()    {}
+
+func (m *AllRoomCountReply) GetCounter() map[int32]int32 {
+	if m != nil {
+		return m.Counter
+	}
+	return nil
+}
 
 func init() {
 }
@@ -1204,6 +1222,121 @@ func (m *RoomCountReply) Unmarshal(data []byte) error {
 
 	return nil
 }
+func (m *AllRoomCountReply) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Counter", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var keykey uint64
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				keykey |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var mapkey int32
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				mapkey |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var valuekey uint64
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				valuekey |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var mapvalue int32
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				mapvalue |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if m.Counter == nil {
+				m.Counter = make(map[int32]int32)
+			}
+			m.Counter[mapkey] = mapvalue
+			iNdEx = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipRouter(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	return nil
+}
 func skipRouter(data []byte) (n int, err error) {
 	l := len(data)
 	iNdEx := 0
@@ -1459,6 +1592,20 @@ func (m *RoomCountReply) Size() (n int) {
 	_ = l
 	if m.Count != 0 {
 		n += 1 + sovRouter(uint64(m.Count))
+	}
+	return n
+}
+
+func (m *AllRoomCountReply) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Counter) > 0 {
+		for k, v := range m.Counter {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + sovRouter(uint64(k)) + 1 + sovRouter(uint64(v))
+			n += mapEntrySize + 1 + sovRouter(uint64(mapEntrySize))
+		}
 	}
 	return n
 }
@@ -1894,6 +2041,44 @@ func (m *RoomCountReply) MarshalTo(data []byte) (n int, err error) {
 		data[i] = 0x8
 		i++
 		i = encodeVarintRouter(data, i, uint64(m.Count))
+	}
+	return i, nil
+}
+
+func (m *AllRoomCountReply) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *AllRoomCountReply) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Counter) > 0 {
+		keysForCounter := make([]int32, 0, len(m.Counter))
+		for k, _ := range m.Counter {
+			keysForCounter = append(keysForCounter, k)
+		}
+		github_com_gogo_protobuf_sortkeys.Int32s(keysForCounter)
+		for _, k := range keysForCounter {
+			data[i] = 0xa
+			i++
+			v := m.Counter[k]
+			mapSize := 1 + sovRouter(uint64(k)) + 1 + sovRouter(uint64(v))
+			i = encodeVarintRouter(data, i, uint64(mapSize))
+			data[i] = 0x8
+			i++
+			i = encodeVarintRouter(data, i, uint64(k))
+			data[i] = 0x10
+			i++
+			i = encodeVarintRouter(data, i, uint64(v))
+		}
 	}
 	return i, nil
 }

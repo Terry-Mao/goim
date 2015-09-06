@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Terry-Mao/protorpc"
 	"time"
 )
 
@@ -14,14 +15,16 @@ var (
 
 func MergeRoomServers() {
 	var (
+		c           **protorpc.Client
 		ok          bool
 		roomId      int32
+		serverId    int32
 		rooms       map[int32]bool
 		servers     map[int32]struct{}
 		roomServers = make(map[int32]map[int32]struct{})
 	)
 	// all comet nodes
-	for serverId, c := range cometServiceMap {
+	for serverId, c = range cometServiceMap {
 		if *c != nil {
 			if rooms = roomsComet(*c); rooms != nil {
 				// merge room's servers
@@ -35,6 +38,7 @@ func MergeRoomServers() {
 			}
 		}
 	}
+	RoomServersMap = roomServers
 }
 
 func SyncRoomServers() {

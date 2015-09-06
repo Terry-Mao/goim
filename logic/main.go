@@ -22,6 +22,8 @@ func main() {
 	if err := InitRouter(); err != nil {
 		log.Warn("router rpc current can't connect, retry")
 	}
+	MergeRoomCount()
+	go SyncRoomCount()
 	if err := InitKafka(Conf.KafkaAddrs); err != nil {
 		panic(err)
 	}

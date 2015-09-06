@@ -76,3 +76,7 @@ message RoomCountArg {
 message RoomCountReply {
     int32 count = 1;
 }
+
+message AllRoomCountReply {
+    map<int32, int32> counter = 1;
+}

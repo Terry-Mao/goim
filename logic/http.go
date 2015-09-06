@@ -19,6 +19,7 @@ func InitHTTP() (err error) {
 		httpServeMux.HandleFunc("/1/push", Push)
 		httpServeMux.HandleFunc("/1/pushs", Pushs)
 		httpServeMux.HandleFunc("/1/push/all", PushAll)
+		httpServeMux.HandleFunc("/1/count", Count)
 		log.Info("start http listen:\"%s\"", Conf.HTTPAddrs[i])
 		if network, addr, err = inet.ParseNetwork(Conf.HTTPAddrs[i]); err != nil {
 			log.Error("inet.ParseNetwork() error(%v)", err)
@@ -41,6 +42,20 @@ func httpListen(mux *http.ServeMux, network, addr string) {
 		log.Error("server.Serve() error(%v)", err)
 		panic(err)
 	}
+}
+
+// retWrite marshal the result and write to client(get).
+func retWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{}, start time.Time) {
+	data, err := json.Marshal(res)
+	if err != nil {
+		log.Error("json.Marshal(\"%v\") error(%v)", res, err)
+		return
+	}
+	dataStr := string(data)
+	if _, err := w.Write([]byte(dataStr)); err != nil {
+		log.Error("w.Write(\"%s\") error(%v)", dataStr, err)
+	}
+	log.Info("req: \"%s\", get: res:\"%s\", ip:\"%s\", time:\"%fs\"", r.URL.String(), dataStr, r.RemoteAddr, time.Now().Sub(start).Seconds())
 }
 
 // retPWrite marshal the result and write to client(post).
@@ -191,4 +206,20 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 	}
 	res["ret"] = OK
 	return
+}
+
+func Count(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method Not Allowed", 405)
+		return
+	}
+	var (
+		typeStr = r.URL.Query().Get("type")
+		res     = map[string]interface{}{"ret": OK}
+	)
+	defer retWrite(w, r, res, time.Now())
+	if typeStr == "room" {
+		res["data"] = RoomCountMap
+	}
+	res["ret"] = OK
 }
