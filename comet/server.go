@@ -29,6 +29,8 @@ func NewServer(b []*Bucket, r *Round, o Operator) *Server {
 
 func (server *Server) Bucket(subKey string) *Bucket {
 	idx := cityhash.CityHash32([]byte(subKey), uint32(len(subKey))) % server.bucketIdx
-	log.Debug("\"%s\" hit channel bucket index: %d use cityhash", subKey, idx)
+	if Conf.Debug {
+		log.Debug("\"%s\" hit channel bucket index: %d use cityhash", subKey, idx)
+	}
 	return server.Buckets[idx]
 }

@@ -43,7 +43,9 @@ func (r *Ring) GetAdv() {
 		r.rp = 0
 	}
 	r.rn++
-	log.Debug("ring rn: %d, rp: %d", r.rn, r.rp)
+	if Conf.Debug {
+		log.Debug("ring rn: %d, rp: %d", r.rn, r.rp)
+	}
 }
 
 func (r *Ring) Set() (proto *Proto, err error) {
@@ -59,7 +61,9 @@ func (r *Ring) SetAdv() {
 		r.wp = 0
 	}
 	r.wn++
-	log.Debug("ring wn: %d, wp: %d", r.wn, r.wp)
+	if Conf.Debug {
+		log.Debug("ring wn: %d, wp: %d", r.wn, r.wp)
+	}
 }
 
 func (r *Ring) Reset() {
