@@ -4,6 +4,7 @@ import (
 	"bufio"
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/define"
+	"github.com/Terry-Mao/goim/libs/io/ioutil"
 	"net"
 	"sync"
 	"time"
@@ -267,7 +268,7 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 		headerLen int16
 		bodyLen   int
 	)
-	if err = ReadAll(rr, pb[:packLenSize]); err != nil {
+	if err = ioutil.ReadAll(rr, pb[:packLenSize]); err != nil {
 		return
 	}
 	packLen = BigEndian.Int32(pb[:packLenSize])
@@ -277,7 +278,7 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 	if packLen > maxPackLen {
 		return ErrProtoPackLen
 	}
-	if err = ReadAll(rr, pb[:headerLenSize]); err != nil {
+	if err = ioutil.ReadAll(rr, pb[:headerLenSize]); err != nil {
 		return
 	}
 	headerLen = BigEndian.Int16(pb[:headerLenSize])
@@ -287,21 +288,21 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 	if headerLen != rawHeaderLen {
 		return ErrProtoHeaderLen
 	}
-	if err = ReadAll(rr, pb[:VerSize]); err != nil {
+	if err = ioutil.ReadAll(rr, pb[:VerSize]); err != nil {
 		return
 	}
 	proto.Ver = BigEndian.Int16(pb[:VerSize])
 	if Conf.Debug {
 		log.Debug("protoVer: %d", proto.Ver)
 	}
-	if err = ReadAll(rr, pb[:OperationSize]); err != nil {
+	if err = ioutil.ReadAll(rr, pb[:OperationSize]); err != nil {
 		return
 	}
 	proto.Operation = BigEndian.Int32(pb[:OperationSize])
 	if Conf.Debug {
 		log.Debug("operation: %d", proto.Operation)
 	}
-	if err = ReadAll(rr, pb[:SeqIdSize]); err != nil {
+	if err = ioutil.ReadAll(rr, pb[:SeqIdSize]); err != nil {
 		return
 	}
 	proto.SeqId = BigEndian.Int32(pb[:SeqIdSize])
@@ -314,7 +315,7 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 	}
 	if bodyLen > 0 {
 		proto.Body = make([]byte, bodyLen)
-		if err = ReadAll(rr, proto.Body); err != nil {
+		if err = ioutil.ReadAll(rr, proto.Body); err != nil {
 			log.Error("body: ReadAll() error(%v)", err)
 			return
 		}
