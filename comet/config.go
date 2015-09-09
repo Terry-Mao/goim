@@ -42,6 +42,7 @@ type Config struct {
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	StatBind  []string `goconf:"base:stat.bind:,"`
 	ServerId  int32    `goconf:"base:server.id"`
+	Debug     bool     `goconf:"base:debug"`
 	// tcp
 	TCPBind      []string `goconf:"tcp:bind:,"`
 	TCPSndbuf    int      `goconf:"tcp:sndbuf:memory"`
@@ -91,6 +92,7 @@ func NewConfig() *Config {
 		MaxProc:   runtime.NumCPU(),
 		PprofBind: []string{"localhost:6971"},
 		StatBind:  []string{"localhost:6972"},
+		Debug:     true,
 		// tcp
 		TCPBind:      []string{"localhost:8080"},
 		TCPSndbuf:    1024,

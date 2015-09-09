@@ -271,7 +271,9 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 		return
 	}
 	packLen = BigEndian.Int32(pb[:packLenSize])
-	log.Debug("packLen: %d", packLen)
+	if Conf.Debug {
+		log.Debug("packLen: %d", packLen)
+	}
 	if packLen > maxPackLen {
 		return ErrProtoPackLen
 	}
@@ -279,7 +281,9 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 		return
 	}
 	headerLen = BigEndian.Int16(pb[:headerLenSize])
-	log.Debug("headerLen: %d", headerLen)
+	if Conf.Debug {
+		log.Debug("headerLen: %d", headerLen)
+	}
 	if headerLen != rawHeaderLen {
 		return ErrProtoHeaderLen
 	}
@@ -287,19 +291,27 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 		return
 	}
 	proto.Ver = BigEndian.Int16(pb[:VerSize])
-	log.Debug("protoVer: %d", proto.Ver)
+	if Conf.Debug {
+		log.Debug("protoVer: %d", proto.Ver)
+	}
 	if err = ReadAll(rr, pb[:OperationSize]); err != nil {
 		return
 	}
 	proto.Operation = BigEndian.Int32(pb[:OperationSize])
-	log.Debug("operation: %d", proto.Operation)
+	if Conf.Debug {
+		log.Debug("operation: %d", proto.Operation)
+	}
 	if err = ReadAll(rr, pb[:SeqIdSize]); err != nil {
 		return
 	}
 	proto.SeqId = BigEndian.Int32(pb[:SeqIdSize])
-	log.Debug("seqId: %d", proto.SeqId)
+	if Conf.Debug {
+		log.Debug("seqId: %d", proto.SeqId)
+	}
 	bodyLen = int(packLen - int32(headerLen))
-	log.Debug("read body len: %d", bodyLen)
+	if Conf.Debug {
+		log.Debug("read body len: %d", bodyLen)
+	}
 	if bodyLen > 0 {
 		proto.Body = make([]byte, bodyLen)
 		if err = ReadAll(rr, proto.Body); err != nil {
@@ -309,7 +321,9 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 	} else {
 		proto.Body = nil
 	}
-	log.Debug("read proto: %v", proto)
+	if Conf.Debug {
+		log.Debug("read proto: %v", proto)
+	}
 	return
 }
 

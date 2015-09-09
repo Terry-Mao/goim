@@ -219,7 +219,7 @@ func Count(w http.ResponseWriter, r *http.Request) {
 	)
 	defer retWrite(w, r, res, time.Now())
 	if typeStr == "room" {
-		res["data"] = RoomCountMap
+		// TODO
 	}
 	res["ret"] = OK
 }
