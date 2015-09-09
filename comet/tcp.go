@@ -142,7 +142,7 @@ failed:
 	// dialog finish
 	// may call twice
 	if err = conn.Close(); err != nil {
-		log.Error("reader: conn.Close() error(%v)")
+		log.Error("reader: conn.Close() error(%v)", err)
 	}
 	PutBufioReader(rrp, rr)
 	b.Del(key)

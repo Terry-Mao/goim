@@ -23,6 +23,8 @@ type Config struct {
 	Log       string   `goconf:"base:log"`
 	MaxProc   int      `goconf:"base:maxproc"`
 	PprofBind []string `goconf:"base:pprof.bind:,"`
+	// cert
+	CertFile string `goconf:"cert:cert.file"`
 	// proto section
 	TCPAddr       string `goconf:"proto:tcp.addr"`
 	WebsocketAddr string `goconf:"proto:websocket.addr"`

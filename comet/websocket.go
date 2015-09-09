@@ -2,6 +2,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	"crypto/tls"
 	"github.com/Terry-Mao/goim/define"
 	"golang.org/x/net/websocket"
 	"math/rand"
@@ -32,6 +33,37 @@ func InitWebsocket() (err error) {
 			if err = server.Serve(listener); err != nil {
 				log.Error("server.Serve(\"%s\") error(%v)", bind, err)
 				panic(err)
+			}
+		}()
+	}
+	return
+}
+
+func InitWebsocketWithTLS() (err error) {
+	var (
+		httpServeMux = http.NewServeMux()
+	)
+	httpServeMux.Handle("/sub", websocket.Handler(serveWebsocket))
+	config := &tls.Config{}
+	config.Certificates = make([]tls.Certificate, 1)
+	config.Certificates[0], err = tls.LoadX509KeyPair(Conf.CertFile, Conf.PrivateFile)
+	if err != nil {
+		return
+	}
+	for _, bind := range Conf.WebsocketTLSBind {
+		server := &http.Server{Addr: bind, Handler: httpServeMux}
+		server.SetKeepAlivesEnabled(true)
+		log.Debug("start websocket wss listen: \"%s\"", bind)
+		go func() {
+			ln, err := net.Listen("tcp", bind)
+			if err != nil {
+				return
+			}
+
+			tlsListener := tls.NewListener(ln, config)
+			if err = server.Serve(tlsListener); err != nil {
+				log.Error("server.Serve(\"%s\") error(%v)", bind, err)
+				return
 			}
 		}()
 	}
@@ -105,7 +137,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	// return channel to bucket's free list
 	// may call twice
 	if err = conn.Close(); err != nil {
-		log.Error("reader: conn.Close() error(%v)")
+		log.Error("reader: conn.Close() error(%v)", err)
 	}
 	ch.Finish()
 	b.Del(key)
