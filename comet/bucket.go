@@ -91,25 +91,18 @@ func (b *Bucket) Broadcast(ver int16, operation int32, msg []byte) {
 // Broadcast push msgs to all channels in the bucket's room.
 func (b *Bucket) BroadcastRoom(rid int32, ver int16, operation int32, msg []byte) {
 	var (
-		i    = 0
 		ok   bool
 		ch   *Channel
-		chs  []*Channel
 		room map[*Channel]struct{}
 	)
 	b.cLock.RLock()
 	if room, ok = b.rooms[rid]; ok && len(room) > 0 {
-		chs = make([]*Channel, len(room))
 		for ch, _ = range room {
-			chs[i] = ch
-			i++
+			// ignore error
+			ch.PushMsg(ver, operation, msg)
 		}
 	}
 	b.cLock.RUnlock()
-	for _, ch = range chs {
-		// ignore error
-		ch.PushMsg(ver, operation, msg)
-	}
 }
 
 // Rooms get all room id where online number > 0.
