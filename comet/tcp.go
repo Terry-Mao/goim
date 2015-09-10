@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-const (
-	maxPackIntBuf = 4
-)
-
 // InitTCP listen all tcp.bind and start accept connections.
 func InitTCP() (err error) {
 	var (
@@ -99,13 +95,12 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		err error
 		trd *TimerData
 		ch  = NewChannel(Conf.CliProto, Conf.SvrProto, define.NoRoom)
-		pb  = make([]byte, maxPackIntBuf)
 	)
 	// auth
 	if trd, err = tr.Add(Conf.HandshakeTimeout, conn); err != nil {
 		log.Error("handshake: timer.Add() error(%v)", err)
 	} else {
-		if key, hb, err = server.authTCP(rr, wr, pb, ch); err != nil {
+		if key, hb, err = server.authTCP(rr, wr, ch); err != nil {
 			log.Error("handshake: server.auth error(%v)", err)
 		}
 		//deltimer
@@ -131,7 +126,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 			goto failed
 		}
 		// parse request protocol
-		if err = server.readTCPRequest(rr, pb, p); err != nil {
+		if err = server.readTCPRequest(rr, ch.RIntBuf[:], p); err != nil {
 			log.Error("%s read client request error(%v)", key, err)
 			goto failed
 		}
@@ -164,7 +159,6 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		p   *Proto
 		err error
 		trd *TimerData
-		pb  = make([]byte, maxPackIntBuf) // avoid false sharing
 	)
 	log.Debug("start dispatch goroutine")
 	if trd, err = tr.Add(hb, conn); err != nil {
@@ -201,7 +195,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 					goto failed
 				}
 			}
-			if err = server.writeTCPResponse(wr, pb, p); err != nil {
+			if err = server.writeTCPResponse(wr, ch.WIntBuf[:], p); err != nil {
 				log.Error("server.writeTCPResponse() error(%v)", err)
 				goto failed
 			}
@@ -214,7 +208,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 				break
 			}
 			// just forward the message
-			if err = server.writeTCPResponse(wr, pb, p); err != nil {
+			if err = server.writeTCPResponse(wr, ch.WIntBuf[:], p); err != nil {
 				log.Error("server.writeTCPResponse() error(%v)", err)
 				goto failed
 			}
@@ -234,14 +228,14 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, pb []byte, ch *Channel) (subKey string, heartbeat time.Duration, err error) {
+func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (subKey string, heartbeat time.Duration, err error) {
 	var p *Proto
 	// WARN
 	// don't adv the cli proto, after auth simply discard it.
 	if p, err = ch.CliProto.Set(); err != nil {
 		return
 	}
-	if err = server.readTCPRequest(rr, pb, p); err != nil {
+	if err = server.readTCPRequest(rr, ch.RIntBuf[:], p); err != nil {
 		return
 	}
 	if p.Operation != define.OP_AUTH {
@@ -255,7 +249,7 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, pb []byte, ch 
 	}
 	p.Body = nil
 	p.Operation = define.OP_AUTH_REPLY
-	if err = server.writeTCPResponse(wr, pb, p); err != nil {
+	if err = server.writeTCPResponse(wr, ch.WIntBuf[:], p); err != nil {
 		log.Error("[%s] server.sendTCPResponse() error(%v)", subKey, err)
 	}
 	return
@@ -314,6 +308,7 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 		log.Debug("read body len: %d", bodyLen)
 	}
 	if bodyLen > 0 {
+		// TODO reuse buf
 		proto.Body = make([]byte, bodyLen)
 		if err = ioutil.ReadAll(rr, proto.Body); err != nil {
 			log.Error("body: ReadAll() error(%v)", err)
