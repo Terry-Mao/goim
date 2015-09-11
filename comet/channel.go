@@ -9,8 +9,6 @@ const (
 	signalNum   = 1
 	protoFinish = 0
 	protoReady  = 1
-	// pack buf length
-	maxPackIntBuf = 4
 )
 
 // Channel used by message pusher send msg to write goroutine.
@@ -19,8 +17,6 @@ type Channel struct {
 	signal   chan int
 	CliProto Ring
 	SvrProto Ring
-	RIntBuf  [maxPackIntBuf]byte
-	WIntBuf  [maxPackIntBuf]byte
 	cLock    sync.Mutex
 }
 

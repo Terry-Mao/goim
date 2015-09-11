@@ -12,13 +12,6 @@ import (
 	"time"
 )
 
-const (
-	maxPackLen    = 1 << 10
-	rawHeaderLen  = int16(16)
-	packLenSize   = 4
-	headerLenSize = 2
-)
-
 func InitHTTP() (err error) {
 	var (
 		listener     *net.TCPListener

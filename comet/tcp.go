@@ -10,6 +10,14 @@ import (
 	"time"
 )
 
+const (
+	maxPackLen    = 1 << 10
+	rawHeaderLen  = int16(16)
+	packLenSize   = 4
+	headerLenSize = 2
+	maxPackIntBuf = 4
+)
+
 // InitTCP listen all tcp.bind and start accept connections.
 func InitTCP() (err error) {
 	var (
@@ -126,7 +134,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 			goto failed
 		}
 		// parse request protocol
-		if err = server.readTCPRequest(rr, ch.RIntBuf[:], p); err != nil {
+		if err = server.readTCPRequest(rr, p); err != nil {
 			log.Error("%s read client request error(%v)", key, err)
 			goto failed
 		}
@@ -195,7 +203,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 					goto failed
 				}
 			}
-			if err = server.writeTCPResponse(wr, ch.WIntBuf[:], p); err != nil {
+			if err = server.writeTCPResponse(wr, p); err != nil {
 				log.Error("server.writeTCPResponse() error(%v)", err)
 				goto failed
 			}
@@ -208,7 +216,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 				break
 			}
 			// just forward the message
-			if err = server.writeTCPResponse(wr, ch.WIntBuf[:], p); err != nil {
+			if err = server.writeTCPResponse(wr, p); err != nil {
 				log.Error("server.writeTCPResponse() error(%v)", err)
 				goto failed
 			}
@@ -235,7 +243,7 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (
 	if p, err = ch.CliProto.Set(); err != nil {
 		return
 	}
-	if err = server.readTCPRequest(rr, ch.RIntBuf[:], p); err != nil {
+	if err = server.readTCPRequest(rr, p); err != nil {
 		return
 	}
 	if p.Operation != define.OP_AUTH {
@@ -249,57 +257,52 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (
 	}
 	p.Body = nil
 	p.Operation = define.OP_AUTH_REPLY
-	if err = server.writeTCPResponse(wr, ch.WIntBuf[:], p); err != nil {
+	if err = server.writeTCPResponse(wr, p); err != nil {
 		log.Error("[%s] server.sendTCPResponse() error(%v)", subKey, err)
 	}
 	return
 }
 
 // readRequest
-func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) (err error) {
+func (server *Server) readTCPRequest(rr *bufio.Reader, proto *Proto) (err error) {
 	var (
 		packLen   int32
 		headerLen int16
 		bodyLen   int
 	)
-	if err = ioutil.ReadAll(rr, pb[:packLenSize]); err != nil {
+	if packLen, err = ioutil.ReadBigEndianInt32(rr); err != nil {
 		return
 	}
-	packLen = BigEndian.Int32(pb[:packLenSize])
 	if Conf.Debug {
 		log.Debug("packLen: %d", packLen)
 	}
 	if packLen > maxPackLen {
 		return ErrProtoPackLen
 	}
-	if err = ioutil.ReadAll(rr, pb[:headerLenSize]); err != nil {
+	if headerLen, err = ioutil.ReadBigEndianInt16(rr); err != nil {
 		return
 	}
-	headerLen = BigEndian.Int16(pb[:headerLenSize])
 	if Conf.Debug {
 		log.Debug("headerLen: %d", headerLen)
 	}
 	if headerLen != rawHeaderLen {
 		return ErrProtoHeaderLen
 	}
-	if err = ioutil.ReadAll(rr, pb[:VerSize]); err != nil {
+	if proto.Ver, err = ioutil.ReadBigEndianInt16(rr); err != nil {
 		return
 	}
-	proto.Ver = BigEndian.Int16(pb[:VerSize])
 	if Conf.Debug {
 		log.Debug("protoVer: %d", proto.Ver)
 	}
-	if err = ioutil.ReadAll(rr, pb[:OperationSize]); err != nil {
+	if proto.Operation, err = ioutil.ReadBigEndianInt32(rr); err != nil {
 		return
 	}
-	proto.Operation = BigEndian.Int32(pb[:OperationSize])
 	if Conf.Debug {
 		log.Debug("operation: %d", proto.Operation)
 	}
-	if err = ioutil.ReadAll(rr, pb[:SeqIdSize]); err != nil {
+	if proto.SeqId, err = ioutil.ReadBigEndianInt32(rr); err != nil {
 		return
 	}
-	proto.SeqId = BigEndian.Int32(pb[:SeqIdSize])
 	if Conf.Debug {
 		log.Debug("seqId: %d", proto.SeqId)
 	}
@@ -324,26 +327,21 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) 
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) writeTCPResponse(wr *bufio.Writer, pb []byte, proto *Proto) (err error) {
+func (server *Server) writeTCPResponse(wr *bufio.Writer, proto *Proto) (err error) {
 	log.Debug("write proto: %v", proto)
-	BigEndian.PutInt32(pb[:packLenSize], int32(rawHeaderLen)+int32(len(proto.Body)))
-	if _, err = wr.Write(pb[:packLenSize]); err != nil {
+	if err = ioutil.WriteBigEndianInt32(wr, int32(rawHeaderLen)+int32(len(proto.Body))); err != nil {
 		return
 	}
-	BigEndian.PutInt16(pb[:headerLenSize], rawHeaderLen)
-	if _, err = wr.Write(pb[:headerLenSize]); err != nil {
+	if err = ioutil.WriteBigEndianInt16(wr, rawHeaderLen); err != nil {
 		return
 	}
-	BigEndian.PutInt16(pb[:VerSize], proto.Ver)
-	if _, err = wr.Write(pb[:VerSize]); err != nil {
+	if err = ioutil.WriteBigEndianInt16(wr, proto.Ver); err != nil {
 		return
 	}
-	BigEndian.PutInt32(pb[:OperationSize], proto.Operation)
-	if _, err = wr.Write(pb[:OperationSize]); err != nil {
+	if err = ioutil.WriteBigEndianInt32(wr, proto.Operation); err != nil {
 		return
 	}
-	BigEndian.PutInt32(pb[:SeqIdSize], proto.SeqId)
-	if _, err = wr.Write(pb[:SeqIdSize]); err != nil {
+	if err = ioutil.WriteBigEndianInt32(wr, proto.SeqId); err != nil {
 		return
 	}
 	if proto.Body != nil {
