@@ -91,7 +91,7 @@ func result() {
 func startClient(key string) {
 	time.Sleep(time.Duration(mrand.Intn(30)) * time.Second)
 
-	conn, err := net.Dial("tcp", os.Args[2])
+	conn, err := net.Dial("tcp", os.Args[3])
 	if err != nil {
 		log.Error("net.Dial(\"%s\") error(%v)", os.Args[2], err)
 		return
