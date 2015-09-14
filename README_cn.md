@@ -66,15 +66,19 @@ $ go get ./...
 $ cd $GOPATH/src/github.com/Terry-Mao/goim/router
 $ go install
 $ cp router-example.conf $GOPATH/bin/router.conf
+$ cp log.xml $GOPATH/bin/router_log.xml
 $ cd ../logic/
 $ go install
 $ cp logic-example.conf $GOPATH/bin/logic.conf
+$ cp log.xml $GOPATH/bin/logic_log.xml
 $ cd ../comet/
 $ go install
 $ cp comet-example.conf $GOPATH/bin/comet.conf
+$ cp log.xml $GOPATH/bin/comet_log.xml
 $ cd ../logic/job/
 $ go install
 $ cp job-example.conf $GOPATH/bin/job.conf
+$ cp log.xml $GOPATH/bin/job_log.xml
 ```
 到此所有的环境都搭建完成！
 
