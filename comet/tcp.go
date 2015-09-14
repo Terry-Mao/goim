@@ -330,7 +330,7 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, proto *Proto) (err error)
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
 func (server *Server) writeTCPResponse(wr *bufio.Writer, proto *Proto) (err error) {
-	if debug {
+	if Conf.Debug {
 		log.Debug("write proto: %v", proto)
 	}
 	if err = ioutil.WriteBigEndianInt32(wr, int32(rawHeaderLen)+int32(len(proto.Body))); err != nil {
