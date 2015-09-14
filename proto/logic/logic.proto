@@ -8,6 +8,12 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
+message PushsMsg {
+    int32 server = 1;
+    repeated string subKeys = 2;
+    bytes msg = 3;
+}
+
 message PingArg {
 }
 
@@ -21,10 +27,12 @@ message ConnArg {
 
 message ConnReply {
     string key = 1;
+    int32 roomId = 2;
 }
 
 message DisconnArg {
     string key = 1;
+    int32 roomId = 2;
 }
 
 message DisconnReply {

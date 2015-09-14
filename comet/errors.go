@@ -19,9 +19,10 @@ var (
 	ErrTimerEmpty  = errors.New("timer empty")
 	ErrTimerNoItem = errors.New("timer item not exist")
 	// channel
-	// channel
 	ErrPushMsgArg   = errors.New("rpc pushmsg arg error")
 	ErrPushMsgsArg  = errors.New("rpc pushmsgs arg error")
 	ErrMPushMsgArg  = errors.New("rpc mpushmsg arg error")
 	ErrMPushMsgsArg = errors.New("rpc mpushmsgs arg error")
+	// rpc
+	ErrLogic = errors.New("logic rpc is not available")
 )

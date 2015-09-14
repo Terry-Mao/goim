@@ -4,18 +4,12 @@ import (
 	"bufio"
 	log "code.google.com/p/log4go"
 	"encoding/json"
+	"github.com/Terry-Mao/goim/define"
 	"math/rand"
 	"net"
 	"net/http"
 	"strconv"
 	"time"
-)
-
-const (
-	maxPackLen    = 1 << 10
-	rawHeaderLen  = int16(16)
-	packLenSize   = 4
-	headerLenSize = 2
 )
 
 func InitHTTP() (err error) {
@@ -60,7 +54,7 @@ func serveHTTP(w http.ResponseWriter, r *http.Request) {
 func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Timer) {
 	var (
 		b    *Bucket
-		ch   *Channel
+		ok   bool
 		hb   time.Duration // heartbeat
 		key  string
 		cb   string
@@ -69,10 +63,10 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 		conn net.Conn
 		rwr  *bufio.ReadWriter
 		hj   http.Hijacker
-		p    = new(Proto)
-		ok   bool
+		// no client send
+		ch = NewChannel(0, 1, define.NoRoom)
 	)
-	if key, cb, hb, err = server.authHTTP(r, p); err != nil {
+	if key, cb, hb, err = server.authHTTP(r, ch); err != nil {
 		http.Error(w, "auth failed", http.StatusForbidden)
 		return
 	}
@@ -93,11 +87,8 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 		}
 		return
 	}
-	// TODO how to reuse channel
 	// register key->channel
 	b = server.Bucket(key)
-	// no client send
-	ch = NewChannel(0, 1)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
 	server.dispatchHTTP(rwr, cb, ch)
@@ -115,7 +106,7 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 	// don't use close chan, Signal can be reused
 	// if chan full, writer goroutine next fetch from chan will exit
 	// if chan empty, send a 0(close) let the writer exit
-	if err = server.operator.Disconnect(key); err != nil {
+	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
 	log.Debug("%s serverconn goroutine exit", key)
@@ -149,12 +140,18 @@ func (server *Server) dispatchHTTP(rwr *bufio.ReadWriter, cb string, ch *Channel
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authHTTP(r *http.Request, p *Proto) (subKey, callback string, heartbeat time.Duration, err error) {
+func (server *Server) authHTTP(r *http.Request, ch *Channel) (subKey, callback string, heartbeat time.Duration, err error) {
 	var (
+		p      *Proto
 		pStr   string
 		pInt   int64
 		params = r.URL.Query()
 	)
+	// WARN
+	// don't adv the svr(no client send) proto, after auth simply discard it.
+	if p, err = ch.SvrProto.Set(); err != nil {
+		return
+	}
 	pStr = params.Get("ver")
 	if pInt, err = strconv.ParseInt(pStr, 10, 16); err != nil {
 		log.Error("strconv.ParseInt(\"%s\", 10) error(%v)", err)
@@ -173,14 +170,14 @@ func (server *Server) authHTTP(r *http.Request, p *Proto) (subKey, callback stri
 		return
 	}
 	p.SeqId = int32(pInt)
-	if p.Operation != OP_AUTH {
+	if p.Operation != define.OP_AUTH {
 		log.Warn("auth operation not valid: %d", p.Operation)
 		err = ErrOperation
 		return
 	}
 	callback = params.Get("cb")
 	p.Body = []byte(params.Get("t"))
-	if subKey, heartbeat, err = server.operator.Connect(p); err != nil {
+	if subKey, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
 		log.Error("operator.Connect error(%v)", err)
 	}
 	return

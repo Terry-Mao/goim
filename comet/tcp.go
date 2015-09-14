@@ -3,12 +3,18 @@ package main
 import (
 	"bufio"
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/define"
+	"github.com/Terry-Mao/goim/libs/io/ioutil"
 	"net"
 	"sync"
 	"time"
 )
 
 const (
+	maxPackLen    = 1 << 10
+	rawHeaderLen  = int16(16)
+	packLenSize   = 4
+	headerLenSize = 2
 	maxPackIntBuf = 4
 )
 
@@ -92,23 +98,29 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	var (
 		b   *Bucket
 		p   *Proto
-		hb  time.Duration // heartbeat
 		key string
+		hb  time.Duration // heartbeat
 		err error
 		trd *TimerData
-		ch  = NewChannel(Conf.CliProto, Conf.SvrProto)
-		pb  = make([]byte, maxPackIntBuf)
+		ch  = NewChannel(Conf.CliProto, Conf.SvrProto, define.NoRoom)
 	)
 	// auth
 	if trd, err = tr.Add(Conf.HandshakeTimeout, conn); err != nil {
 		log.Error("handshake: timer.Add() error(%v)", err)
-		goto failed
+	} else {
+		if key, hb, err = server.authTCP(rr, wr, ch); err != nil {
+			log.Error("handshake: server.auth error(%v)", err)
+		}
+		//deltimer
+		tr.Del(trd)
 	}
-	key, hb, err = server.authTCP(rr, wr, pb, ch)
-	tr.Del(trd)
+	// failed
 	if err != nil {
-		log.Error("server.authTCP() error(%v)", err)
-		goto failed
+		if err = conn.Close(); err != nil {
+			log.Error("handshake: conn.Close() error(%v)", err)
+		}
+		PutBufioReader(rrp, rr)
+		return
 	}
 	// register key->channel
 	b = server.Bucket(key)
@@ -122,7 +134,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 			goto failed
 		}
 		// parse request protocol
-		if err = server.readTCPRequest(rr, pb, p); err != nil {
+		if err = server.readTCPRequest(rr, p); err != nil {
 			log.Error("%s read client request error(%v)", key, err)
 			goto failed
 		}
@@ -134,15 +146,13 @@ failed:
 	// dialog finish
 	// may call twice
 	if err = conn.Close(); err != nil {
-		log.Error("reader: conn.Close() error(%v)")
+		log.Error("reader: conn.Close() error(%v)", err)
 	}
 	PutBufioReader(rrp, rr)
-	if b != nil {
-		b.Del(key)
-		log.Debug("wake up dispatch goroutine")
-		ch.Finish()
-	}
-	if err = server.operator.Disconnect(key); err != nil {
+	b.Del(key)
+	log.Debug("wake up dispatch goroutine")
+	ch.Finish()
+	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
 	log.Debug("%s serverconn goroutine exit", key)
@@ -157,7 +167,6 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		p   *Proto
 		err error
 		trd *TimerData
-		pb  = make([]byte, maxPackIntBuf) // avoid false sharing
 	)
 	log.Debug("start dispatch goroutine")
 	if trd, err = tr.Add(hb, conn); err != nil {
@@ -173,7 +182,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 			if p, err = ch.CliProto.Get(); err != nil {
 				break
 			}
-			if p.Operation == OP_HEARTBEAT {
+			if p.Operation == define.OP_HEARTBEAT {
 				// Use a previous timer value if difference between it and a new
 				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
 				// to minimize the minheap operations for fast connections.
@@ -186,7 +195,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 				}
 				// heartbeat
 				p.Body = nil
-				p.Operation = OP_HEARTBEAT_REPLY
+				p.Operation = define.OP_HEARTBEAT_REPLY
 			} else {
 				// process message
 				if err = server.operator.Operate(p); err != nil {
@@ -194,8 +203,8 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 					goto failed
 				}
 			}
-			if err = server.writeTCPResponse(wr, pb, p); err != nil {
-				log.Error("server.sendTCPResponse() error(%v)", err)
+			if err = server.writeTCPResponse(wr, p); err != nil {
+				log.Error("server.writeTCPResponse() error(%v)", err)
 				goto failed
 			}
 			ch.CliProto.GetAdv()
@@ -203,11 +212,12 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
+				log.Warn("ch.SvrProto.Get() error(%v)", err)
 				break
 			}
 			// just forward the message
-			if err = server.writeTCPResponse(wr, pb, p); err != nil {
-				log.Error("server.sendTCPResponse() error(%v)", err)
+			if err = server.writeTCPResponse(wr, p); err != nil {
+				log.Error("server.writeTCPResponse() error(%v)", err)
 				goto failed
 			}
 			ch.SvrProto.GetAdv()
@@ -216,7 +226,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 failed:
 	// wake reader up
 	if err = conn.Close(); err != nil {
-		log.Error("conn.Close() error(%v)", err)
+		log.Warn("conn.Close() error(%v)", err)
 	}
 	// deltimer
 	tr.Del(trd)
@@ -226,107 +236,112 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, pb []byte, ch *Channel) (subKey string, heartbeat time.Duration, err error) {
+func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (subKey string, heartbeat time.Duration, err error) {
 	var p *Proto
 	// WARN
 	// don't adv the cli proto, after auth simply discard it.
 	if p, err = ch.CliProto.Set(); err != nil {
 		return
 	}
-	if err = server.readTCPRequest(rr, pb, p); err != nil {
+	if err = server.readTCPRequest(rr, p); err != nil {
 		return
 	}
-	if p.Operation != OP_AUTH {
+	if p.Operation != define.OP_AUTH {
 		log.Warn("auth operation not valid: %d", p.Operation)
 		err = ErrOperation
 		return
 	}
-	if subKey, heartbeat, err = server.operator.Connect(p); err != nil {
+	if subKey, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
 		log.Error("operator.Connect error(%v)", err)
 		return
 	}
 	p.Body = nil
-	p.Operation = OP_AUTH_REPLY
-	if err = server.writeTCPResponse(wr, pb, p); err != nil {
+	p.Operation = define.OP_AUTH_REPLY
+	if err = server.writeTCPResponse(wr, p); err != nil {
 		log.Error("[%s] server.sendTCPResponse() error(%v)", subKey, err)
 	}
 	return
 }
 
 // readRequest
-func (server *Server) readTCPRequest(rr *bufio.Reader, pb []byte, proto *Proto) (err error) {
+func (server *Server) readTCPRequest(rr *bufio.Reader, proto *Proto) (err error) {
 	var (
 		packLen   int32
 		headerLen int16
 		bodyLen   int
 	)
-	if err = ReadAll(rr, pb[:packLenSize]); err != nil {
+	if packLen, err = ioutil.ReadBigEndianInt32(rr); err != nil {
 		return
 	}
-	packLen = BigEndian.Int32(pb[:packLenSize])
-	log.Debug("packLen: %d", packLen)
+	if Conf.Debug {
+		log.Debug("packLen: %d", packLen)
+	}
 	if packLen > maxPackLen {
 		return ErrProtoPackLen
 	}
-	if err = ReadAll(rr, pb[:headerLenSize]); err != nil {
+	if headerLen, err = ioutil.ReadBigEndianInt16(rr); err != nil {
 		return
 	}
-	headerLen = BigEndian.Int16(pb[:headerLenSize])
-	log.Debug("headerLen: %d", headerLen)
+	if Conf.Debug {
+		log.Debug("headerLen: %d", headerLen)
+	}
 	if headerLen != rawHeaderLen {
 		return ErrProtoHeaderLen
 	}
-	if err = ReadAll(rr, pb[:VerSize]); err != nil {
+	if proto.Ver, err = ioutil.ReadBigEndianInt16(rr); err != nil {
 		return
 	}
-	proto.Ver = BigEndian.Int16(pb[:VerSize])
-	log.Debug("protoVer: %d", proto.Ver)
-	if err = ReadAll(rr, pb[:OperationSize]); err != nil {
+	if Conf.Debug {
+		log.Debug("protoVer: %d", proto.Ver)
+	}
+	if proto.Operation, err = ioutil.ReadBigEndianInt32(rr); err != nil {
 		return
 	}
-	proto.Operation = BigEndian.Int32(pb[:OperationSize])
-	log.Debug("operation: %d", proto.Operation)
-	if err = ReadAll(rr, pb[:SeqIdSize]); err != nil {
+	if Conf.Debug {
+		log.Debug("operation: %d", proto.Operation)
+	}
+	if proto.SeqId, err = ioutil.ReadBigEndianInt32(rr); err != nil {
 		return
 	}
-	proto.SeqId = BigEndian.Int32(pb[:SeqIdSize])
-	log.Debug("seqId: %d", proto.SeqId)
+	if Conf.Debug {
+		log.Debug("seqId: %d", proto.SeqId)
+	}
 	bodyLen = int(packLen - int32(headerLen))
-	log.Debug("read body len: %d", bodyLen)
+	if Conf.Debug {
+		log.Debug("read body len: %d", bodyLen)
+	}
 	if bodyLen > 0 {
+		// TODO reuse buf
 		proto.Body = make([]byte, bodyLen)
-		if err = ReadAll(rr, proto.Body); err != nil {
+		if err = ioutil.ReadAll(rr, proto.Body); err != nil {
 			log.Error("body: ReadAll() error(%v)", err)
 			return
 		}
 	} else {
 		proto.Body = nil
 	}
-	log.Debug("read proto: %v", proto)
+	if Conf.Debug {
+		log.Debug("read proto: %v", proto)
+	}
 	return
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) writeTCPResponse(wr *bufio.Writer, pb []byte, proto *Proto) (err error) {
+func (server *Server) writeTCPResponse(wr *bufio.Writer, proto *Proto) (err error) {
 	log.Debug("write proto: %v", proto)
-	BigEndian.PutInt32(pb[:packLenSize], int32(rawHeaderLen)+int32(len(proto.Body)))
-	if _, err = wr.Write(pb[:packLenSize]); err != nil {
+	if err = ioutil.WriteBigEndianInt32(wr, int32(rawHeaderLen)+int32(len(proto.Body))); err != nil {
 		return
 	}
-	BigEndian.PutInt16(pb[:headerLenSize], rawHeaderLen)
-	if _, err = wr.Write(pb[:headerLenSize]); err != nil {
+	if err = ioutil.WriteBigEndianInt16(wr, rawHeaderLen); err != nil {
 		return
 	}
-	BigEndian.PutInt16(pb[:VerSize], proto.Ver)
-	if _, err = wr.Write(pb[:VerSize]); err != nil {
+	if err = ioutil.WriteBigEndianInt16(wr, proto.Ver); err != nil {
 		return
 	}
-	BigEndian.PutInt32(pb[:OperationSize], proto.Operation)
-	if _, err = wr.Write(pb[:OperationSize]); err != nil {
+	if err = ioutil.WriteBigEndianInt32(wr, proto.Operation); err != nil {
 		return
 	}
-	BigEndian.PutInt32(pb[:SeqIdSize], proto.SeqId)
-	if _, err = wr.Write(pb[:SeqIdSize]); err != nil {
+	if err = ioutil.WriteBigEndianInt32(wr, proto.SeqId); err != nil {
 		return
 	}
 	if proto.Body != nil {

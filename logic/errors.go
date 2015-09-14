@@ -5,7 +5,9 @@ import (
 )
 
 var (
-	ErrRPCConfig = errors.New("rpc addrs len != networks")
-	ErrDecodeKey = errors.New("decode key error")
-	ErrArgs      = errors.New("rpc args error")
+	ErrRouter         = errors.New("router rpc is not available")
+	ErrDecodeKey      = errors.New("decode key error")
+	ErrNetworkAddr    = errors.New("network addrs error, must network@address")
+	ErrConnectArgs    = errors.New("connect rpc args error")
+	ErrDisconnectArgs = errors.New("disconnect rpc args error")
 )

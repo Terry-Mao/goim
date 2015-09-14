@@ -30,7 +30,9 @@ func (td *TimerData) Delay() time.Duration {
 func (td *TimerData) Lazy(expire time.Duration) bool {
 	key := time.Now().Add(expire)
 	if d := (key.Sub(td.key)); d < timerLazyDelay {
-		//log.Debug("lazy timer: %s, old: %s", key.Format(timerFormat), td.String())
+		if Conf.Debug {
+			log.Debug("lazy timer: %s, old: %s", key.Format(timerFormat), td.String())
+		}
 		return true
 	}
 	return false
@@ -89,7 +91,9 @@ func (t *Timer) Add(expire time.Duration, closer io.Closer) (td *TimerData, err 
 	t.timers[t.cur] = td
 	t.up(t.cur)
 	t.lock.Unlock()
-	log.Debug("timer: push item key: %s, index: %d", td.String(), td.index)
+	if Conf.Debug {
+		log.Debug("timer: push item key: %s, index: %d", td.String(), td.index)
+	}
 	return
 }
 
@@ -109,7 +113,9 @@ func (t *Timer) Expire() {
 		if d = td.Delay(); d > 0 {
 			break
 		}
-		log.Debug("find a expire timer key: %s, index: %d", td.String(), td.index)
+		if Conf.Debug {
+			log.Debug("find a expire timer key: %s, index: %d", td.String(), td.index)
+		}
 		if td.value == nil {
 			log.Warn("expire timer no io.Closer")
 		} else {
@@ -140,7 +146,9 @@ func (t *Timer) Del(td *TimerData) {
 	}
 	t.put(td)
 	t.lock.Unlock()
-	log.Debug("timer: remove item key: %s, index: %d", td.String(), td.index)
+	if Conf.Debug {
+		log.Debug("timer: remove item key: %s, index: %d", td.String(), td.index)
+	}
 	return
 }
 
@@ -212,7 +220,9 @@ func (t *Timer) get() *TimerData {
 	if td != nil {
 		t.free = td.next
 		t.used++
-		log.Debug("get timerdata, used: %d", t.used)
+		if Conf.Debug {
+			log.Debug("get timerdata, used: %d", t.used)
+		}
 	} else {
 		td = new(TimerData)
 	}
@@ -226,7 +236,9 @@ func (t *Timer) put(td *TimerData) {
 		return
 	}
 	t.used--
-	log.Debug("put timerdata, used: %d", t.used)
+	if Conf.Debug {
+		log.Debug("put timerdata, used: %d", t.used)
+	}
 	td.next = t.free
 	t.free = td
 }
@@ -262,7 +274,9 @@ func TimerProcess(timers []*Timer) {
 			}
 		}
 		if d != zeroDuration {
-			//log.Debug("timer process sleep: %s", md.String())
+			if Conf.Debug {
+				log.Debug("timer process sleep: %s", md.String())
+			}
 			time.Sleep(md)
 			md = timerDelay
 		}

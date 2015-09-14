@@ -1,6 +1,11 @@
 package main
 
+import (
+	"sync"
+)
+
 const (
+	// signal command
 	signalNum   = 1
 	protoFinish = 0
 	protoReady  = 1
@@ -8,14 +13,16 @@ const (
 
 // Channel used by message pusher send msg to write goroutine.
 type Channel struct {
+	RoomId   int32
 	signal   chan int
 	CliProto Ring
 	SvrProto Ring
-	//next     *Channel
+	cLock    sync.Mutex
 }
 
-func NewChannel(cliProto, svrProto int) *Channel {
+func NewChannel(cliProto, svrProto int, rid int32) *Channel {
 	c := new(Channel)
+	c.RoomId = rid
 	c.signal = make(chan int, signalNum)
 	InitRing(&c.CliProto, cliProto)
 	InitRing(&c.SvrProto, svrProto)
@@ -47,14 +54,17 @@ func (c *Channel) Finish() {
 // not goroutine safe, must push one by one.
 func (c *Channel) PushMsg(ver int16, operation int32, body []byte) (err error) {
 	var proto *Proto
+	c.cLock.Lock()
 	// fetch a proto from channel free list
 	if proto, err = c.SvrProto.Set(); err != nil {
+		c.cLock.Unlock()
 		return
 	}
 	proto.Ver = ver
 	proto.Operation = operation
 	proto.Body = body
 	c.SvrProto.SetAdv()
+	c.cLock.Unlock()
 	c.Signal()
 	return
 }
@@ -65,6 +75,7 @@ func (c *Channel) PushMsgs(ver []int32, operations []int32, bodies [][]byte) (id
 		proto *Proto
 		n     int32
 	)
+	c.cLock.Lock()
 	for n = 0; n < int32(len(ver)); n++ {
 		// fetch a proto from channel free list
 		if proto, err = c.SvrProto.Set(); err != nil {
@@ -77,6 +88,7 @@ func (c *Channel) PushMsgs(ver []int32, operations []int32, bodies [][]byte) (id
 		idx = n
 	}
 finish:
+	c.cLock.Unlock()
 	c.Signal()
 	return
 }

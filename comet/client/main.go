@@ -21,6 +21,8 @@ func main() {
 		initTCP()
 	} else if Conf.Type == ProtoWebsocket {
 		initWebsocket()
+	} else if Conf.Type == ProtoWebsocketTLS {
+		initWebsocketTLS()
 	}
 	time.Sleep(10 * time.Second)
 }

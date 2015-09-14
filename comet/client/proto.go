@@ -24,8 +24,9 @@ const (
 )
 
 const (
-	ProtoTCP       = 0
-	ProtoWebsocket = 1
+	ProtoTCP          = 0
+	ProtoWebsocket    = 1
+	ProtoWebsocketTLS = 2
 )
 
 type Proto struct {

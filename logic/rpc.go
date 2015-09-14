@@ -4,8 +4,8 @@ import (
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	lproto "github.com/Terry-Mao/goim/proto/logic"
-	rproto "github.com/Terry-Mao/goim/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
+
 	"net"
 )
 
@@ -48,47 +48,38 @@ type RPC struct {
 }
 
 // Connect auth and registe login
-func (r *RPC) Connect(args *lproto.ConnArg, rep *lproto.ConnReply) (err error) {
-	if args == nil {
-		err = ErrArgs
+func (r *RPC) Connect(arg *lproto.ConnArg, reply *lproto.ConnReply) (err error) {
+	if arg == nil {
+		err = ErrConnectArgs
 		log.Error("Connect() error(%v)", err)
 		return
 	}
-	// get userID from third implementation.
-	// developer could implement "ThirdAuth" interface for decide how get userID
-	userID := r.auther.Auth(args.Token)
-	// notice router which connected
-	c := RouterClient(userID)
-	arg := &rproto.ConnArg{UserId: userID, Server: args.Server}
-	reply := &rproto.ConnReply{}
-	if err = c.Call(routerServiceConnect, arg, reply); err != nil {
-		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceConnect, *arg, err)
-		return
+	var (
+		uid int64
+		seq int32
+	)
+	uid, reply.RoomId = r.auther.Auth(arg.Token)
+	if seq, err = connect(uid, arg.Server, reply.RoomId); err == nil {
+		reply.Key = encode(uid, seq)
 	}
-	rep.Key = Encode(userID, reply.Seq)
 	return
 }
 
 // Disconnect notice router offline
-func (r *RPC) Disconnect(args *lproto.DisconnArg, rep *lproto.DisconnReply) (err error) {
-	if args == nil {
-		err = ErrArgs
+func (r *RPC) Disconnect(arg *lproto.DisconnArg, reply *lproto.DisconnReply) (err error) {
+	if arg == nil {
+		err = ErrDisconnectArgs
 		log.Error("Disconnect() error(%v)", err)
 		return
 	}
-	userID, seq, err := Decode(args.Key)
-	if err != nil {
-		log.Error("decode(\"%s\") error(%s)", args.Key, err)
+	var (
+		uid int64
+		seq int32
+	)
+	if uid, seq, err = decode(arg.Key); err != nil {
+		log.Error("decode(\"%s\") error(%s)", arg.Key, err)
 		return
 	}
-	// notice router which disconnected
-	c := RouterClient(userID)
-	arg := &rproto.DisconnArg{UserId: userID, Seq: seq}
-	reply := &rproto.DisconnReply{}
-	if err = c.Call(routerServiceDisconnect, arg, reply); err != nil {
-		log.Error("c.Call(\"%s\",\"%v\") error(%s)", routerServiceDisconnect, *arg, err)
-		return
-	}
-	rep.Has = reply.Has
+	reply.Has, err = disconnect(uid, seq, arg.RoomId)
 	return
 }

@@ -6,16 +6,12 @@ import (
 )
 
 type Round struct {
-	readers []*sync.Pool
-	writers []*sync.Pool
-	//rpackers   []*sync.Pool
-	//wpackers   []*sync.Pool
+	readers   []*sync.Pool
+	writers   []*sync.Pool
 	timers    []*Timer
 	readerIdx int
 	writerIdx int
-	//rpackerIdx int
-	//wpackerIdx int
-	timerIdx int
+	timerIdx  int
 }
 
 func NewRound(readBuf, writeBuf, timer, timerSize int) *Round {
@@ -32,20 +28,6 @@ func NewRound(readBuf, writeBuf, timer, timerSize int) *Round {
 	for i := 0; i < writeBuf; i++ {
 		r.writers[i] = new(sync.Pool)
 	}
-	/*
-		log.Debug("create %d read pack buffer pool", readBuf)
-		r.rpackerIdx = readBuf
-		r.rpackers = make([]*sync.Pool, readBuf)
-		for i := 0; i < readBuf; i++ {
-			r.rpackers[i] = new(sync.Pool)
-		}
-		log.Debug("create %d writer pack buffer pool", writeBuf)
-		r.wpackerIdx = writeBuf
-		r.wpackers = make([]*sync.Pool, writeBuf)
-		for i := 0; i < writeBuf; i++ {
-			r.wpackers[i] = new(sync.Pool)
-		}
-	*/
 	log.Debug("create %d timer", timer)
 	r.timerIdx = timer
 	r.timers = make([]*Timer, timer)
@@ -68,13 +50,3 @@ func (r *Round) Reader(rn int) *sync.Pool {
 func (r *Round) Writer(rn int) *sync.Pool {
 	return r.writers[rn%r.writerIdx]
 }
-
-/*
-func (r *Round) Rpacker(rn int) *sync.Pool {
-	return r.rpackers[rn%r.rpackerIdx]
-}
-
-func (r *Round) Wpacker(rn int) *sync.Pool {
-	return r.wpackers[rn%r.wpackerIdx]
-}
-*/

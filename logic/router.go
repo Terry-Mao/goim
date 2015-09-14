@@ -10,92 +10,201 @@ import (
 )
 
 var (
-	routerServiceMap = map[string]*rpc.Client{}
-	routerQuit       = make(chan struct{}, 1)
+	routerServiceMap = map[string]**rpc.Client{}
 	routerRing       *ketama.HashRing
 )
 
 const (
-	routerService           = "RouterRPC"
-	routerServiceConnect    = "RouterRPC.Connect"
-	routerServiceDisconnect = "RouterRPC.Disconnect"
-	routerServiceMGet       = "RouterRPC.MGet"
-	routerServiceGetAll     = "RouterRPC.GetAll"
+	routerService             = "RouterRPC"
+	routerServiceConnect      = "RouterRPC.Connect"
+	routerServiceDisconnect   = "RouterRPC.Disconnect"
+	routerServiceAllRoomCount = "RouterRPC.AllRoomCount"
+	routerServiceGet          = "RouterRPC.Get"
+	routerServiceMGet         = "RouterRPC.MGet"
+	routerServiceGetAll       = "RouterRPC.GetAll"
 )
 
 func InitRouter() (err error) {
 	var (
-		r             *rpc.Client
-		i             = 0
 		network, addr string
 	)
 	routerRing = ketama.NewRing(ketama.Base)
 	for serverId, addrs := range Conf.RouterRPCAddrs {
+		// WARN r must every recycle changed for reconnect
+		var (
+			r          *rpc.Client
+			routerQuit = make(chan struct{}, 1)
+		)
 		if network, addr, err = inet.ParseNetwork(addrs); err != nil {
 			log.Error("inet.ParseNetwork() error(%v)", err)
 			return
 		}
 		r, err = rpc.Dial(network, addr)
 		if err != nil {
-			log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", network, addr, err)
-			return
+			log.Error("rpc.Dial(\"%s\", \"%s\") error(%v)", network, addr, err)
 		}
 		go rpc.Reconnect(&r, routerQuit, network, addr)
 		log.Debug("router rpc addr:%s connect", addr)
-		routerServiceMap[serverId] = r
+		routerServiceMap[serverId] = &r
 		routerRing.AddNode(serverId, 1)
-		i++
 	}
 	routerRing.Bake()
 	return
 }
 
-func getRouters() map[string]*rpc.Client {
+func getRouters() map[string]**rpc.Client {
 	return routerServiceMap
 }
 
-func RouterClient(userID int64) *rpc.Client {
-	node := routerRing.Hash(strconv.FormatInt(userID, 10))
-	return routerServiceMap[node]
+func getRouterByServer(server string) (*rpc.Client, error) {
+	if client, ok := routerServiceMap[server]; !ok || *client == nil {
+		return nil, ErrRouter
+	} else {
+		return *client, nil
+	}
+}
+
+func getRouterByUID(userID int64) (*rpc.Client, error) {
+	return getRouterByServer(routerRing.Hash(strconv.FormatInt(userID, 10)))
 }
 
 func getRouterNode(userID int64) string {
 	return routerRing.Hash(strconv.FormatInt(userID, 10))
 }
 
-// divide userIds to corresponding
-// response: map[nodes]userIds
-func divideNode(userIds []int64) map[string][]int64 {
-	var (
-		m    = map[string][]int64{}
-		node string
-	)
-	for i := 0; i < len(userIds); i++ {
-		node = getRouterNode(userIds[i])
-		ids, ok := m[node]
-		if !ok {
-			ids = []int64{userIds[i]}
-		} else {
-			ids = append(ids, userIds[i])
-		}
-		m[node] = ids
+func connect(userID int64, server, roomId int32) (seq int32, err error) {
+	var client *rpc.Client
+	if client, err = getRouterByUID(userID); err != nil {
+		return
 	}
-	return m
-}
-
-func getSubkeys(serverId string, userIds []int64) (reply *rproto.MGetReply, err error) {
-	arg := &rproto.MGetArg{UserIds: userIds}
-	reply = &rproto.MGetReply{}
-	if err = routerServiceMap[serverId].Call(routerServiceMGet, arg, reply); err != nil {
-		log.Error("routerServiceMap[serverId].Call(\"%s\",\"%v\") error(%s)", routerServiceMGet, *arg, err)
+	arg := &rproto.ConnArg{UserId: userID, Server: server, RoomId: roomId}
+	reply := &rproto.ConnReply{}
+	if err = client.Call(routerServiceConnect, arg, reply); err != nil {
+		log.Error("c.Call(\"%s\",\"%v\") error(%v)", routerServiceConnect, arg, err)
+	} else {
+		seq = reply.Seq
 	}
 	return
 }
 
-func getAllSubkeys(serverId string) (reply *rproto.GetAllReply, err error) {
-	reply = &rproto.GetAllReply{}
-	if err = routerServiceMap[serverId].Call(routerServiceGetAll, nil, reply); err != nil {
-		log.Error("routerServiceMap[serverId].Call(\"%s\") error(%s)", routerServiceGetAll, err)
+func disconnect(userID int64, seq, roomId int32) (has bool, err error) {
+	var (
+		client *rpc.Client
+		arg    = &rproto.DisconnArg{UserId: userID, Seq: seq, RoomId: roomId}
+		reply  = &rproto.DisconnReply{}
+	)
+	if client, err = getRouterByUID(userID); err != nil {
+		return
+	}
+	if err = client.Call(routerServiceDisconnect, arg, reply); err != nil {
+		log.Error("c.Call(\"%s\",\"%v\") error(%v)", routerServiceDisconnect, *arg, err)
+	} else {
+		has = reply.Has
+	}
+	return
+}
+
+func allRoomCount(client *rpc.Client) (counter map[int32]int32, err error) {
+	var (
+		reply = &rproto.AllRoomCountReply{}
+	)
+	if err = client.Call(routerServiceAllRoomCount, nil, reply); err != nil {
+		log.Error("c.Call(\"%s\", nil) error(%v)", routerServiceAllRoomCount, err)
+	} else {
+		counter = reply.Counter
+	}
+	return
+}
+
+func genSubKey(userId int64) (res map[int32][]string) {
+	var (
+		i      int
+		ok     bool
+		key    string
+		keys   []string
+		client *rpc.Client
+		err    error
+		arg    = &rproto.GetArg{UserId: userId}
+		reply  = &rproto.GetReply{}
+	)
+	res = make(map[int32][]string)
+	if client, err = getRouterByUID(userId); err != nil {
+		return
+	}
+	if err = client.Call(routerServiceGet, arg, reply); err != nil {
+		log.Error("client.Call(\"%s\",\"%v\") error(%v)", routerServiceGet, arg, err)
+		return
+	}
+	for i = 0; i < len(reply.Servers); i++ {
+		key = encode(userId, reply.Seqs[i])
+		if keys, ok = res[reply.Servers[i]]; !ok {
+			keys = []string{}
+		}
+		keys = append(keys, key)
+		res[reply.Servers[i]] = keys
+	}
+	return
+}
+
+func getSubKeys(res chan *rproto.MGetReply, serverId string, userIds []int64) {
+	var reply *rproto.MGetReply
+	if client, err := getRouterByServer(serverId); err == nil {
+		arg := &rproto.MGetArg{UserIds: userIds}
+		reply = &rproto.MGetReply{}
+		if err = client.Call(routerServiceMGet, arg, reply); err != nil {
+			log.Error("client.Call(\"%s\",\"%v\") error(%v)", routerServiceMGet, arg, err)
+			reply = nil
+		}
+	}
+	res <- reply
+}
+
+func genSubKeys(userIds []int64) (divide map[int32][]string) {
+	var (
+		i, j, k      int
+		node, subkey string
+		subkeys      []string
+		server       int32
+		session      *rproto.GetReply
+		reply        *rproto.MGetReply
+		uid          int64
+		ids          []int64
+		ok           bool
+		m            = make(map[string][]int64)
+		res          = make(chan *rproto.MGetReply, 1)
+	)
+	divide = make(map[int32][]string) //map[comet.serverId][]subkey
+	for i = 0; i < len(userIds); i++ {
+		node = getRouterNode(userIds[i])
+		if ids, ok = m[node]; !ok {
+			ids = []int64{}
+		}
+		ids = append(ids, userIds[i])
+		m[node] = ids
+	}
+	for node, ids = range m {
+		go getSubKeys(res, node, ids)
+	}
+	k = len(m)
+	for k > 0 {
+		k--
+		if reply = <-res; reply == nil {
+			continue
+		}
+		for j = 0; j < len(reply.UserIds); j++ {
+			session = reply.Sessions[j]
+			uid = reply.UserIds[j]
+			for i = 0; i < len(session.Seqs); i++ {
+				subkey = encode(uid, session.Seqs[i])
+				server = session.Servers[i]
+				if subkeys, ok = divide[server]; !ok {
+					subkeys = []string{subkey}
+				} else {
+					subkeys = append(subkeys, subkey)
+				}
+				divide[server] = subkeys
+			}
+		}
 	}
 	return
 }

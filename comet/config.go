@@ -42,13 +42,19 @@ type Config struct {
 	PprofBind []string `goconf:"base:pprof.bind:,"`
 	StatBind  []string `goconf:"base:stat.bind:,"`
 	ServerId  int32    `goconf:"base:server.id"`
+	Debug     bool     `goconf:"base:debug"`
 	// tcp
 	TCPBind      []string `goconf:"tcp:bind:,"`
 	TCPSndbuf    int      `goconf:"tcp:sndbuf:memory"`
 	TCPRcvbuf    int      `goconf:"tcp:rcvbuf:memory"`
 	TCPKeepalive bool     `goconf:"tcp:keepalive"`
+
 	// websocket
-	WebsocketBind []string `goconf:"websocket:bind:,"`
+	WebsocketBind    []string `goconf:"websocket:bind:,"`
+	WebsocketTLSOpen bool     `goconf:"websocket:tls.open"`
+	WebsocketTLSBind []string `goconf:"websocket:tls.bind:,"`
+	CertFile         string   `goconf:"websocket:cert.file"`
+	PrivateFile      string   `goconf:"websocket:private.file"`
 	// http
 	HTTPBind []string `goconf:"http:bind:,"`
 	// proto section
@@ -62,18 +68,19 @@ type Config struct {
 	Timer     int `goconf:"proto:timer"`
 	TimerSize int `goconf:"proto:timer.size"`
 	// bucket
-	Bucket   int `goconf:"bucket:bucket.num"`
-	CliProto int `goconf:"bucket:cli.proto.num"`
-	SvrProto int `goconf:"bucket:svr.proto.num"`
-	Channel  int `goconf:"bucket:channel.num"`
+	Bucket      int `goconf:"bucket:bucket.num"`
+	CliProto    int `goconf:"bucket:cli.proto.num"`
+	SvrProto    int `goconf:"bucket:svr.proto.num"`
+	Channel     int `goconf:"bucket:channel.num"`
+	Room        int `goconf:"bucket:room.num"`
+	RoomChannel int `goconf:"bucket:room.channel.num"`
 	// push
 	HTTPPushAddrs    []string      `goconf:"push:http.addrs:,"`
 	HTTPReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
 	HTTPWriteTimeout time.Duration `goconf:"push:http.write.timeout:time"`
 	RPCPushAddrs     []string      `goconf:"push:rpc.addrs:,"`
 	// logic
-	LogicNetwork string `goconf:"logic:network"`
-	LogicAddr    string `goconf:"logic:addr"`
+	LogicAddr string `goconf:"logic:rpc.addrs"`
 }
 
 func NewConfig() *Config {
@@ -85,6 +92,7 @@ func NewConfig() *Config {
 		MaxProc:   runtime.NumCPU(),
 		PprofBind: []string{"localhost:6971"},
 		StatBind:  []string{"localhost:6972"},
+		Debug:     true,
 		// tcp
 		TCPBind:      []string{"localhost:8080"},
 		TCPSndbuf:    1024,
@@ -109,10 +117,7 @@ func NewConfig() *Config {
 		SvrProto: 1024,
 		Channel:  1024,
 		// push
-		HTTPPushAddrs:    []string{"localhost:8082"},
-		HTTPReadTimeout:  5 * time.Second,
-		HTTPWriteTimeout: 5 * time.Second,
-		RPCPushAddrs:     []string{"localhost:8083"},
+		RPCPushAddrs: []string{"localhost:8083"},
 	}
 }
 

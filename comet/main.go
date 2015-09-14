@@ -21,10 +21,14 @@ func main() {
 	defer log.Close()
 	log.Info("comet[%s] start", Ver)
 	perf.Init(Conf.PprofBind)
+	// logic rpc
+	if err := InitLogicRpc(Conf.LogicAddr); err != nil {
+		log.Warn("logic rpc current can't connect, retry")
+	}
 	// new server
 	buckets := make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
-		buckets[i] = NewBucket(Conf.Channel, Conf.CliProto, Conf.SvrProto)
+		buckets[i] = NewBucket(Conf.Channel, Conf.Room, Conf.RoomChannel, Conf.CliProto, Conf.SvrProto)
 	}
 	round := NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize)
 	operator := new(DefaultOperator)
@@ -35,17 +39,16 @@ func main() {
 	if err := InitWebsocket(); err != nil {
 		panic(err)
 	}
-	if err := InitHTTP(); err != nil {
-		panic(err)
+	if Conf.WebsocketTLSOpen {
+		if err := InitWebsocketWithTLS(); err != nil {
+			panic(err)
+		}
 	}
-	if err := InitHTTPPush(); err != nil {
+	if err := InitHTTP(); err != nil {
 		panic(err)
 	}
 	// start rpc
 	if err := InitRPCPush(); err != nil {
-		panic(err)
-	}
-	if err := InitLogicRpc(Conf.LogicNetwork, Conf.LogicAddr); err != nil {
 		panic(err)
 	}
 	// block until a signal is received.

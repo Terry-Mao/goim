@@ -2,6 +2,8 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	"crypto/tls"
+	"github.com/Terry-Mao/goim/define"
 	"golang.org/x/net/websocket"
 	"math/rand"
 	"net"
@@ -37,6 +39,37 @@ func InitWebsocket() (err error) {
 	return
 }
 
+func InitWebsocketWithTLS() (err error) {
+	var (
+		httpServeMux = http.NewServeMux()
+	)
+	httpServeMux.Handle("/sub", websocket.Handler(serveWebsocket))
+	config := &tls.Config{}
+	config.Certificates = make([]tls.Certificate, 1)
+	config.Certificates[0], err = tls.LoadX509KeyPair(Conf.CertFile, Conf.PrivateFile)
+	if err != nil {
+		return
+	}
+	for _, bind := range Conf.WebsocketTLSBind {
+		server := &http.Server{Addr: bind, Handler: httpServeMux}
+		server.SetKeepAlivesEnabled(true)
+		log.Debug("start websocket wss listen: \"%s\"", bind)
+		go func() {
+			ln, err := net.Listen("tcp", bind)
+			if err != nil {
+				return
+			}
+
+			tlsListener := tls.NewListener(ln, config)
+			if err = server.Serve(tlsListener); err != nil {
+				log.Error("server.Serve(\"%s\") error(%v)", bind, err)
+				return
+			}
+		}()
+	}
+	return
+}
+
 func serveWebsocket(conn *websocket.Conn) {
 	var (
 		// ip addr
@@ -51,19 +84,19 @@ func serveWebsocket(conn *websocket.Conn) {
 
 func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	var (
+		p   *Proto
 		b   *Bucket
-		ch  *Channel
 		hb  time.Duration // heartbeat
 		key string
 		err error
 		trd *TimerData
-		p   = new(Proto)
+		ch  = NewChannel(Conf.CliProto, Conf.SvrProto, define.NoRoom)
 	)
 	// auth
 	if trd, err = tr.Add(Conf.HandshakeTimeout, conn); err != nil {
 		log.Error("handshake: timer.Add() error(%v)", err)
 	} else {
-		if key, hb, err = server.authWebsocket(conn, p); err != nil {
+		if key, hb, err = server.authWebsocket(conn, ch); err != nil {
 			log.Error("handshake: server.auth error(%v)", err)
 		}
 		//deltimer
@@ -76,10 +109,8 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 		}
 		return
 	}
-	// TODO how to reuse channel
 	// register key->channel
 	b = server.Bucket(key)
-	ch = NewChannel(Conf.CliProto, Conf.SvrProto)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
 	go server.dispatchWebsocket(conn, ch, hb, tr)
@@ -106,11 +137,11 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	// return channel to bucket's free list
 	// may call twice
 	if err = conn.Close(); err != nil {
-		log.Error("reader: conn.Close() error(%v)")
+		log.Error("reader: conn.Close() error(%v)", err)
 	}
 	ch.Finish()
 	b.Del(key)
-	if err = server.operator.Disconnect(key); err != nil {
+	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
 	log.Debug("%s serverconn goroutine exit", key)
@@ -140,7 +171,7 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 			if p, err = ch.CliProto.Get(); err != nil {
 				break
 			}
-			if p.Operation == OP_HEARTBEAT {
+			if p.Operation == define.OP_HEARTBEAT {
 				// Use a previous timer value if difference between it and a new
 				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
 				// to minimize the minheap operations for fast connections.
@@ -153,7 +184,7 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 				}
 				// heartbeat
 				p.Body = nil
-				p.Operation = OP_HEARTBEAT_REPLY
+				p.Operation = define.OP_HEARTBEAT_REPLY
 			} else {
 				// process message
 				if err = server.operator.Operate(p); err != nil {
@@ -170,6 +201,7 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
+				log.Warn("ch.SvrProto.Get() error(%v)", err)
 				break
 			}
 			// just forward the message
@@ -183,7 +215,7 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb ti
 failed:
 	// wake reader up
 	if err = conn.Close(); err != nil {
-		log.Error("conn.Close() error(%v)", err)
+		log.Warn("conn.Close() error(%v)", err)
 	}
 	// deltimer
 	tr.Del(trd)
@@ -192,21 +224,27 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authWebsocket(conn *websocket.Conn, p *Proto) (subKey string, heartbeat time.Duration, err error) {
+func (server *Server) authWebsocket(conn *websocket.Conn, ch *Channel) (subKey string, heartbeat time.Duration, err error) {
+	var p *Proto
+	// WARN
+	// don't adv the cli proto, after auth simply discard it.
+	if p, err = ch.CliProto.Set(); err != nil {
+		return
+	}
 	if err = server.readWebsocketRequest(conn, p); err != nil {
 		return
 	}
-	if p.Operation != OP_AUTH {
+	if p.Operation != define.OP_AUTH {
 		log.Warn("auth operation not valid: %d", p.Operation)
 		err = ErrOperation
 		return
 	}
-	if subKey, heartbeat, err = server.operator.Connect(p); err != nil {
+	if subKey, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
 		log.Error("operator.Connect error(%v)", err)
 		return
 	}
 	p.Body = nil
-	p.Operation = OP_AUTH_REPLY
+	p.Operation = define.OP_AUTH_REPLY
 	if err = server.writeWebsocketResponse(conn, p); err != nil {
 		log.Error("[%s] server.sendTCPResponse() error(%v)", subKey, err)
 	}
