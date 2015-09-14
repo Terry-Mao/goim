@@ -130,6 +130,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	for {
 		// fetch a proto from channel free list
 		if p, err = ch.CliProto.Set(); err != nil {
+			// if full, simply close connection
 			log.Error("%s fetch client proto error(%v)", key, err)
 			goto failed
 		}
@@ -180,6 +181,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		// fetch message from clibox(client send)
 		for {
 			if p, err = ch.CliProto.Get(); err != nil {
+				// must be empty error
 				break
 			}
 			if p.Operation == define.OP_HEARTBEAT {
@@ -212,7 +214,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
-				log.Warn("ch.SvrProto.Get() error(%v)", err)
+				// must be empty error
 				break
 			}
 			// just forward the message
@@ -328,7 +330,9 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, proto *Proto) (err error)
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
 func (server *Server) writeTCPResponse(wr *bufio.Writer, proto *Proto) (err error) {
-	log.Debug("write proto: %v", proto)
+	if debug {
+		log.Debug("write proto: %v", proto)
+	}
 	if err = ioutil.WriteBigEndianInt32(wr, int32(rawHeaderLen)+int32(len(proto.Body))); err != nil {
 		return
 	}
