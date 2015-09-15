@@ -12,10 +12,10 @@ goim is a im server writen by golang.
  * stat
 
 ## Architecture
-[arch](https://github.com/Terry-Mao/goim/blob/master/doc/arch.png)
+![arch](https://github.com/Terry-Mao/goim/blob/master/doc/arch.png)
 
 ## Protocol
-[proto](https://github.com/Terry-Mao/goim/blob/master/doc/protocol.png)
+![proto](https://github.com/Terry-Mao/goim/blob/master/doc/protocol.png)
 
 ## Document
 [English](https://github.com/Terry-Mao/goim/blob/master/README_en.md)
