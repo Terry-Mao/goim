@@ -8,17 +8,14 @@ goim is a im server writen by golang.
  * pure golang implementation
  * heartbeat
  * auth (if a subscriber not auth then can't connect to comet node)
- * multiple protocol (websocket, tcp, todo http longpolling)
+ * multiple protocol (websocket, tcp, http longpolling)
  * stat
 
 ## Architecture
-
+[arch](https://github.com/Terry-Mao/goim/blob/master/doc/arch.png)
 
 ## Protocol
-
-
-## Handshake
-
+[proto](https://github.com/Terry-Mao/goim/blob/master/doc/protocol.png)
 
 ## Document
 [English](https://github.com/Terry-Mao/goim/blob/master/README_en.md)
