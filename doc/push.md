@@ -27,7 +27,8 @@ push http接口文档，用于推送接口接入
  * 请求例子
 
 ```sh
-curl -d "{\"test\":1}" http://127.0.0.1:7172/1/push
+# uid 表示推送的用户?uid=0
+curl -d "{\"test\":1}" http://127.0.0.1:7172/1/push?uid=0
 ```
 
  * 返回

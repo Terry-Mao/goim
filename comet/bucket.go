@@ -70,46 +70,30 @@ func (b *Bucket) Del(subKey string) {
 
 // Broadcast push msgs to all channels in the bucket.
 func (b *Bucket) Broadcast(ver int16, operation int32, msg []byte) {
-	var (
-		i   = 0
-		ch  *Channel
-		chs []*Channel
-	)
+	var ch *Channel
 	b.cLock.RLock()
-	chs = make([]*Channel, len(b.chs))
 	for _, ch = range b.chs {
-		chs[i] = ch
-		i++
-	}
-	b.cLock.RUnlock()
-	for _, ch = range chs {
 		// ignore error
 		ch.PushMsg(ver, operation, msg)
 	}
+	b.cLock.RUnlock()
 }
 
 // Broadcast push msgs to all channels in the bucket's room.
 func (b *Bucket) BroadcastRoom(rid int32, ver int16, operation int32, msg []byte) {
 	var (
-		i    = 0
 		ok   bool
 		ch   *Channel
-		chs  []*Channel
 		room map[*Channel]struct{}
 	)
 	b.cLock.RLock()
 	if room, ok = b.rooms[rid]; ok && len(room) > 0 {
-		chs = make([]*Channel, len(room))
 		for ch, _ = range room {
-			chs[i] = ch
-			i++
+			// ignore error
+			ch.PushMsg(ver, operation, msg)
 		}
 	}
 	b.cLock.RUnlock()
-	for _, ch = range chs {
-		// ignore error
-		ch.PushMsg(ver, operation, msg)
-	}
 }
 
 // Rooms get all room id where online number > 0.

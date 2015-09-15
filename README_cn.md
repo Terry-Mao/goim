@@ -55,6 +55,7 @@ $ source /etc/profile
 ### 四、部署goim
 1.下载goim及依赖包
 ```sh
+$ yum install hg
 $ go get -u github.com/Terry-Mao/goim
 $ cd /data/apps/go/src/github.com/Terry-Mao/goim
 $ go get ./...
@@ -64,20 +65,20 @@ $ go get ./...
 ```sh
 $ cd $GOPATH/src/github.com/Terry-Mao/goim/router
 $ go install
-$ cp message-example.conf $GOPATH/bin/router.conf
-$ cp log.xml $GOPATH/bin/router_log.xml
+$ cp router-example.conf $GOPATH/bin/router.conf
+$ cp router-log.xml $GOPATH/bin/
 $ cd ../logic/
 $ go install
 $ cp logic-example.conf $GOPATH/bin/logic.conf
-$ cp log.xml $GOPATH/bin/logic_log.xml
+$ cp logic-log.xml $GOPATH/bin/
 $ cd ../comet/
 $ go install
 $ cp comet-example.conf $GOPATH/bin/comet.conf
-$ cp log.xml $GOPATH/bin/comet_log.xml
+$ cp comet-log.xml $GOPATH/bin/
 $ cd ../logic/job/
 $ go install
 $ cp job-example.conf $GOPATH/bin/job.conf
-$ cp log.xml $GOPATH/bin/job_log.xml
+$ cp job-log.xml $GOPATH/bin/
 ```
 到此所有的环境都搭建完成！
 
@@ -101,7 +102,7 @@ TODO
 
 ## 例子
 
-Websocket: [Websocket Client Demo](https://github.com/Terry-Mao/goim/tree/master/client-example)
+Websocket: [Websocket Client Demo](https://github.com/Terry-Mao/goim/tree/master/examples/javascript)
 
 ## 文档
 [push http协议文档](https://github.com/Terry-Mao/goim/blob/master/doc/push.md)推送接口

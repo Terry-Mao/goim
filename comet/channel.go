@@ -5,6 +5,7 @@ import (
 )
 
 const (
+	// signal command
 	signalNum   = 1
 	protoFinish = 0
 	protoReady  = 1
