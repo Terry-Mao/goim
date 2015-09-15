@@ -22,5 +22,8 @@ goim is a im server writen by golang.
 
 [中文](https://github.com/Terry-Mao/goim/blob/master/README_cn.md)
 
+## Examples
+[Javascript](https://github.com/Terry-Mao/goim/tree/master/examples/javascript)
+
 ## LICENSE
 goim is is distributed under the terms of the GNU General Public License, version 3.0 [GPLv3](http://www.gnu.org/licenses/gpl.txt)
