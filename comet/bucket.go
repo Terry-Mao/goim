@@ -61,7 +61,15 @@ func (b *Bucket) Del(subKey string) {
 		delete(b.chs, subKey)
 		if ch.RoomId != define.NoRoom {
 			if room, ok = b.rooms[ch.RoomId]; ok {
+				// clean the room's channel
+				// when room empty
+				// clean the room space for free large room memory
+				// WARN: if room flip between empty and someone let GC busy
+				// this scene is rare
 				delete(room, ch)
+				if len(room) == 0 {
+					delete(b.rooms, ch.RoomId)
+				}
 			}
 		}
 	}
