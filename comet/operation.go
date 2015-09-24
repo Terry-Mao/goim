@@ -47,7 +47,7 @@ func (operator *DefaultOperator) Disconnect(key string, rid int32) (err error) {
 	if has, err = disconnect(key, rid); err != nil {
 		return
 	}
-	if has {
+	if !has {
 		log.Warn("disconnect key: \"%s\" not exists", key)
 	}
 	return
