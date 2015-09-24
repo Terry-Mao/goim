@@ -5,6 +5,16 @@ import (
 	"fmt"
 )
 
+// for tcp
+const (
+	rawHeaderLen  = int16(16)
+	maxBodyLen    = int32(1 << 10)
+	maxPackLen    = maxBodyLen + int32(rawHeaderLen)
+	packLenSize   = 4
+	headerLenSize = 2
+	maxPackIntBuf = 4
+)
+
 const (
 	VerSize       = 2
 	OperationSize = 4
@@ -23,10 +33,11 @@ var (
 // websocket & http:
 // raw codec, with http header stored ver, operation, seqid
 type Proto struct {
-	Ver       int16           `json:"ver"`  // protocol version
-	Operation int32           `json:"op"`   // operation for request
-	SeqId     int32           `json:"seq"`  // sequence number chosen by client
-	Body      json.RawMessage `json:"body"` // binary body bytes(json.RawMessage is []byte)
+	Ver       int16            `json:"ver"`  // protocol version
+	Operation int32            `json:"op"`   // operation for request
+	SeqId     int32            `json:"seq"`  // sequence number chosen by client
+	Body      json.RawMessage  `json:"body"` // binary body bytes(json.RawMessage is []byte)
+	Buf       [maxBodyLen]byte `json:"-"`    // for upstream buf
 }
 
 func (p *Proto) Reset() {

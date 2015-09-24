@@ -10,14 +10,6 @@ import (
 	"time"
 )
 
-const (
-	maxPackLen    = 1 << 10
-	rawHeaderLen  = int16(16)
-	packLenSize   = 4
-	headerLenSize = 2
-	maxPackIntBuf = 4
-)
-
 // InitTCP listen all tcp.bind and start accept connections.
 func InitTCP() (err error) {
 	var (
@@ -313,8 +305,7 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, proto *Proto) (err error)
 		log.Debug("read body len: %d", bodyLen)
 	}
 	if bodyLen > 0 {
-		// TODO reuse buf
-		proto.Body = make([]byte, bodyLen)
+		proto.Body = proto.Buf[0:bodyLen]
 		if err = ioutil.ReadAll(rr, proto.Body); err != nil {
 			log.Error("body: ReadAll() error(%v)", err)
 			return
