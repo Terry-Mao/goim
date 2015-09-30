@@ -16,7 +16,7 @@
         var heartbeatInterval;
 
         function connect() {
-            var ws = new WebSocket('ws://DOMAIN/sub');
+            var ws = new WebSocket('ws://localhost:8090/sub');
             var auth = false;
 
             ws.onopen = function() {
