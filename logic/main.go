@@ -22,16 +22,16 @@ func main() {
 	if err := InitRouter(); err != nil {
 		log.Warn("router rpc current can't connect, retry")
 	}
-	MergeRoomCount()
-	go SyncRoomCount()
+	MergeCount()
+	go SyncCount()
 	// logic rpc
 	if err := InitRPC(NewDefaultAuther()); err != nil {
 		panic(err)
 	}
-	if err := InitKafka(Conf.KafkaAddrs); err != nil {
+	if err := InitHTTP(); err != nil {
 		panic(err)
 	}
-	if err := InitHTTP(); err != nil {
+	if err := InitKafka(Conf.KafkaAddrs); err != nil {
 		panic(err)
 	}
 	// block until a signal is received.

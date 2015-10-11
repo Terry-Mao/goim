@@ -19,6 +19,7 @@ func InitHTTP() (err error) {
 		httpServeMux.HandleFunc("/1/push", Push)
 		httpServeMux.HandleFunc("/1/pushs", Pushs)
 		httpServeMux.HandleFunc("/1/push/all", PushAll)
+		httpServeMux.HandleFunc("/1/server/del", DelServer)
 		httpServeMux.HandleFunc("/1/count", Count)
 		log.Info("start http listen:\"%s\"", Conf.HTTPAddrs[i])
 		if network, addr, err = inet.ParseNetwork(Conf.HTTPAddrs[i]); err != nil {
@@ -208,6 +209,16 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+type RoomCounter struct {
+	RoomId int32
+	Count  int32
+}
+
+type ServerCounter struct {
+	Server int32
+	Count  int32
+}
+
 func Count(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, "Method Not Allowed", 405)
@@ -219,7 +230,41 @@ func Count(w http.ResponseWriter, r *http.Request) {
 	)
 	defer retWrite(w, r, res, time.Now())
 	if typeStr == "room" {
-		// TODO
+		d := make([]*RoomCounter, 0, len(RoomCountMap))
+		for roomId, count := range RoomCountMap {
+			d = append(d, &RoomCounter{RoomId: roomId, Count: count})
+		}
+		res["data"] = d
+	} else if typeStr == "server" {
+		d := make([]*ServerCounter, 0, len(ServerCountMap))
+		for server, count := range ServerCountMap {
+			d = append(d, &ServerCounter{Server: server, Count: count})
+		}
+		res["data"] = d
 	}
-	res["ret"] = OK
+	return
+}
+
+func DelServer(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method Not Allowed", 405)
+		return
+	}
+	var (
+		err       error
+		serverStr = r.URL.Query().Get("server")
+		server    int64
+		res       = map[string]interface{}{"ret": OK}
+	)
+	if server, err = strconv.ParseInt(serverStr, 10, 32); err != nil {
+		log.Error("strconv.Atoi(\"%s\") error(%v)", serverStr, err)
+		res["ret"] = InternalErr
+		return
+	}
+	defer retWrite(w, r, res, time.Now())
+	if err = delServer(int32(server)); err != nil {
+		res["ret"] = InternalErr
+		return
+	}
+	return
 }

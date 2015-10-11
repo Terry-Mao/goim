@@ -58,8 +58,8 @@ func (s *Session) Servers() (seqs []int32, servers []int32) {
 }
 
 // Del delete the session by sub key.
-func (s *Session) Del(seq int32) (has, empty bool) {
-	if _, has = s.servers[seq]; has {
+func (s *Session) Del(seq int32) (has, empty bool, server int32) {
+	if server, has = s.servers[seq]; has {
 		delete(s.servers, seq)
 	}
 	empty = (len(s.servers) == 0)
@@ -67,12 +67,12 @@ func (s *Session) Del(seq int32) (has, empty bool) {
 }
 
 // DelRoom delete the session and room by subkey.
-func (s *Session) DelRoom(seq int32, roomId int32) (has, empty bool) {
+func (s *Session) DelRoom(seq int32, roomId int32) (has, empty bool, server int32) {
 	var (
 		ok   bool
 		room map[int32]int32
 	)
-	has, empty = s.Del(seq)
+	has, empty, server = s.Del(seq)
 	if room, ok = s.rooms[roomId]; ok {
 		delete(room, seq)
 		if len(room) == 0 {

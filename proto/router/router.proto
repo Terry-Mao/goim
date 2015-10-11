@@ -14,24 +14,28 @@ message NoArg {
 message NoReply {
 }
 
-message ConnArg {
+message PutArg {
     int64 userId = 1; 
     int32 server = 2;
     int32 roomId = 3;
 }
 
-message ConnReply {
+message PutReply {
     int32 seq = 1;
 }
 
-message DisconnArg {
+message DelArg {
     int64 userId = 1;
     int32 seq = 2;
     int32 roomId = 3;
 }
 
-message DisconnReply {
+message DelReply {
     bool has = 1;
+}
+
+message DelServerArg {
+    int32 server = 1;
 }
 
 message GetArg {
@@ -78,5 +82,9 @@ message RoomCountReply {
 }
 
 message AllRoomCountReply {
+    map<int32, int32> counter = 1;
+}
+
+message AllServerCountReply {
     map<int32, int32> counter = 1;
 }

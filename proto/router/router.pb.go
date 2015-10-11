@@ -11,10 +11,11 @@
 	It has these top-level messages:
 		NoArg
 		NoReply
-		ConnArg
-		ConnReply
-		DisconnArg
-		DisconnReply
+		PutArg
+		PutReply
+		DelArg
+		DelReply
+		DelServerArg
 		GetArg
 		GetReply
 		GetAllReply
@@ -26,6 +27,7 @@
 		RoomCountArg
 		RoomCountReply
 		AllRoomCountReply
+		AllServerCountReply
 */
 package proto
 
@@ -55,41 +57,49 @@ func (m *NoReply) Reset()         { *m = NoReply{} }
 func (m *NoReply) String() string { return proto1.CompactTextString(m) }
 func (*NoReply) ProtoMessage()    {}
 
-type ConnArg struct {
+type PutArg struct {
 	UserId int64 `protobuf:"varint,1,opt,name=userId,proto3" json:"userId,omitempty"`
 	Server int32 `protobuf:"varint,2,opt,name=server,proto3" json:"server,omitempty"`
 	RoomId int32 `protobuf:"varint,3,opt,name=roomId,proto3" json:"roomId,omitempty"`
 }
 
-func (m *ConnArg) Reset()         { *m = ConnArg{} }
-func (m *ConnArg) String() string { return proto1.CompactTextString(m) }
-func (*ConnArg) ProtoMessage()    {}
+func (m *PutArg) Reset()         { *m = PutArg{} }
+func (m *PutArg) String() string { return proto1.CompactTextString(m) }
+func (*PutArg) ProtoMessage()    {}
 
-type ConnReply struct {
+type PutReply struct {
 	Seq int32 `protobuf:"varint,1,opt,name=seq,proto3" json:"seq,omitempty"`
 }
 
-func (m *ConnReply) Reset()         { *m = ConnReply{} }
-func (m *ConnReply) String() string { return proto1.CompactTextString(m) }
-func (*ConnReply) ProtoMessage()    {}
+func (m *PutReply) Reset()         { *m = PutReply{} }
+func (m *PutReply) String() string { return proto1.CompactTextString(m) }
+func (*PutReply) ProtoMessage()    {}
 
-type DisconnArg struct {
+type DelArg struct {
 	UserId int64 `protobuf:"varint,1,opt,name=userId,proto3" json:"userId,omitempty"`
 	Seq    int32 `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
 	RoomId int32 `protobuf:"varint,3,opt,name=roomId,proto3" json:"roomId,omitempty"`
 }
 
-func (m *DisconnArg) Reset()         { *m = DisconnArg{} }
-func (m *DisconnArg) String() string { return proto1.CompactTextString(m) }
-func (*DisconnArg) ProtoMessage()    {}
+func (m *DelArg) Reset()         { *m = DelArg{} }
+func (m *DelArg) String() string { return proto1.CompactTextString(m) }
+func (*DelArg) ProtoMessage()    {}
 
-type DisconnReply struct {
+type DelReply struct {
 	Has bool `protobuf:"varint,1,opt,name=has,proto3" json:"has,omitempty"`
 }
 
-func (m *DisconnReply) Reset()         { *m = DisconnReply{} }
-func (m *DisconnReply) String() string { return proto1.CompactTextString(m) }
-func (*DisconnReply) ProtoMessage()    {}
+func (m *DelReply) Reset()         { *m = DelReply{} }
+func (m *DelReply) String() string { return proto1.CompactTextString(m) }
+func (*DelReply) ProtoMessage()    {}
+
+type DelServerArg struct {
+	Server int32 `protobuf:"varint,1,opt,name=server,proto3" json:"server,omitempty"`
+}
+
+func (m *DelServerArg) Reset()         { *m = DelServerArg{} }
+func (m *DelServerArg) String() string { return proto1.CompactTextString(m) }
+func (*DelServerArg) ProtoMessage()    {}
 
 type GetArg struct {
 	UserId int64 `protobuf:"varint,1,opt,name=userId,proto3" json:"userId,omitempty"`
@@ -203,6 +213,21 @@ func (m *AllRoomCountReply) GetCounter() map[int32]int32 {
 	return nil
 }
 
+type AllServerCountReply struct {
+	Counter map[int32]int32 `protobuf:"bytes,1,rep,name=counter" json:"counter,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+}
+
+func (m *AllServerCountReply) Reset()         { *m = AllServerCountReply{} }
+func (m *AllServerCountReply) String() string { return proto1.CompactTextString(m) }
+func (*AllServerCountReply) ProtoMessage()    {}
+
+func (m *AllServerCountReply) GetCounter() map[int32]int32 {
+	if m != nil {
+		return m.Counter
+	}
+	return nil
+}
+
 func init() {
 }
 func (m *NoArg) Unmarshal(data []byte) error {
@@ -287,7 +312,7 @@ func (m *NoReply) Unmarshal(data []byte) error {
 
 	return nil
 }
-func (m *ConnArg) Unmarshal(data []byte) error {
+func (m *PutArg) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -374,7 +399,7 @@ func (m *ConnArg) Unmarshal(data []byte) error {
 
 	return nil
 }
-func (m *ConnReply) Unmarshal(data []byte) error {
+func (m *PutReply) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -431,7 +456,7 @@ func (m *ConnReply) Unmarshal(data []byte) error {
 
 	return nil
 }
-func (m *DisconnArg) Unmarshal(data []byte) error {
+func (m *DelArg) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -518,7 +543,7 @@ func (m *DisconnArg) Unmarshal(data []byte) error {
 
 	return nil
 }
-func (m *DisconnReply) Unmarshal(data []byte) error {
+func (m *DelReply) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -554,6 +579,63 @@ func (m *DisconnReply) Unmarshal(data []byte) error {
 				}
 			}
 			m.Has = bool(v != 0)
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipRouter(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	return nil
+}
+func (m *DelServerArg) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Server", wireType)
+			}
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.Server |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			var sizeOfWire int
 			for {
@@ -1337,6 +1419,121 @@ func (m *AllRoomCountReply) Unmarshal(data []byte) error {
 
 	return nil
 }
+func (m *AllServerCountReply) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Counter", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var keykey uint64
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				keykey |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var mapkey int32
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				mapkey |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var valuekey uint64
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				valuekey |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var mapvalue int32
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				mapvalue |= (int32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if m.Counter == nil {
+				m.Counter = make(map[int32]int32)
+			}
+			m.Counter[mapkey] = mapvalue
+			iNdEx = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipRouter(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	return nil
+}
 func skipRouter(data []byte) (n int, err error) {
 	l := len(data)
 	iNdEx := 0
@@ -1433,7 +1630,7 @@ func (m *NoReply) Size() (n int) {
 	return n
 }
 
-func (m *ConnArg) Size() (n int) {
+func (m *PutArg) Size() (n int) {
 	var l int
 	_ = l
 	if m.UserId != 0 {
@@ -1448,7 +1645,7 @@ func (m *ConnArg) Size() (n int) {
 	return n
 }
 
-func (m *ConnReply) Size() (n int) {
+func (m *PutReply) Size() (n int) {
 	var l int
 	_ = l
 	if m.Seq != 0 {
@@ -1457,7 +1654,7 @@ func (m *ConnReply) Size() (n int) {
 	return n
 }
 
-func (m *DisconnArg) Size() (n int) {
+func (m *DelArg) Size() (n int) {
 	var l int
 	_ = l
 	if m.UserId != 0 {
@@ -1472,11 +1669,20 @@ func (m *DisconnArg) Size() (n int) {
 	return n
 }
 
-func (m *DisconnReply) Size() (n int) {
+func (m *DelReply) Size() (n int) {
 	var l int
 	_ = l
 	if m.Has {
 		n += 2
+	}
+	return n
+}
+
+func (m *DelServerArg) Size() (n int) {
+	var l int
+	_ = l
+	if m.Server != 0 {
+		n += 1 + sovRouter(uint64(m.Server))
 	}
 	return n
 }
@@ -1610,6 +1816,20 @@ func (m *AllRoomCountReply) Size() (n int) {
 	return n
 }
 
+func (m *AllServerCountReply) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Counter) > 0 {
+		for k, v := range m.Counter {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + sovRouter(uint64(k)) + 1 + sovRouter(uint64(v))
+			n += mapEntrySize + 1 + sovRouter(uint64(mapEntrySize))
+		}
+	}
+	return n
+}
+
 func sovRouter(x uint64) (n int) {
 	for {
 		n++
@@ -1659,7 +1879,7 @@ func (m *NoReply) MarshalTo(data []byte) (n int, err error) {
 	return i, nil
 }
 
-func (m *ConnArg) Marshal() (data []byte, err error) {
+func (m *PutArg) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -1669,7 +1889,7 @@ func (m *ConnArg) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *ConnArg) MarshalTo(data []byte) (n int, err error) {
+func (m *PutArg) MarshalTo(data []byte) (n int, err error) {
 	var i int
 	_ = i
 	var l int
@@ -1692,7 +1912,7 @@ func (m *ConnArg) MarshalTo(data []byte) (n int, err error) {
 	return i, nil
 }
 
-func (m *ConnReply) Marshal() (data []byte, err error) {
+func (m *PutReply) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -1702,7 +1922,7 @@ func (m *ConnReply) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *ConnReply) MarshalTo(data []byte) (n int, err error) {
+func (m *PutReply) MarshalTo(data []byte) (n int, err error) {
 	var i int
 	_ = i
 	var l int
@@ -1715,7 +1935,7 @@ func (m *ConnReply) MarshalTo(data []byte) (n int, err error) {
 	return i, nil
 }
 
-func (m *DisconnArg) Marshal() (data []byte, err error) {
+func (m *DelArg) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -1725,7 +1945,7 @@ func (m *DisconnArg) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *DisconnArg) MarshalTo(data []byte) (n int, err error) {
+func (m *DelArg) MarshalTo(data []byte) (n int, err error) {
 	var i int
 	_ = i
 	var l int
@@ -1748,7 +1968,7 @@ func (m *DisconnArg) MarshalTo(data []byte) (n int, err error) {
 	return i, nil
 }
 
-func (m *DisconnReply) Marshal() (data []byte, err error) {
+func (m *DelReply) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -1758,7 +1978,7 @@ func (m *DisconnReply) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *DisconnReply) MarshalTo(data []byte) (n int, err error) {
+func (m *DelReply) MarshalTo(data []byte) (n int, err error) {
 	var i int
 	_ = i
 	var l int
@@ -1772,6 +1992,29 @@ func (m *DisconnReply) MarshalTo(data []byte) (n int, err error) {
 			data[i] = 0
 		}
 		i++
+	}
+	return i, nil
+}
+
+func (m *DelServerArg) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *DelServerArg) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Server != 0 {
+		data[i] = 0x8
+		i++
+		i = encodeVarintRouter(data, i, uint64(m.Server))
 	}
 	return i, nil
 }
@@ -2056,6 +2299,44 @@ func (m *AllRoomCountReply) Marshal() (data []byte, err error) {
 }
 
 func (m *AllRoomCountReply) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Counter) > 0 {
+		keysForCounter := make([]int32, 0, len(m.Counter))
+		for k, _ := range m.Counter {
+			keysForCounter = append(keysForCounter, k)
+		}
+		github_com_gogo_protobuf_sortkeys.Int32s(keysForCounter)
+		for _, k := range keysForCounter {
+			data[i] = 0xa
+			i++
+			v := m.Counter[k]
+			mapSize := 1 + sovRouter(uint64(k)) + 1 + sovRouter(uint64(v))
+			i = encodeVarintRouter(data, i, uint64(mapSize))
+			data[i] = 0x8
+			i++
+			i = encodeVarintRouter(data, i, uint64(k))
+			data[i] = 0x10
+			i++
+			i = encodeVarintRouter(data, i, uint64(v))
+		}
+	}
+	return i, nil
+}
+
+func (m *AllServerCountReply) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *AllServerCountReply) MarshalTo(data []byte) (n int, err error) {
 	var i int
 	_ = i
 	var l int
