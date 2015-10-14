@@ -216,6 +216,10 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 			}
 			ch.SvrProto.GetAdv()
 		}
+		// only hungry flush response
+		if err = wr.Flush(); err != nil {
+			goto failed
+		}
 	}
 failed:
 	// wake reader up
@@ -254,6 +258,7 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (
 	if err = server.writeTCPResponse(wr, p); err != nil {
 		log.Error("[%s] server.sendTCPResponse() error(%v)", subKey, err)
 	}
+	err = wr.Flush()
 	return
 }
 
@@ -324,7 +329,14 @@ func (server *Server) writeTCPResponse(wr *bufio.Writer, proto *Proto) (err erro
 	if Conf.Debug {
 		log.Debug("write proto: %v", proto)
 	}
-	if err = ioutil.WriteBigEndianInt32(wr, int32(rawHeaderLen)+int32(len(proto.Body))); err != nil {
+	var packLen = int32(rawHeaderLen) + int32(len(proto.Body))
+	// no available memory flush response
+	if wr.Available() < int(packLen) {
+		if err = wr.Flush(); err != nil {
+			return
+		}
+	}
+	if err = ioutil.WriteBigEndianInt32(wr, packLen); err != nil {
 		return
 	}
 	if err = ioutil.WriteBigEndianInt16(wr, rawHeaderLen); err != nil {
@@ -343,9 +355,6 @@ func (server *Server) writeTCPResponse(wr *bufio.Writer, proto *Proto) (err erro
 		if _, err = wr.Write(proto.Body); err != nil {
 			return
 		}
-	}
-	if err = wr.Flush(); err != nil {
-		log.Error("tcp wr.Flush() error(%v)", err)
 	}
 	proto.Reset()
 	return
