@@ -112,6 +112,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 			log.Error("handshake: conn.Close() error(%v)", err)
 		}
 		PutBufioReader(rrp, rr)
+		PutBufioWriter(wrp, wr)
 		return
 	}
 	// register key->channel
