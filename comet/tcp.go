@@ -329,14 +329,8 @@ func (server *Server) writeTCPResponse(wr *bufio.Writer, proto *Proto) (err erro
 	if Conf.Debug {
 		log.Debug("write proto: %v", proto)
 	}
-	var packLen = int32(rawHeaderLen) + int32(len(proto.Body))
-	// no available memory flush response
-	if wr.Available() < int(packLen) {
-		if err = wr.Flush(); err != nil {
-			return
-		}
-	}
-	if err = ioutil.WriteBigEndianInt32(wr, packLen); err != nil {
+	// if no available memory bufio.Writer auth flush response
+	if err = ioutil.WriteBigEndianInt32(wr, int32(rawHeaderLen)+int32(len(proto.Body))); err != nil {
 		return
 	}
 	if err = ioutil.WriteBigEndianInt16(wr, rawHeaderLen); err != nil {
