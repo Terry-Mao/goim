@@ -23,7 +23,7 @@ func NewRing(num int) *Ring {
 	return r
 }
 
-func InitRing(r *Ring, num int) {
+func (r *ring) Init(num int) {
 	if num > 0 {
 		r.data = make([]Proto, num)
 		r.num = num
