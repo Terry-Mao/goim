@@ -53,11 +53,11 @@ func acceptTCP(server *Server, lis *net.TCPListener) {
 			log.Error("conn.SetKeepAlive() error(%v)", err)
 			return
 		}
-		if err = conn.SetReadBuffer(Conf.TCPSndbuf); err != nil {
+		if err = conn.SetReadBuffer(Conf.TCPRcvbuf); err != nil {
 			log.Error("conn.SetReadBuffer() error(%v)", err)
 			return
 		}
-		if err = conn.SetWriteBuffer(Conf.TCPRcvbuf); err != nil {
+		if err = conn.SetWriteBuffer(Conf.TCPSndbuf); err != nil {
 			log.Error("conn.SetWriteBuffer() error(%v)", err)
 			return
 		}
