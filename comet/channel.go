@@ -24,8 +24,8 @@ func NewChannel(cliProto, svrProto int, rid int32) *Channel {
 	c := new(Channel)
 	c.RoomId = rid
 	c.signal = make(chan int, signalNum)
-	InitRing(&c.CliProto, cliProto)
-	InitRing(&c.SvrProto, svrProto)
+	c.CliProto.Init(cliProto)
+	c.SvrProto.Init(svrProto)
 	return c
 }
 
