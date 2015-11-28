@@ -1,4 +1,4 @@
-gopush-cluster
+goim
 ==============
 `Terry-Mao/goim` 是一个支持集群的im及实时推送服务（支持websocket，http和tcp协议）。
 
