@@ -18,7 +18,7 @@ goim
  * 纯Golang实现
  * 支持单个、多个以及广播消息推送
  * 支持单个Key多个订阅者（可限制订阅者最大人数）
- * 心跳支持（应用心跳和tcp、keepalive、http log pulling）
+ * 心跳支持（应用心跳和tcp、keepalive、http long pulling）
  * 支持安全验证（未授权用户不能订阅）
  * 多协议支持（websocket，tcp，http）
  * 可拓扑的架构（job、logic模块可动态无限扩展）
