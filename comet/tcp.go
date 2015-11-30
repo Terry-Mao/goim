@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/define"
+	"github.com/Terry-Mao/goim/libs/define"
 	"github.com/Terry-Mao/goim/libs/io/ioutil"
 	"net"
 	"sync"

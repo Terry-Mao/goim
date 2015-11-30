@@ -3,7 +3,7 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	proto "github.com/Terry-Mao/goim/proto/comet"
+	proto "github.com/Terry-Mao/goim/libs/proto/comet"
 	rpc "github.com/Terry-Mao/protorpc"
 	"net"
 )

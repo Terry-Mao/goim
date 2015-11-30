@@ -2,9 +2,9 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/define"
+	"github.com/Terry-Mao/goim/libs/define"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	cproto "github.com/Terry-Mao/goim/proto/comet"
+	cproto "github.com/Terry-Mao/goim/libs/proto/comet"
 	"github.com/Terry-Mao/protorpc"
 )
 

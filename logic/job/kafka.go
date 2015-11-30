@@ -3,8 +3,8 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"github.com/Shopify/sarama"
-	"github.com/Terry-Mao/goim/define"
-	lproto "github.com/Terry-Mao/goim/proto/logic"
+	"github.com/Terry-Mao/goim/libs/define"
+	lproto "github.com/Terry-Mao/goim/libs/proto/logic"
 	"github.com/gogo/protobuf/proto"
 	"github.com/wvanbergen/kafka/consumergroup"
 	"strconv"

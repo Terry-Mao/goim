@@ -2,7 +2,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/define"
+	"github.com/Terry-Mao/goim/libs/define"
 	"time"
 )
 

@@ -4,7 +4,7 @@ import (
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/hash/ketama"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	rproto "github.com/Terry-Mao/goim/proto/router"
+	rproto "github.com/Terry-Mao/goim/libs/proto/router"
 	rpc "github.com/Terry-Mao/protorpc"
 	"strconv"
 )

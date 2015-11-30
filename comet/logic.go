@@ -3,7 +3,7 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	proto "github.com/Terry-Mao/goim/proto/logic"
+	proto "github.com/Terry-Mao/goim/libs/proto/logic"
 	"github.com/Terry-Mao/protorpc"
 	"time"
 )
