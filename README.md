@@ -18,7 +18,7 @@ goim is a im server writen by golang.
 ![proto](https://github.com/Terry-Mao/goim/blob/master/doc/protocol.png)
 
 ## Document
-[English](https://github.com/Terry-Mao/goim/blob/master/README_en.md)
+[English](./README_en.md)
 
 [中文](https://github.com/Terry-Mao/goim/blob/master/README_cn.md)
 
