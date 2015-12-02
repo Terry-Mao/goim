@@ -58,31 +58,27 @@ type Timer struct {
 //
 func NewTimer(num int) *Timer {
 	t := new(Timer)
-	t.timers = make([]*TimerData, num, num)
+	t.init(num)
+	return t
+}
+
+func (t *Timer) init(num int) {
+	t.timers = make([]*TimerData, num)
 	t.cur = -1
 	t.max = num - 1
 	t.used = 0
-	td := new(TimerData)
-	t.free = td
+	tds := make([]TimerData, num)
+	t.free = &(tds[0])
+	td := t.free
 	for i := 1; i < num; i++ {
-		td.next = new(TimerData)
+		td.next = &(tds[i])
 		td = td.next
 	}
-	return t
 }
 
 // Init init the timer.
 func (t *Timer) Init(num int) {
-	t.timers = make([]*TimerData, num, num)
-	t.cur = -1
-	t.max = num - 1
-	t.used = 0
-	td := new(TimerData)
-	t.free = td
-	for i := 1; i < num; i++ {
-		td.next = new(TimerData)
-		td = td.next
-	}
+	t.init(num)
 }
 
 // Push pushes the element x onto the heap. The complexity is
@@ -230,30 +226,21 @@ func (t *Timer) swap(i, j int) {
 
 func (t *Timer) get() *TimerData {
 	td := t.free
-	if td != nil {
-		t.free = td.next
-		t.used++
-		if Conf.Debug {
-			log.Debug("get timerdata, used: %d", t.used)
-		}
-	} else {
-		td = new(TimerData)
+	t.free = td.next
+	t.used++
+	if Conf.Debug {
+		log.Debug("get timerdata, used: %d", t.used)
 	}
 	return td
 }
 
 func (t *Timer) put(td *TimerData) {
-	// if no used channel, free list full, discard it
-	if t.used == 0 {
-		// use gc free
-		return
-	}
 	t.used--
+	td.next = t.free
+	t.free = td
 	if Conf.Debug {
 		log.Debug("put timerdata, used: %d", t.used)
 	}
-	td.next = t.free
-	t.free = td
 }
 
 // TimerProcess one process goroutine handle many timers.

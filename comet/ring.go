@@ -18,16 +18,17 @@ type Ring struct {
 
 func NewRing(num int) *Ring {
 	r := new(Ring)
-	r.data = make([]Proto, num)
-	r.num = num
+	r.init(num)
 	return r
 }
 
+func (r *Ring) init(num int) {
+	r.data = make([]Proto, num)
+	r.num = num
+}
+
 func (r *Ring) Init(num int) {
-	if num > 0 {
-		r.data = make([]Proto, num)
-		r.num = num
-	}
+	r.init(num)
 }
 
 func (r *Ring) Get() (proto *Proto, err error) {
