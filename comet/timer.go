@@ -57,7 +57,6 @@ type Timer struct {
 // Its complexity is O(n) where n = h.Len().
 //
 func NewTimer(num int) *Timer {
-	// heapify
 	t := new(Timer)
 	t.timers = make([]*TimerData, num, num)
 	t.cur = -1
@@ -70,6 +69,20 @@ func NewTimer(num int) *Timer {
 		td = td.next
 	}
 	return t
+}
+
+// Init init the timer.
+func (t *Timer) Init(num int) {
+	t.timers = make([]*TimerData, num, num)
+	t.cur = -1
+	t.max = num - 1
+	t.used = 0
+	td := new(TimerData)
+	t.free = td
+	for i := 1; i < num; i++ {
+		td.next = new(TimerData)
+		td = td.next
+	}
 }
 
 // Push pushes the element x onto the heap. The complexity is
@@ -247,15 +260,17 @@ func (t *Timer) put(td *TimerData) {
 // range all timers call find the time.Duration
 // sleep
 // range all timers call expire
-func TimerProcess(timers []*Timer) {
+func TimerProcess(timers []Timer) {
 	var (
+		i  int
 		t  *Timer
 		d  time.Duration
 		md = timerDelay
 	)
 	// loop forever
 	for {
-		for _, t = range timers {
+		for i = 0; i < len(timers); i++ {
+			t = &(timers[i])
 			d = t.Find()
 			if d > zeroDuration {
 				if d > maxTimerDelay {

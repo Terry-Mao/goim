@@ -42,13 +42,15 @@ func TestTimer(t *testing.T) {
 
 func TestTimerProcess(t *testing.T) {
 	// process test
-	timer := NewTimer(3)
+	timers := make([]Timer, 1)
+	timers[0].Init(3)
+	timer := &(timers[0])
 	timerd, err := timer.Add(5*time.Second, nil)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
-	go TimerProcess([]*Timer{timer})
+	go TimerProcess(timers)
 	time.Sleep(10 * time.Second)
 	timer.Del(timerd)
 }
