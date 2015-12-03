@@ -134,7 +134,6 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		}
 		// send to writer
 		ch.CliProto.SetAdv()
-		// TODO merge signal
 		ch.Signal()
 	}
 failed:
