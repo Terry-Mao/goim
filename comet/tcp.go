@@ -4,6 +4,7 @@ import (
 	"bufio"
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/define"
+	"github.com/Terry-Mao/goim/libs/encoding/binary"
 	"github.com/Terry-Mao/goim/libs/io/ioutil"
 	"net"
 	"sync"
@@ -264,93 +265,58 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (
 }
 
 // readRequest
-func (server *Server) readTCPRequest(rr *bufio.Reader, proto *Proto) (err error) {
+func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (err error) {
 	var (
-		packLen   int32
-		headerLen int16
-		bodyLen   int
+		bodySize int32
+		buf      []byte
 	)
-	if packLen, err = ioutil.ReadBigEndianInt32(rr); err != nil {
+	if buf, err = rr.Peek(RawHeaderSize); err != nil {
 		return
 	}
-	if Conf.Debug {
-		log.Debug("packLen: %d", packLen)
+	p.PackLen = binary.BigEndian.Int32(buf[PackOffset:HeaderOffset])
+	p.HeaderLen = binary.BigEndian.Int16(buf[HeaderOffset:VerOffset])
+	p.Ver = binary.BigEndian.Int16(buf[VerOffset:OperationOffset])
+	p.Operation = binary.BigEndian.Int32(buf[OperationOffset:SeqIdOffset])
+	p.SeqId = binary.BigEndian.Int32(buf[SeqIdOffset:EndOffset])
+	if _, err = rr.Discard(RawHeaderSize); err != nil {
+		return
 	}
-	if packLen > maxPackLen {
+	if p.PackLen > MaxPackSize {
 		return ErrProtoPackLen
 	}
-	if headerLen, err = ioutil.ReadBigEndianInt16(rr); err != nil {
-		return
-	}
-	if Conf.Debug {
-		log.Debug("headerLen: %d", headerLen)
-	}
-	if headerLen != rawHeaderLen {
+	if p.HeaderLen != RawHeaderSize {
 		return ErrProtoHeaderLen
 	}
-	if proto.Ver, err = ioutil.ReadBigEndianInt16(rr); err != nil {
-		return
-	}
-	if Conf.Debug {
-		log.Debug("protoVer: %d", proto.Ver)
-	}
-	if proto.Operation, err = ioutil.ReadBigEndianInt32(rr); err != nil {
-		return
-	}
-	if Conf.Debug {
-		log.Debug("operation: %d", proto.Operation)
-	}
-	if proto.SeqId, err = ioutil.ReadBigEndianInt32(rr); err != nil {
-		return
-	}
-	if Conf.Debug {
-		log.Debug("seqId: %d", proto.SeqId)
-	}
-	bodyLen = int(packLen - int32(headerLen))
-	if Conf.Debug {
-		log.Debug("read body len: %d", bodyLen)
-	}
-	if bodyLen > 0 {
-		proto.Body = proto.Buf[0:bodyLen]
-		if err = ioutil.ReadAll(rr, proto.Body); err != nil {
-			log.Error("body: ReadAll() error(%v)", err)
-			return
-		}
+	if bodySize = p.PackLen - int32(p.HeaderLen); bodySize > 0 {
+		p.Body = p.Readbuf[0:bodySize]
+		err = ioutil.ReadAll(rr, p.Body)
 	} else {
-		proto.Body = nil
+		p.Body = nil
 	}
 	if Conf.Debug {
-		log.Debug("read proto: %v", proto)
+		log.Debug("read proto: %v", p)
 	}
 	return
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) writeTCPResponse(wr *bufio.Writer, proto *Proto) (err error) {
+func (server *Server) writeTCPResponse(wr *bufio.Writer, p *Proto) (err error) {
 	if Conf.Debug {
-		log.Debug("write proto: %v", proto)
+		log.Debug("write proto: %v", p)
 	}
+	p.PackLen = RawHeaderSize + int32(len(p.Body))
+	p.HeaderLen = RawHeaderSize
 	// if no available memory bufio.Writer auth flush response
-	if err = ioutil.WriteBigEndianInt32(wr, int32(rawHeaderLen)+int32(len(proto.Body))); err != nil {
+	binary.BigEndian.PutInt32(p.Writebuf[PackOffset:], p.PackLen)
+	binary.BigEndian.PutInt16(p.Writebuf[HeaderOffset:], p.HeaderLen)
+	binary.BigEndian.PutInt16(p.Writebuf[VerOffset:], p.Ver)
+	binary.BigEndian.PutInt32(p.Writebuf[OperationOffset:], p.Operation)
+	binary.BigEndian.PutInt32(p.Writebuf[SeqIdOffset:], p.SeqId)
+	if _, err = wr.Write(p.Writebuf[:]); err != nil {
 		return
 	}
-	if err = ioutil.WriteBigEndianInt16(wr, rawHeaderLen); err != nil {
-		return
+	if p.Body != nil {
+		_, err = wr.Write(p.Body)
 	}
-	if err = ioutil.WriteBigEndianInt16(wr, proto.Ver); err != nil {
-		return
-	}
-	if err = ioutil.WriteBigEndianInt32(wr, proto.Operation); err != nil {
-		return
-	}
-	if err = ioutil.WriteBigEndianInt32(wr, proto.SeqId); err != nil {
-		return
-	}
-	if proto.Body != nil {
-		if _, err = wr.Write(proto.Body); err != nil {
-			return
-		}
-	}
-	proto.Reset()
 	return
 }

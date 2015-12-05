@@ -7,18 +7,25 @@ import (
 
 // for tcp
 const (
-	rawHeaderLen  = int16(16)
-	maxBodyLen    = int32(1 << 10)
-	maxPackLen    = maxBodyLen + int32(rawHeaderLen)
-	packLenSize   = 4
-	headerLenSize = 2
-	maxPackIntBuf = 4
+	MaxBodySize = int32(1 << 10)
 )
 
 const (
+	// size
+	PackSize      = 4
+	HeaderSize    = 2
 	VerSize       = 2
 	OperationSize = 4
 	SeqIdSize     = 4
+	RawHeaderSize = PackSize + HeaderSize + VerSize + OperationSize + SeqIdSize
+	MaxPackSize   = MaxBodySize + int32(RawHeaderSize)
+	// offset
+	PackOffset      = 0
+	HeaderOffset    = PackOffset + PackSize
+	VerOffset       = HeaderOffset + HeaderSize
+	OperationOffset = VerOffset + VerSize
+	SeqIdOffset     = OperationOffset + OperationSize
+	EndOffset       = SeqIdOffset + SeqIdSize
 )
 
 var (
@@ -33,11 +40,14 @@ var (
 // websocket & http:
 // raw codec, with http header stored ver, operation, seqid
 type Proto struct {
-	Ver       int16            `json:"ver"`  // protocol version
-	Operation int32            `json:"op"`   // operation for request
-	SeqId     int32            `json:"seq"`  // sequence number chosen by client
-	Body      json.RawMessage  `json:"body"` // binary body bytes(json.RawMessage is []byte)
-	Buf       [maxBodyLen]byte `json:"-"`    // for upstream buf
+	PackLen   int32               `json:"-"`    // pack length
+	HeaderLen int16               `json:"-"`    // header length
+	Ver       int16               `json:"ver"`  // protocol version
+	Operation int32               `json:"op"`   // operation for request
+	SeqId     int32               `json:"seq"`  // sequence number chosen by client
+	Body      json.RawMessage     `json:"body"` // binary body bytes(json.RawMessage is []byte)
+	Readbuf   [MaxBodySize]byte   `json:"-"`    // read buffer
+	Writebuf  [RawHeaderSize]byte `json:"-"`    // write buffer
 }
 
 func (p *Proto) Reset() {
@@ -45,5 +55,5 @@ func (p *Proto) Reset() {
 }
 
 func (p *Proto) String() string {
-	return fmt.Sprintf("\n-------- proto --------\nver: %d\nop: %d\nseq: %d\nbody: %s\n-----------------------", p.Ver, p.Operation, p.SeqId, string(p.Body))
+	return fmt.Sprintf("\n-------- proto --------\npack: %d\nheader: %d\nver: %d\nop: %d\nseq: %d\nbody: %s\n-----------------------", p.PackLen, p.HeaderLen, p.Ver, p.Operation, p.SeqId, string(p.Body))
 }
