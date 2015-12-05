@@ -146,7 +146,7 @@ failed:
 	PutBufioReader(rrp, rr)
 	b.Del(key)
 	log.Debug("wake up dispatch goroutine")
-	ch.Finish()
+	ch.Close()
 	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}

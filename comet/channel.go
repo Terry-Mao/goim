@@ -29,28 +29,6 @@ func NewChannel(cliProto, svrProto int, rid int32) *Channel {
 	return c
 }
 
-func (c *Channel) Ready() bool {
-	return (<-c.signal) == protoReady
-}
-
-func (c *Channel) Signal() {
-	// just ignore duplication signal
-	select {
-	case c.signal <- protoReady:
-	default:
-	}
-}
-
-func (c *Channel) Finish() {
-	// don't use close chan, Signal can be reused
-	// if chan full, writer goroutine next fetch from chan will exit
-	// if chan empty, send a 0(close) let the writer exit
-	select {
-	case c.signal <- protoFinish:
-	default:
-	}
-}
-
 // not goroutine safe, must push one by one.
 func (c *Channel) PushMsg(ver int16, operation int32, body []byte) (err error) {
 	var proto *Proto
@@ -91,4 +69,29 @@ finish:
 	c.cLock.Unlock()
 	c.Signal()
 	return
+}
+
+// Ready check the channel ready or close?
+func (c *Channel) Ready() bool {
+	return (<-c.signal) == protoReady
+}
+
+// Signal send signal to the channel, protocol ready.
+func (c *Channel) Signal() {
+	// just ignore duplication signal
+	select {
+	case c.signal <- protoReady:
+	default:
+	}
+}
+
+// Close close the channel.
+func (c *Channel) Close() {
+	// don't use close chan, Signal can be reused
+	// if chan full, writer goroutine next fetch from chan will exit
+	// if chan empty, send a 0(close) let the writer exit
+	select {
+	case c.signal <- protoFinish:
+	default:
+	}
 }

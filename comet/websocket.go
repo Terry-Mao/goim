@@ -139,7 +139,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	if err = conn.Close(); err != nil {
 		log.Error("reader: conn.Close() error(%v)", err)
 	}
-	ch.Finish()
+	ch.Close()
 	b.Del(key)
 	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
