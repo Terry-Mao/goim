@@ -8,6 +8,7 @@ goim
   * [配置](#配置)
   * [例子](#例子)
   * [文档](#文档)
+  * [集群](#集群)
   * [更多](#更多)
 
 ---------------------------------------
@@ -104,9 +105,32 @@ TODO
 
 Websocket: [Websocket Client Demo](https://github.com/Terry-Mao/goim/tree/master/examples/javascript)
 Android: [Android](https://github.com/roamdy/goim-sdk)
+iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 
 ## 文档
 [push http协议文档](https://github.com/Terry-Mao/goim/blob/master/doc/push.md)推送接口
+
+## 集群
+
+# comet
+
+comet 属于接入层，非常容易扩展，直接开启多个comet节点，修改配置文件中的base节点下的server.id修改成不同值（注意一定要保证不同的comet进程值唯一），前端接入可以使用LVS 或者 DNS来转发
+
+# logic
+
+logic 属于无状态的逻辑层，可以随意增加节点，使用nginx upstream来扩展http接口，内部rpc部分，可以使用LVS四层转发
+
+# kafka
+
+kafka 可以使用多broker，或者多partition来扩展队列
+
+# router
+
+router 属于有状态节点，logic可以使用一致性hash配置节点，增加多个router节点（目前还不支持动态扩容），提前预估好在线和压力情况
+
+# job
+
+job 根据kafka的partition来扩展多job工作方式，具体可以参考下kafka的partition负载
 
 ##更多
 TODO

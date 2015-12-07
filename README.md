@@ -28,6 +28,7 @@ goim is a im server writen by golang.
 ## Examples
 Websocket: [Websocket Client Demo](https://github.com/Terry-Mao/goim/tree/master/examples/javascript)
 Android: [Android](https://github.com/roamdy/goim-sdk)
+iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 
 ## LICENSE
 goim is is distributed under the terms of the GNU General Public License, version 3.0 [GPLv3](http://www.gnu.org/licenses/gpl.txt)

@@ -91,6 +91,7 @@ TODO
 ## Examples
 Websocket: [Websocket Client Demo](https://github.com/Terry-Mao/goim/tree/master/examples/javascript)
 Android: [Android SDK](https://github.com/roamdy/goim-sdk)
+iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 
 ## Documents
 [push HTTP protocols](./doc/en/push.md)
