@@ -17,8 +17,9 @@ goim is a im server writen by golang.
 ## Architecture
 ![arch](https://github.com/Terry-Mao/goim/blob/master/doc/arch.png)
 
-## Protocol
-![proto](https://github.com/Terry-Mao/goim/blob/master/doc/protocol.png)
+Protocol:
+
+[proto](https://github.com/Terry-Mao/goim/blob/master/doc/protocol.png)
 
 ## Document
 [English](./README_en.md)
@@ -58,7 +59,7 @@ iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 
 ### Benchmark Result
 
-560 million/second message received with 5 24c server, 120 million/second per server.
+5.6 million/second message received with 5 24c server, 1.2 million/second per server.
 
 [中文](./doc/benchmark_cn.md)
 
