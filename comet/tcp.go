@@ -26,7 +26,9 @@ func InitTCP() (err error) {
 			log.Error("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
 		}
-		log.Debug("start tcp listen: \"%s\"", bind)
+		if Conf.Debug {
+			log.Debug("start tcp listen: \"%s\"", bind)
+		}
 		// split N core accept
 		for i := 0; i < Conf.MaxProc; i++ {
 			go acceptTCP(DefaultServer, listener)
@@ -83,7 +85,9 @@ func serveTCP(server *Server, conn *net.TCPConn, r int) {
 		lAddr = conn.LocalAddr().String()
 		rAddr = conn.RemoteAddr().String()
 	)
-	log.Debug("start tcp serve \"%s\" with \"%s\"", lAddr, rAddr)
+	if Conf.Debug {
+		log.Debug("start tcp serve \"%s\" with \"%s\"", lAddr, rAddr)
+	}
 	server.serveTCP(conn, rrp, wrp, rr, wr, tr)
 }
 
@@ -145,12 +149,16 @@ failed:
 	}
 	PutBufioReader(rrp, rr)
 	b.Del(key)
-	log.Debug("wake up dispatch goroutine")
+	if Conf.Debug {
+		log.Debug("wake up dispatch goroutine")
+	}
 	ch.Close()
 	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
-	log.Debug("%s serverconn goroutine exit", key)
+	if Conf.Debug {
+		log.Debug("%s serverconn goroutine exit", key)
+	}
 	return
 }
 
@@ -163,7 +171,9 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		err error
 		trd *TimerData
 	)
-	log.Debug("start dispatch goroutine")
+	if Conf.Debug {
+		log.Debug("start dispatch goroutine")
+	}
 	if trd, err = tr.Add(hb, conn); err != nil {
 		log.Error("dispatch: timer.Add() error(%v)", err)
 		goto failed
@@ -231,7 +241,9 @@ failed:
 	// deltimer
 	tr.Del(trd)
 	PutBufioWriter(wrp, wr)
-	log.Debug("dispatch goroutine exit")
+	if Conf.Debug {
+		log.Debug("dispatch goroutine exit")
+	}
 	return
 }
 
