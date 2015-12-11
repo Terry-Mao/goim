@@ -85,7 +85,7 @@ func (r *Room) push() {
 						done = true
 						break
 					}
-					if p, err = ch.CliProto.Get(); err != nil {
+					if p, err = r.proto.Get(); err != nil {
 						// must be empty error
 						break
 					}
@@ -93,7 +93,7 @@ func (r *Room) push() {
 					operations[n] = p.Operation
 					msgs[n] = p.Body
 					n++
-					ch.CliProto.GetAdv()
+					r.proto.GetAdv()
 				}
 			case <-time.After(least):
 				done = true
