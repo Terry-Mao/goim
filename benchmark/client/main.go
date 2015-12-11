@@ -151,7 +151,7 @@ func startClient(key string) {
 		}
 		if proto.Operation == OP_HEARTBEAT_REPLY {
 			log.Debug("receive heartbeat")
-			if err = conn.SetReadDeadline(time.Now().Add(heart + 60)); err != nil {
+			if err = conn.SetReadDeadline(time.Now().Add(heart + 60*time.Second)); err != nil {
 				log.Error("conn.SetReadDeadline() error(%v)", err)
 				return
 			}
