@@ -4,13 +4,6 @@ import (
 	"sync"
 )
 
-const (
-	// signal command
-	signalNum   = 1
-	protoFinish = 0
-	protoReady  = 1
-)
-
 // Channel used by message pusher send msg to write goroutine.
 type Channel struct {
 	RoomId   int32
@@ -33,15 +26,12 @@ func NewChannel(cliProto, svrProto int, rid int32) *Channel {
 func (c *Channel) PushMsg(ver int16, operation int32, body []byte) (err error) {
 	var proto *Proto
 	c.cLock.Lock()
-	// fetch a proto from channel free list
-	if proto, err = c.SvrProto.Set(); err != nil {
-		c.cLock.Unlock()
-		return
+	if proto, err = c.SvrProto.Set(); err == nil {
+		proto.Ver = ver
+		proto.Operation = operation
+		proto.Body = body
+		c.SvrProto.SetAdv()
 	}
-	proto.Ver = ver
-	proto.Operation = operation
-	proto.Body = body
-	c.SvrProto.SetAdv()
 	c.cLock.Unlock()
 	c.Signal()
 	return
@@ -56,16 +46,16 @@ func (c *Channel) PushMsgs(ver []int32, operations []int32, bodies [][]byte) (id
 	c.cLock.Lock()
 	for n = 0; n < int32(len(ver)); n++ {
 		// fetch a proto from channel free list
-		if proto, err = c.SvrProto.Set(); err != nil {
-			goto finish
+		if proto, err = c.SvrProto.Set(); err == nil {
+			proto.Ver = int16(ver[n])
+			proto.Operation = operations[n]
+			proto.Body = bodies[n]
+			c.SvrProto.SetAdv()
+			idx = n
+		} else {
+			break
 		}
-		proto.Ver = int16(ver[n])
-		proto.Operation = operations[n]
-		proto.Body = bodies[n]
-		c.SvrProto.SetAdv()
-		idx = n
 	}
-finish:
 	c.cLock.Unlock()
 	c.Signal()
 	return

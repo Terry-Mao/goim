@@ -12,12 +12,13 @@ import (
 )
 
 // InitTCP listen all tcp.bind and start accept connections.
-func InitTCP() (err error) {
+func InitTCP(addrs []string, accept int) (err error) {
 	var (
+		bind     string
 		listener *net.TCPListener
 		addr     *net.TCPAddr
 	)
-	for _, bind := range Conf.TCPBind {
+	for _, bind = range addrs {
 		if addr, err = net.ResolveTCPAddr("tcp4", bind); err != nil {
 			log.Error("net.ResolveTCPAddr(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
@@ -26,11 +27,11 @@ func InitTCP() (err error) {
 			log.Error("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
 		}
-		if Conf.Debug {
+		if Debug {
 			log.Debug("start tcp listen: \"%s\"", bind)
 		}
 		// split N core accept
-		for i := 0; i < Conf.MaxProc; i++ {
+		for i := 0; i < accept; i++ {
 			go acceptTCP(DefaultServer, listener)
 		}
 	}
@@ -52,15 +53,15 @@ func acceptTCP(server *Server, lis *net.TCPListener) {
 			log.Error("listener.Accept(\"%s\") error(%v)", lis.Addr().String(), err)
 			return
 		}
-		if err = conn.SetKeepAlive(Conf.TCPKeepalive); err != nil {
+		if err = conn.SetKeepAlive(server.Options.TCPKeepalive); err != nil {
 			log.Error("conn.SetKeepAlive() error(%v)", err)
 			return
 		}
-		if err = conn.SetReadBuffer(Conf.TCPRcvbuf); err != nil {
+		if err = conn.SetReadBuffer(server.Options.TCPRcvbuf); err != nil {
 			log.Error("conn.SetReadBuffer() error(%v)", err)
 			return
 		}
-		if err = conn.SetWriteBuffer(Conf.TCPSndbuf); err != nil {
+		if err = conn.SetWriteBuffer(server.Options.TCPSndbuf); err != nil {
 			log.Error("conn.SetWriteBuffer() error(%v)", err)
 			return
 		}
@@ -79,13 +80,13 @@ func serveTCP(server *Server, conn *net.TCPConn, r int) {
 		// timer
 		tr = server.round.Timer(r)
 		// buf
-		rr = NewBufioReaderSize(rrp, conn, Conf.ReadBufSize)  // reader buf
-		wr = NewBufioWriterSize(wrp, conn, Conf.WriteBufSize) // writer buf
+		rr = NewBufioReaderSize(rrp, conn, server.Options.TCPReadBufSize)  // reader buf
+		wr = NewBufioWriterSize(wrp, conn, server.Options.TCPWriteBufSize) // writer buf
 		// ip addr
 		lAddr = conn.LocalAddr().String()
 		rAddr = conn.RemoteAddr().String()
 	)
-	if Conf.Debug {
+	if Debug {
 		log.Debug("start tcp serve \"%s\" with \"%s\"", lAddr, rAddr)
 	}
 	server.serveTCP(conn, rrp, wrp, rr, wr, tr)
@@ -99,10 +100,10 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		hb  time.Duration // heartbeat
 		err error
 		trd *TimerData
-		ch  = NewChannel(Conf.CliProto, Conf.SvrProto, define.NoRoom)
+		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
 	)
 	// auth
-	if trd, err = tr.Add(Conf.HandshakeTimeout, conn); err != nil {
+	if trd, err = tr.Add(server.Options.Handshake, conn); err != nil {
 		log.Error("handshake: timer.Add() error(%v)", err)
 	} else {
 		if key, hb, err = server.authTCP(rr, wr, ch); err != nil {
@@ -149,14 +150,14 @@ failed:
 	}
 	PutBufioReader(rrp, rr)
 	b.Del(key)
-	if Conf.Debug {
+	if Debug {
 		log.Debug("wake up dispatch goroutine")
 	}
 	ch.Close()
 	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
-	if Conf.Debug {
+	if Debug {
 		log.Debug("%s serverconn goroutine exit", key)
 	}
 	return
@@ -171,7 +172,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		err error
 		trd *TimerData
 	)
-	if Conf.Debug {
+	if Debug {
 		log.Debug("start dispatch goroutine")
 	}
 	if trd, err = tr.Add(hb, conn); err != nil {
@@ -241,7 +242,7 @@ failed:
 	// deltimer
 	tr.Del(trd)
 	PutBufioWriter(wrp, wr)
-	if Conf.Debug {
+	if Debug {
 		log.Debug("dispatch goroutine exit")
 	}
 	return
@@ -305,7 +306,7 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (err error) {
 	} else {
 		p.Body = nil
 	}
-	if Conf.Debug {
+	if Debug {
 		log.Debug("read proto: %v", p)
 	}
 	return
@@ -313,7 +314,7 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (err error) {
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
 func (server *Server) writeTCPResponse(wr *bufio.Writer, p *Proto) (err error) {
-	if Conf.Debug {
+	if Debug {
 		log.Debug("write proto: %v", p)
 	}
 	p.PackLen = RawHeaderSize + int32(len(p.Body))

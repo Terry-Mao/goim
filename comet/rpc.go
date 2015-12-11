@@ -8,15 +8,15 @@ import (
 	"net"
 )
 
-func InitRPCPush() (err error) {
+func InitRPCPush(addrs []string) (err error) {
 	var (
+		bind          string
 		network, addr string
 		c             = &PushRPC{}
 	)
 	rpc.Register(c)
-	for i := 0; i < len(Conf.RPCPushAddrs); i++ {
-		log.Info("start listen rpc addr: \"%s\"", Conf.RPCPushAddrs[i])
-		if network, addr, err = inet.ParseNetwork(Conf.RPCPushAddrs[i]); err != nil {
+	for _, bind = range addrs {
+		if network, addr, err = inet.ParseNetwork(bind); err != nil {
 			log.Error("inet.ParseNetwork() error(%v)", err)
 			return
 		}
@@ -56,7 +56,7 @@ func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *proto.NoReply) (err e
 		return
 	}
 	bucket = DefaultServer.Bucket(arg.Key)
-	if channel = bucket.Get(arg.Key); channel != nil {
+	if channel = bucket.Channel(arg.Key); channel != nil {
 		err = channel.PushMsg(int16(arg.Ver), arg.Operation, arg.Msg)
 	}
 	return
@@ -74,7 +74,7 @@ func (this *PushRPC) PushMsgs(arg *proto.PushMsgsArg, reply *proto.PushMsgsReply
 		return
 	}
 	bucket = DefaultServer.Bucket(arg.Key)
-	if channel = bucket.Get(arg.Key); channel != nil {
+	if channel = bucket.Channel(arg.Key); channel != nil {
 		reply.Index, err = channel.PushMsgs(arg.Vers, arg.Operations, arg.Msgs)
 	}
 	return
@@ -95,7 +95,7 @@ func (this *PushRPC) MPushMsg(arg *proto.MPushMsgArg, reply *proto.MPushMsgReply
 	}
 	for n, key = range arg.Keys {
 		bucket = DefaultServer.Bucket(key)
-		if channel = bucket.Get(key); channel != nil {
+		if channel = bucket.Channel(key); channel != nil {
 			if err = channel.PushMsg(int16(arg.Ver), arg.Operation, arg.Msg); err != nil {
 				return
 			}
@@ -120,7 +120,7 @@ func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsRe
 	}
 	for n, key = range arg.Keys {
 		bucket = DefaultServer.Bucket(key)
-		if channel = bucket.Get(key); channel != nil {
+		if channel = bucket.Channel(key); channel != nil {
 			if err = channel.PushMsg(int16(arg.Vers[n]), arg.Operations[n], arg.Msgs[n]); err != nil {
 				return
 			}
@@ -139,9 +139,14 @@ func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *proto.NoReply) (e
 }
 
 func (this *PushRPC) BroadcastRoom(arg *proto.BoardcastRoomArg, reply *proto.NoReply) (err error) {
-	var bucket *Bucket
+	var (
+		bucket *Bucket
+		room   *Room
+	)
 	for _, bucket = range DefaultServer.Buckets {
-		go bucket.BroadcastRoom(arg.RoomId, int16(arg.Ver), arg.Operation, arg.Msg)
+		if room = bucket.Room(arg.RoomId); room != nil {
+			go room.PushMsg(int16(arg.Ver), arg.Operation, arg.Msg)
+		}
 	}
 	return
 }

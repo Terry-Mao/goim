@@ -9,6 +9,7 @@ import (
 
 var (
 	DefaultServer *Server
+	Debug         bool
 )
 
 func main() {
@@ -16,6 +17,7 @@ func main() {
 	if err := InitConfig(); err != nil {
 		panic(err)
 	}
+	Debug = Conf.Debug
 	runtime.GOMAXPROCS(Conf.MaxProc)
 	log.LoadConfiguration(Conf.Log)
 	defer log.Close()
@@ -28,27 +30,48 @@ func main() {
 	// new server
 	buckets := make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
-		buckets[i] = NewBucket(Conf.Channel, Conf.Room, Conf.RoomChannel, Conf.CliProto, Conf.SvrProto)
+		buckets[i] = NewBucket(BucketOptions{
+			ChannelSize: Conf.BucketChannel,
+			RoomSize:    Conf.BucketRoom,
+		}, RoomOptions{
+			ChannelSize: Conf.RoomChannel,
+			ProtoSize:   Conf.RoomProto,
+			BatchNum:    Conf.RoomBatch,
+			SignalTime:  Conf.RoomSignal,
+		})
 	}
-	round := NewRound(Conf.ReadBuf, Conf.WriteBuf, Conf.Timer, Conf.TimerSize)
+	round := NewRound(Conf.TCPReadBuf, Conf.TCPWriteBuf, Conf.Timer, Conf.TimerSize)
 	operator := new(DefaultOperator)
-	DefaultServer = NewServer(buckets, round, operator)
-	if err := InitTCP(); err != nil {
+	DefaultServer = NewServer(buckets, round, operator, ServerOptions{
+		CliProto:        Conf.CliProto,
+		SvrProto:        Conf.SvrProto,
+		Handshake:       Conf.HandshakeTimeout,
+		TCPKeepalive:    Conf.TCPKeepalive,
+		TCPRcvbuf:       Conf.TCPRcvbuf,
+		TCPSndbuf:       Conf.TCPSndbuf,
+		TCPReadBufSize:  Conf.TCPReadBufSize,
+		TCPWriteBufSize: Conf.TCPWriteBufSize,
+	})
+	// tcp comet
+	if err := InitTCP(Conf.TCPBind, Conf.MaxProc); err != nil {
 		panic(err)
 	}
-	if err := InitWebsocket(); err != nil {
+	// websocket comet
+	if err := InitWebsocket(Conf.WebsocketBind); err != nil {
 		panic(err)
 	}
+	// wss comet
 	if Conf.WebsocketTLSOpen {
-		if err := InitWebsocketWithTLS(); err != nil {
+		if err := InitWebsocketWithTLS(Conf.WebsocketTLSBind, Conf.WebsocketCertFile, Conf.WebsocketPrivateFile); err != nil {
 			panic(err)
 		}
 	}
-	if err := InitHTTP(); err != nil {
+	// http comet
+	if err := InitHTTP(Conf.HTTPBind); err != nil {
 		panic(err)
 	}
 	// start rpc
-	if err := InitRPCPush(); err != nil {
+	if err := InitRPCPush(Conf.RPCPushAddrs); err != nil {
 		panic(err)
 	}
 	// block until a signal is received.
