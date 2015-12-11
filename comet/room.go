@@ -153,13 +153,7 @@ func (r *Room) Online() (o int) {
 // Close close the room.
 func (r *Room) Close() {
 	var ch *Channel
-	// don't use close chan, Signal can be reused
-	// if chan full, writer goroutine next fetch from chan will exit
-	// if chan empty, send a 0(close) let the writer exit
-	select {
-	case r.signal <- protoFinish:
-	default:
-	}
+	r.signal <- protoFinish
 	r.rLock.RLock()
 	for ch, _ = range r.chs {
 		ch.Close()
