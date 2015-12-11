@@ -11,14 +11,16 @@ import (
 	"time"
 )
 
-func InitWebsocket() (err error) {
+func InitWebsocket(addrs []string) (err error) {
 	var (
+		bind         string
 		listener     *net.TCPListener
 		addr         *net.TCPAddr
 		httpServeMux = http.NewServeMux()
+		server       *http.Server
 	)
 	httpServeMux.Handle("/sub", websocket.Handler(serveWebsocket))
-	for _, bind := range Conf.WebsocketBind {
+	for _, bind = range addrs {
 		if addr, err = net.ResolveTCPAddr("tcp4", bind); err != nil {
 			log.Error("net.ResolveTCPAddr(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
@@ -27,8 +29,10 @@ func InitWebsocket() (err error) {
 			log.Error("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
 		}
-		server := &http.Server{Handler: httpServeMux}
-		log.Debug("start websocket listen: \"%s\"", bind)
+		server = &http.Server{Handler: httpServeMux}
+		if Debug {
+			log.Debug("start websocket listen: \"%s\"", bind)
+		}
 		go func() {
 			if err = server.Serve(listener); err != nil {
 				log.Error("server.Serve(\"%s\") error(%v)", bind, err)
@@ -39,21 +43,23 @@ func InitWebsocket() (err error) {
 	return
 }
 
-func InitWebsocketWithTLS() (err error) {
+func InitWebsocketWithTLS(addrs []string, cert, priv string) (err error) {
 	var (
 		httpServeMux = http.NewServeMux()
 	)
 	httpServeMux.Handle("/sub", websocket.Handler(serveWebsocket))
 	config := &tls.Config{}
 	config.Certificates = make([]tls.Certificate, 1)
-	config.Certificates[0], err = tls.LoadX509KeyPair(Conf.CertFile, Conf.PrivateFile)
+	config.Certificates[0], err = tls.LoadX509KeyPair(cert, priv)
 	if err != nil {
 		return
 	}
-	for _, bind := range Conf.WebsocketTLSBind {
+	for _, bind := range addrs {
 		server := &http.Server{Addr: bind, Handler: httpServeMux}
 		server.SetKeepAlivesEnabled(true)
-		log.Debug("start websocket wss listen: \"%s\"", bind)
+		if Debug {
+			log.Debug("start websocket wss listen: \"%s\"", bind)
+		}
 		go func() {
 			ln, err := net.Listen("tcp", bind)
 			if err != nil {
@@ -90,10 +96,10 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 		key string
 		err error
 		trd *TimerData
-		ch  = NewChannel(Conf.CliProto, Conf.SvrProto, define.NoRoom)
+		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
 	)
 	// auth
-	if trd, err = tr.Add(Conf.HandshakeTimeout, conn); err != nil {
+	if trd, err = tr.Add(server.Options.Handshake, conn); err != nil {
 		log.Error("handshake: timer.Add() error(%v)", err)
 	} else {
 		if key, hb, err = server.authWebsocket(conn, ch); err != nil {

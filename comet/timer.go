@@ -30,7 +30,7 @@ func (td *TimerData) Delay() time.Duration {
 func (td *TimerData) Lazy(expire time.Duration) bool {
 	key := time.Now().Add(expire)
 	if d := (key.Sub(td.key)); d < timerLazyDelay {
-		if Conf.Debug {
+		if Debug {
 			log.Debug("lazy timer: %s, old: %s", key.Format(timerFormat), td.String())
 		}
 		return true
@@ -100,7 +100,7 @@ func (t *Timer) Add(expire time.Duration, closer io.Closer) (td *TimerData, err 
 	t.timers[t.cur] = td
 	t.up(t.cur)
 	t.lock.Unlock()
-	if Conf.Debug {
+	if Debug {
 		log.Debug("timer: push item key: %s, index: %d", td.String(), td.index)
 	}
 	return
@@ -122,7 +122,7 @@ func (t *Timer) Expire() {
 		if d = td.Delay(); d > 0 {
 			break
 		}
-		if Conf.Debug {
+		if Debug {
 			log.Debug("find a expire timer key: %s, index: %d", td.String(), td.index)
 		}
 		if td.value == nil {
@@ -155,7 +155,7 @@ func (t *Timer) Del(td *TimerData) {
 	}
 	t.put(td)
 	t.lock.Unlock()
-	if Conf.Debug {
+	if Debug {
 		log.Debug("timer: remove item key: %s, index: %d", td.String(), td.index)
 	}
 	return
@@ -228,7 +228,7 @@ func (t *Timer) get() *TimerData {
 	td := t.free
 	t.free = td.next
 	t.used++
-	if Conf.Debug {
+	if Debug {
 		log.Debug("get timerdata, used: %d", t.used)
 	}
 	return td
@@ -238,7 +238,7 @@ func (t *Timer) put(td *TimerData) {
 	t.used--
 	td.next = t.free
 	t.free = td
-	if Conf.Debug {
+	if Debug {
 		log.Debug("put timerdata, used: %d", t.used)
 	}
 }
@@ -276,7 +276,7 @@ func TimerProcess(timers []Timer) {
 			}
 		}
 		if d != zeroDuration {
-			if Conf.Debug {
+			if Debug {
 				log.Debug("timer process sleep: %s", md.String())
 			}
 			time.Sleep(md)

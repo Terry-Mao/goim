@@ -44,36 +44,40 @@ type Config struct {
 	ServerId  int32    `goconf:"base:server.id"`
 	Debug     bool     `goconf:"base:debug"`
 	// tcp
-	TCPBind      []string `goconf:"tcp:bind:,"`
-	TCPSndbuf    int      `goconf:"tcp:sndbuf:memory"`
-	TCPRcvbuf    int      `goconf:"tcp:rcvbuf:memory"`
-	TCPKeepalive bool     `goconf:"tcp:keepalive"`
-
+	TCPBind         []string `goconf:"tcp:bind:,"`
+	TCPSndbuf       int      `goconf:"tcp:sndbuf:memory"`
+	TCPRcvbuf       int      `goconf:"tcp:rcvbuf:memory"`
+	TCPKeepalive    bool     `goconf:"tcp:keepalive"`
+	TCPReadBuf      int      `goconf:"tcp:readbuf"`
+	TCPWriteBuf     int      `goconf:"tcp:writebuf"`
+	TCPReadBufSize  int      `goconf:"tcp:readbuf.size"`
+	TCPWriteBufSize int      `goconf:"tcp:writebuf.size"`
 	// websocket
-	WebsocketBind    []string `goconf:"websocket:bind:,"`
-	WebsocketTLSOpen bool     `goconf:"websocket:tls.open"`
-	WebsocketTLSBind []string `goconf:"websocket:tls.bind:,"`
-	CertFile         string   `goconf:"websocket:cert.file"`
-	PrivateFile      string   `goconf:"websocket:private.file"`
+	WebsocketBind        []string `goconf:"websocket:bind:,"`
+	WebsocketTLSOpen     bool     `goconf:"websocket:tls.open"`
+	WebsocketTLSBind     []string `goconf:"websocket:tls.bind:,"`
+	WebsocketCertFile    string   `goconf:"websocket:cert.file"`
+	WebsocketPrivateFile string   `goconf:"websocket:private.file"`
 	// http
 	HTTPBind []string `goconf:"http:bind:,"`
 	// proto section
 	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
 	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
-	ReadBuf          int           `goconf:"proto:readbuf"`
-	WriteBuf         int           `goconf:"proto:writebuf"`
-	ReadBufSize      int           `goconf:"proto:readbuf.size"`
-	WriteBufSize     int           `goconf:"proto:writebuf.size"`
 	// timer
-	Timer     int `goconf:"proto:timer"`
-	TimerSize int `goconf:"proto:timer.size"`
+	Timer     int `goconf:"timer:num"`
+	TimerSize int `goconf:"timer:size"`
 	// bucket
-	Bucket      int `goconf:"bucket:bucket.num"`
-	CliProto    int `goconf:"bucket:cli.proto.num"`
-	SvrProto    int `goconf:"bucket:svr.proto.num"`
-	Channel     int `goconf:"bucket:channel.num"`
-	Room        int `goconf:"bucket:room.num"`
-	RoomChannel int `goconf:"bucket:room.channel.num"`
+	Bucket        int `goconf:"bucket:num"`
+	BucketChannel int `goconf:"bucket:channel"`
+	BucketRoom    int `goconf:"bucket:room"`
+	// room
+	RoomChannel int           `goconf:"room:channel"`
+	RoomProto   int           `goconf:"room:proto"`
+	RoomBatch   int           `goconf:"room:batch"`
+	RoomSignal  time.Duration `goconf:"room:signal:time"`
+	// channel
+	CliProto int `goconf:"channel:cli.proto"`
+	SvrProto int `goconf:"channel:svr.proto"`
 	// push
 	HTTPPushAddrs    []string      `goconf:"push:http.addrs:,"`
 	HTTPReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
@@ -105,17 +109,17 @@ func NewConfig() *Config {
 		// proto section
 		HandshakeTimeout: 5 * time.Second,
 		WriteTimeout:     5 * time.Second,
-		ReadBuf:          1024,
-		WriteBuf:         1024,
-		ReadBufSize:      1024,
-		WriteBufSize:     1024,
+		TCPReadBuf:       1024,
+		TCPWriteBuf:      1024,
+		TCPReadBufSize:   1024,
+		TCPWriteBufSize:  1024,
 		Timer:            1024,
 		TimerSize:        1000,
 		// bucket
-		Bucket:   1024,
-		CliProto: 1024,
-		SvrProto: 1024,
-		Channel:  1024,
+		Bucket:        1024,
+		CliProto:      1024,
+		SvrProto:      1024,
+		BucketChannel: 1024,
 		// push
 		RPCPushAddrs: []string{"localhost:8083"},
 	}

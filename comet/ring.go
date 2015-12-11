@@ -4,6 +4,13 @@ import (
 	log "code.google.com/p/log4go"
 )
 
+const (
+	// signal command
+	signalNum   = 1
+	protoFinish = 0
+	protoReady  = 1
+)
+
 type Ring struct {
 	// read
 	rn int
@@ -44,7 +51,7 @@ func (r *Ring) GetAdv() {
 		r.rp = 0
 	}
 	r.rn++
-	if Conf.Debug {
+	if Debug {
 		log.Debug("ring rn: %d, rp: %d", r.rn, r.rp)
 	}
 }
@@ -62,7 +69,7 @@ func (r *Ring) SetAdv() {
 		r.wp = 0
 	}
 	r.wn++
-	if Conf.Debug {
+	if Debug {
 		log.Debug("ring wn: %d, wp: %d", r.wn, r.wp)
 	}
 }
