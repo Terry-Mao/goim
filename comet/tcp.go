@@ -109,7 +109,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		}
 	}
 	if err != nil {
-		log.Error("handshake failed error(%v)", err)
+		log.Error("key: %s handshake failed error(%v)", key, err)
 		if trd != nil {
 			tr.Del(trd)
 		}
@@ -122,7 +122,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	b = server.Bucket(key)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
-	go server.dispatchTCP(conn, wrp, wr, ch)
+	go server.dispatchTCP(key, conn, wrp, wr, ch)
 	for {
 		// parse request protocol
 		if bodyLen, err = server.readTCPRequest(rr, p); err != nil {
@@ -151,16 +151,17 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 			break
 		}
 	}
+	log.Error("key: %s server tcp failed error(%v)", key, err)
 	tr.Del(trd)
 	conn.Close()
 	PutBufioReader(rrp, rr)
 	b.Del(key)
 	ch.Close()
 	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
-		log.Error("%s operator do disconnect error(%v)", key, err)
+		log.Error("key: %s operator do disconnect error(%v)", key, err)
 	}
 	if Debug {
-		log.Debug("%s serverconn goroutine exit", key)
+		log.Debug("key: %s serverconn goroutine exit", key)
 	}
 	return
 }
@@ -168,22 +169,26 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.Writer, ch *Channel) {
+func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wrp *sync.Pool, wr *bufio.Writer, ch *Channel) {
 	var (
 		p   *Proto
 		err error
 	)
 	if Debug {
-		log.Debug("start dispatch goroutine")
+		log.Debug("key: %s start dispatch goroutine", key)
 	}
 	for {
 		if !ch.Ready() {
+			if Debug {
+				log.Debug("key: %s wakeup exit dispatch goroutine", key)
+			}
 			goto failed
 		}
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
 				// must be empty error
+				err = nil
 				break
 			}
 			// just forward the message
@@ -198,17 +203,18 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 		}
 	}
 failed:
+	log.Error("key: %s dispatch tcp error(%v)", key, err)
 	// wake reader up
 	conn.Close()
 	PutBufioWriter(wrp, wr)
 	if Debug {
-		log.Debug("dispatch goroutine exit")
+		log.Debug("key: %s dispatch goroutine exit", key)
 	}
 	return
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (subKey string, heartbeat time.Duration, err error) {
+func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (key string, heartbeat time.Duration, err error) {
 	var (
 		bodyLen int
 		p       = &ch.CliProto
@@ -221,7 +227,7 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (
 		err = ErrOperation
 		return
 	}
-	if subKey, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
+	if key, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
 		return
 	}
 	p.Body = nil
