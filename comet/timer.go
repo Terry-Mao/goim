@@ -17,27 +17,23 @@ const (
 )
 
 type TimerData struct {
-	Key   time.Time
-	Value io.Closer
-	index int
-	next  *TimerData
-}
-
-func (td *TimerData) Set(expire time.Duration, closer io.Closer) {
-	td.Key = time.Now().Add(expire)
-	td.Value = closer
+	Key    string
+	Expire time.Time
+	Value  io.Closer
+	index  int
+	next   *TimerData
 }
 
 func (td *TimerData) Delay() time.Duration {
-	return td.Key.Sub(time.Now())
+	return td.Expire.Sub(time.Now())
 }
 
 func (td *TimerData) Lazy(expire time.Duration) bool {
-	return time.Now().Add(expire).Sub(td.Key) < timerLazyDelay
+	return time.Now().Add(expire).Sub(td.Expire) < timerLazyDelay
 }
 
-func (td *TimerData) String() string {
-	return td.Key.Format(timerFormat)
+func (td *TimerData) ExpireString() string {
+	return td.Expire.Format(timerFormat)
 }
 
 type Timer struct {
@@ -96,7 +92,8 @@ func (t *Timer) Init(num int) {
 func (t *Timer) Add(expire time.Duration, closer io.Closer) (td *TimerData, err error) {
 	t.lock.Lock()
 	if td, err = t.get(); err == nil {
-		td.Set(expire, closer)
+		td.Expire = time.Now().Add(expire)
+		td.Value = closer
 		t.add(td)
 	}
 	t.lock.Unlock()
@@ -112,7 +109,7 @@ func (t *Timer) add(td *TimerData) {
 	t.timers[t.cur] = td
 	t.up(t.cur)
 	if Debug {
-		log.Debug("timer: push item key: %s, index: %d", td.String(), td.index)
+		log.Debug("timer: push item key: %s, expire: %s, index: %d", td.Key, td.ExpireString(), td.index)
 	}
 	return
 }
@@ -128,7 +125,7 @@ func (t *Timer) Del(td *TimerData) {
 	t.put(td)
 	t.lock.Unlock()
 	if Debug {
-		log.Debug("timer: remove item key: %s, index: %d", td.String(), td.index)
+		log.Debug("timer: remove item key: %s, expire: %s, index: %d", td.Key, td.ExpireString(), td.index)
 	}
 	return
 }
@@ -151,7 +148,7 @@ func (t *Timer) Set(td *TimerData, expire time.Duration) {
 		// already remove, usually by expire
 		t.del(td.index)
 	}
-	td.Key = time.Now().Add(expire)
+	td.Expire = time.Now().Add(expire)
 	t.add(td)
 	t.lock.Unlock()
 	return
@@ -185,11 +182,14 @@ func (t *Timer) Expire() {
 			break
 		}
 		if Debug {
-			log.Debug("find a expire timer key: %s, index: %d", td.String(), td.index)
+			log.Debug("find a expire timer key: %s, expire: %s, index: %d", td.Key, td.ExpireString(), td.index)
 		}
 		if td.Value == nil {
 			log.Warn("expire timer no io.Closer")
 		} else {
+			if Debug {
+				log.Debug("timer key: %s, expire: %s, index: %d expired, call Close()", td.Key, td.ExpireString, td.index)
+			}
 			if err = td.Value.Close(); err != nil {
 				log.Error("timer close error(%v)", err)
 			}
@@ -230,7 +230,7 @@ func (t *Timer) down(i, n int) {
 }
 
 func (t *Timer) less(i, j int) bool {
-	return t.timers[i].Key.Before(t.timers[j].Key)
+	return t.timers[i].Expire.Before(t.timers[j].Expire)
 }
 
 func (t *Timer) swap(i, j int) {

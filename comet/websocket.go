@@ -101,6 +101,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	// handshake
 	if trd, err = tr.Add(server.Options.HandshakeTimeout, conn); err == nil {
 		if key, hb, err = server.authWebsocket(conn, ch); err == nil {
+			trd.Key = key
 			tr.Set(trd, hb)
 		}
 	}

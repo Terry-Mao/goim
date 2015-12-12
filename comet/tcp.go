@@ -105,6 +105,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	// handshake
 	if trd, err = tr.Add(server.Options.HandshakeTimeout, conn); err == nil {
 		if key, hb, err = server.authTCP(rr, wr, ch); err == nil {
+			trd.Key = key
 			tr.Set(trd, hb)
 		}
 	}
