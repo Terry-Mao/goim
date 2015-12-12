@@ -8,16 +8,17 @@ import (
 type Channel struct {
 	RoomId   int32
 	signal   chan int
-	CliProto Ring
 	SvrProto Ring
+	CliProto Proto
 	cLock    sync.Mutex
+	SLock    sync.Mutex // sending buffer lock
+	Buf      [RawHeaderSize]byte
 }
 
-func NewChannel(cliProto, svrProto int, rid int32) *Channel {
+func NewChannel(svrProto int, rid int32) *Channel {
 	c := new(Channel)
 	c.RoomId = rid
 	c.signal = make(chan int, signalNum)
-	c.CliProto.Init(cliProto)
 	c.SvrProto.Init(svrProto)
 	return c
 }

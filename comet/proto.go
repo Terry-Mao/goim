@@ -40,14 +40,11 @@ var (
 // websocket & http:
 // raw codec, with http header stored ver, operation, seqid
 type Proto struct {
-	PackLen   int32               `json:"-"`    // pack length
-	HeaderLen int16               `json:"-"`    // header length
-	Ver       int16               `json:"ver"`  // protocol version
-	Operation int32               `json:"op"`   // operation for request
-	SeqId     int32               `json:"seq"`  // sequence number chosen by client
-	Body      json.RawMessage     `json:"body"` // binary body bytes(json.RawMessage is []byte)
-	Readbuf   [MaxBodySize]byte   `json:"-"`    // read buffer
-	Writebuf  [RawHeaderSize]byte `json:"-"`    // write buffer
+	HeaderLen int16           `json:"-"`    // header length
+	Ver       int16           `json:"ver"`  // protocol version
+	Operation int32           `json:"op"`   // operation for request
+	SeqId     int32           `json:"seq"`  // sequence number chosen by client
+	Body      json.RawMessage `json:"body"` // binary body bytes(json.RawMessage is []byte)
 }
 
 func (p *Proto) Reset() {
@@ -55,5 +52,5 @@ func (p *Proto) Reset() {
 }
 
 func (p *Proto) String() string {
-	return fmt.Sprintf("\n-------- proto --------\npack: %d\nheader: %d\nver: %d\nop: %d\nseq: %d\nbody: %s\n-----------------------", p.PackLen, p.HeaderLen, p.Ver, p.Operation, p.SeqId, string(p.Body))
+	return fmt.Sprintf("\n-------- proto --------\nheader: %d\nver: %d\nop: %d\nseq: %d\nbody: %s\n-----------------------", p.HeaderLen, p.Ver, p.Operation, p.SeqId, string(p.Body))
 }

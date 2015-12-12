@@ -96,20 +96,19 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 		key string
 		err error
 		trd *TimerData
-		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
+		ch  = NewChannel(server.Options.SvrProto, define.NoRoom)
 	)
-	// auth
-	if trd, err = tr.Add(server.Options.Handshake, conn); err != nil {
-		log.Error("handshake: timer.Add() error(%v)", err)
-	} else {
-		if key, hb, err = server.authWebsocket(conn, ch); err != nil {
-			log.Error("handshake: server.auth error(%v)", err)
+	// handshake
+	if trd, err = tr.Add(server.Options.HandshakeTimeout, conn); err == nil {
+		if key, hb, err = server.authWebsocket(conn, ch); err == nil {
+			tr.Set(trd, hb)
 		}
-		//deltimer
-		tr.Del(trd)
 	}
-	// failed
 	if err != nil {
+		log.Error("handshake failed error(%v)", err)
+		if trd != nil {
+			tr.Del(trd)
+		}
 		if err = conn.Close(); err != nil {
 			log.Error("handshake: conn.Close() error(%v)", err)
 		}
@@ -119,21 +118,34 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	b = server.Bucket(key)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
-	go server.dispatchWebsocket(conn, ch, hb, tr)
+	go server.dispatchWebsocket(conn, ch)
 	for {
-		// fetch a proto from channel free list
-		if p, err = ch.CliProto.Set(); err != nil {
-			log.Error("%s fetch client proto error(%v)", key, err)
-			break
-		}
 		// parse request protocol
 		if err = server.readWebsocketRequest(conn, p); err != nil {
 			log.Error("%s read client request error(%v)", key, err)
 			break
 		}
-		// send to writer
-		ch.CliProto.SetAdv()
-		ch.Signal()
+		if p.Operation == define.OP_HEARTBEAT {
+			// Use a previous timer value if difference between it and a new
+			// value is less than TIMER_LAZY_DELAY milliseconds: this allows
+			// to minimize the minheap operations for fast connections.
+			if !trd.Lazy(hb) {
+				tr.Set(trd, hb)
+			}
+			// heartbeat
+			p.Body = nil
+			p.Operation = define.OP_HEARTBEAT_REPLY
+		} else {
+			// process message
+			if err = server.operator.Operate(p); err != nil {
+				log.Error("operator.Operate() error(%v)", err)
+				break
+			}
+		}
+		if err = server.writeWebsocketResponse(conn, p); err != nil {
+			log.Error("server.writeTCPResponse() error(%v)", err)
+			break
+		}
 	}
 	// dialog finish
 	// revoke the subkey
@@ -157,52 +169,17 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel, hb time.Duration, tr *Timer) {
+func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel) {
 	var (
 		p   *Proto
 		err error
-		trd *TimerData
 	)
-	log.Debug("start dispatch goroutine")
-	if trd, err = tr.Add(hb, conn); err != nil {
-		log.Error("dispatch: timer.Add() error(%v)", err)
-		goto failed
+	if Debug {
+		log.Debug("start dispatch goroutine")
 	}
 	for {
 		if !ch.Ready() {
 			goto failed
-		}
-		// fetch message from clibox(client send)
-		for {
-			if p, err = ch.CliProto.Get(); err != nil {
-				break
-			}
-			if p.Operation == define.OP_HEARTBEAT {
-				// Use a previous timer value if difference between it and a new
-				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
-				// to minimize the minheap operations for fast connections.
-				if !trd.Lazy(hb) {
-					tr.Del(trd)
-					if trd, err = tr.Add(hb, conn); err != nil {
-						log.Error("dispatch: timer.Add() error(%v)", err)
-						goto failed
-					}
-				}
-				// heartbeat
-				p.Body = nil
-				p.Operation = define.OP_HEARTBEAT_REPLY
-			} else {
-				// process message
-				if err = server.operator.Operate(p); err != nil {
-					log.Error("operator.Operate() error(%v)", err)
-					goto failed
-				}
-			}
-			if err = server.writeWebsocketResponse(conn, p); err != nil {
-				log.Error("server.sendTCPResponse() error(%v)", err)
-				goto failed
-			}
-			ch.CliProto.GetAdv()
 		}
 		// fetch message from svrbox(server send)
 		for {
@@ -223,9 +200,9 @@ failed:
 	if err = conn.Close(); err != nil {
 		log.Warn("conn.Close() error(%v)", err)
 	}
-	// deltimer
-	tr.Del(trd)
-	log.Debug("dispatch goroutine exit")
+	if Debug {
+		log.Debug("dispatch goroutine exit")
+	}
 	return
 }
 
@@ -234,7 +211,7 @@ func (server *Server) authWebsocket(conn *websocket.Conn, ch *Channel) (subKey s
 	var p *Proto
 	// WARN
 	// don't adv the cli proto, after auth simply discard it.
-	if p, err = ch.CliProto.Set(); err != nil {
+	if p, err = ch.SvrProto.Set(); err != nil {
 		return
 	}
 	if err = server.readWebsocketRequest(conn, p); err != nil {

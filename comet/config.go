@@ -63,6 +63,7 @@ type Config struct {
 	// proto section
 	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
 	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
+	SvrProto         int           `goconf:"proto:svr.proto"`
 	// timer
 	Timer     int `goconf:"timer:num"`
 	TimerSize int `goconf:"timer:size"`
@@ -75,9 +76,6 @@ type Config struct {
 	RoomProto   int           `goconf:"room:proto"`
 	RoomBatch   int           `goconf:"room:batch"`
 	RoomSignal  time.Duration `goconf:"room:signal:time"`
-	// channel
-	CliProto int `goconf:"channel:cli.proto"`
-	SvrProto int `goconf:"channel:svr.proto"`
 	// push
 	HTTPPushAddrs    []string      `goconf:"push:http.addrs:,"`
 	HTTPReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
@@ -117,7 +115,6 @@ func NewConfig() *Config {
 		TimerSize:        1000,
 		// bucket
 		Bucket:        1024,
-		CliProto:      1024,
 		SvrProto:      1024,
 		BucketChannel: 1024,
 		// push

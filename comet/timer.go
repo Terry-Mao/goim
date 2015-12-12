@@ -17,38 +17,50 @@ const (
 )
 
 type TimerData struct {
-	key   time.Time
-	value io.Closer
+	Key   time.Time
+	Value io.Closer
 	index int
 	next  *TimerData
 }
 
+func (td *TimerData) Set(expire time.Duration, closer io.Closer) {
+	td.Key = time.Now().Add(expire)
+	td.Value = closer
+}
+
 func (td *TimerData) Delay() time.Duration {
-	return td.key.Sub(time.Now())
+	return td.Key.Sub(time.Now())
 }
 
 func (td *TimerData) Lazy(expire time.Duration) bool {
-	key := time.Now().Add(expire)
-	if d := (key.Sub(td.key)); d < timerLazyDelay {
-		if Debug {
-			log.Debug("lazy timer: %s, old: %s", key.Format(timerFormat), td.String())
-		}
-		return true
-	}
-	return false
+	return time.Now().Add(expire).Sub(td.Key) < timerLazyDelay
 }
 
 func (td *TimerData) String() string {
-	return td.key.Format(timerFormat)
+	return td.Key.Format(timerFormat)
 }
 
 type Timer struct {
-	cur    int
-	max    int
-	used   int
-	free   *TimerData
 	lock   sync.Mutex
+	free   *TimerData
 	timers []*TimerData
+	cur    int
+}
+
+// get get a free timer data.
+func (t *Timer) get() (td *TimerData, err error) {
+	td = t.free
+	t.free = td.next
+	if td == nil {
+		err = ErrTimerFull
+	}
+	return
+}
+
+// put put back a timer data.
+func (t *Timer) put(td *TimerData) {
+	td.next = t.free
+	t.free = td
 }
 
 // A heap must be initialized before any of the heap operations
@@ -56,8 +68,8 @@ type Timer struct {
 // and may be called whenever the heap invariants may have been invalidated.
 // Its complexity is O(n) where n = h.Len().
 //
-func NewTimer(num int) *Timer {
-	t := new(Timer)
+func NewTimer(num int) (t *Timer) {
+	t = new(Timer)
 	t.init(num)
 	return t
 }
@@ -65,8 +77,6 @@ func NewTimer(num int) *Timer {
 func (t *Timer) init(num int) {
 	t.timers = make([]*TimerData, num)
 	t.cur = -1
-	t.max = num - 1
-	t.used = 0
 	tds := make([]TimerData, num)
 	t.free = &(tds[0])
 	td := t.free
@@ -83,33 +93,85 @@ func (t *Timer) Init(num int) {
 
 // Push pushes the element x onto the heap. The complexity is
 // O(log(n)) where n = h.Len().
-//
 func (t *Timer) Add(expire time.Duration, closer io.Closer) (td *TimerData, err error) {
 	t.lock.Lock()
-	if t.cur >= t.max {
-		t.lock.Unlock()
-		err = ErrTimerFull
-		return
+	if td, err = t.get(); err == nil {
+		td.Set(expire, closer)
+		t.add(td)
 	}
+	t.lock.Unlock()
+	return
+}
+
+// Push pushes the element x onto the heap. The complexity is
+// O(log(n)) where n = h.Len().
+func (t *Timer) add(td *TimerData) {
 	t.cur++
-	td = t.get()
-	td.key = time.Now().Add(expire)
-	td.value = closer
 	td.index = t.cur
 	// add to the minheap last node
 	t.timers[t.cur] = td
 	t.up(t.cur)
-	t.lock.Unlock()
 	if Debug {
 		log.Debug("timer: push item key: %s, index: %d", td.String(), td.index)
 	}
 	return
 }
 
+// Del removes the element at index i from the heap.
+// The complexity is O(log(n)) where n = h.Len().
+func (t *Timer) Del(td *TimerData) {
+	t.lock.Lock()
+	if td.index != -1 {
+		// already remove, usually by expire
+		t.del(td.index)
+	}
+	t.put(td)
+	t.lock.Unlock()
+	if Debug {
+		log.Debug("timer: remove item key: %s, index: %d", td.String(), td.index)
+	}
+	return
+}
+
+func (t *Timer) del(i int) {
+	if t.cur != i {
+		t.swap(i, t.cur)
+		t.down(i, t.cur)
+		t.up(i)
+	}
+	// remove item is the last node
+	t.timers[t.cur].index = -1 // for safety
+	t.cur--
+}
+
+// Set update timer data.
+func (t *Timer) Set(td *TimerData, expire time.Duration) {
+	t.lock.Lock()
+	if td.index != -1 {
+		// already remove, usually by expire
+		t.del(td.index)
+	}
+	td.Key = time.Now().Add(expire)
+	t.add(td)
+	t.lock.Unlock()
+	return
+}
+
+// Find a expire timer data, if not found ,return infinite time.
+func (t *Timer) Find() (d time.Duration) {
+	t.lock.Lock()
+	if t.cur < 0 {
+		d = infiniteDuration
+	} else {
+		d = t.timers[0].Delay()
+	}
+	t.lock.Unlock()
+	return
+}
+
 // Expire removes the minimum element (according to Less) from the heap.
 // The complexity is O(log(n)) where n = max.
 // It is equivalent to Del(0).
-//
 func (t *Timer) Expire() {
 	var (
 		err error
@@ -125,61 +187,15 @@ func (t *Timer) Expire() {
 		if Debug {
 			log.Debug("find a expire timer key: %s, index: %d", td.String(), td.index)
 		}
-		if td.value == nil {
+		if td.Value == nil {
 			log.Warn("expire timer no io.Closer")
 		} else {
-			if err = td.value.Close(); err != nil {
+			if err = td.Value.Close(); err != nil {
 				log.Error("timer close error(%v)", err)
 			}
 		}
-		t.remove(0)
-		// delay put back to free list
-		// someone sleep goroutine may hold the td
-		// first wake up the goroutine then let caller put back
+		t.del(0)
 	}
-	t.lock.Unlock()
-	return
-}
-
-// Del removes the element at index i from the heap.
-// The complexity is O(log(n)) where n = h.Len().
-//
-func (t *Timer) Del(td *TimerData) {
-	if td == nil {
-		return
-	}
-	t.lock.Lock()
-	if td.index != -1 {
-		// already remove, usually by expire
-		t.remove(td.index)
-	}
-	t.put(td)
-	t.lock.Unlock()
-	if Debug {
-		log.Debug("timer: remove item key: %s, index: %d", td.String(), td.index)
-	}
-	return
-}
-
-func (t *Timer) remove(i int) {
-	if t.cur != i {
-		t.swap(i, t.cur)
-		t.down(i, t.cur)
-		t.up(i)
-	}
-	// remove item is the last node
-	t.timers[t.cur].index = -1 // for safety
-	t.cur--
-}
-
-func (t *Timer) Find() (d time.Duration) {
-	t.lock.Lock()
-	if t.cur < 0 {
-		d = infiniteDuration
-		t.lock.Unlock()
-		return
-	}
-	d = t.timers[0].Delay()
 	t.lock.Unlock()
 	return
 }
@@ -214,7 +230,7 @@ func (t *Timer) down(i, n int) {
 }
 
 func (t *Timer) less(i, j int) bool {
-	return t.timers[i].key.Before(t.timers[j].key)
+	return t.timers[i].Key.Before(t.timers[j].Key)
 }
 
 func (t *Timer) swap(i, j int) {
@@ -222,25 +238,6 @@ func (t *Timer) swap(i, j int) {
 	t.timers[i], t.timers[j] = t.timers[j], t.timers[i]
 	t.timers[i].index = i
 	t.timers[j].index = j
-}
-
-func (t *Timer) get() *TimerData {
-	td := t.free
-	t.free = td.next
-	t.used++
-	if Debug {
-		log.Debug("get timerdata, used: %d", t.used)
-	}
-	return td
-}
-
-func (t *Timer) put(td *TimerData) {
-	t.used--
-	td.next = t.free
-	t.free = td
-	if Debug {
-		log.Debug("put timerdata, used: %d", t.used)
-	}
 }
 
 // TimerProcess one process goroutine handle many timers.

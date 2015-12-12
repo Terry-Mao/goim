@@ -12,14 +12,13 @@ var (
 )
 
 type ServerOptions struct {
-	CliProto        int
-	SvrProto        int
-	Handshake       time.Duration
-	TCPKeepalive    bool
-	TCPRcvbuf       int
-	TCPSndbuf       int
-	TCPReadBufSize  int
-	TCPWriteBufSize int
+	SvrProto         int
+	HandshakeTimeout time.Duration
+	TCPKeepalive     bool
+	TCPRcvbuf        int
+	TCPSndbuf        int
+	TCPReadBufSize   int
+	TCPWriteBufSize  int
 }
 
 type Server struct {

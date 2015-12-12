@@ -5,7 +5,6 @@ import (
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/define"
 	"github.com/Terry-Mao/goim/libs/encoding/binary"
-	"github.com/Terry-Mao/goim/libs/io/ioutil"
 	"net"
 	"sync"
 	"time"
@@ -94,26 +93,26 @@ func serveTCP(server *Server, conn *net.TCPConn, r int) {
 
 func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio.Reader, wr *bufio.Writer, tr *Timer) {
 	var (
-		b   *Bucket
-		p   *Proto
-		key string
-		hb  time.Duration // heartbeat
-		err error
-		trd *TimerData
-		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
+		b       *Bucket
+		key     string
+		hb      time.Duration // heartbeat
+		bodyLen int
+		err     error
+		trd     *TimerData
+		ch      = NewChannel(server.Options.SvrProto, define.NoRoom)
+		p       = &ch.CliProto
 	)
-	// auth
-	if trd, err = tr.Add(server.Options.Handshake, conn); err != nil {
-		log.Error("handshake: timer.Add() error(%v)", err)
-	} else {
-		if key, hb, err = server.authTCP(rr, wr, ch); err != nil {
-			log.Error("handshake: server.auth error(%v)", err)
+	// handshake
+	if trd, err = tr.Add(server.Options.HandshakeTimeout, conn); err == nil {
+		if key, hb, err = server.authTCP(rr, wr, ch); err == nil {
+			tr.Set(trd, hb)
 		}
-		//deltimer
-		tr.Del(trd)
 	}
-	// failed
 	if err != nil {
+		log.Error("handshake failed error(%v)", err)
+		if trd != nil {
+			tr.Del(trd)
+		}
 		if err = conn.Close(); err != nil {
 			log.Error("handshake: conn.Close() error(%v)", err)
 		}
@@ -125,26 +124,40 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	b = server.Bucket(key)
 	b.Put(key, ch)
 	// hanshake ok start dispatch goroutine
-	go server.dispatchTCP(conn, wrp, wr, ch, hb, tr)
+	go server.dispatchTCP(conn, wrp, wr, ch)
 	for {
-		// fetch a proto from channel free list
-		if p, err = ch.CliProto.Set(); err != nil {
-			// if full, simply close connection
-			log.Error("%s fetch client proto error(%v)", key, err)
-			goto failed
-		}
 		// parse request protocol
-		if err = server.readTCPRequest(rr, p); err != nil {
+		if bodyLen, err = server.readTCPRequest(rr, p); err != nil {
 			log.Error("%s read client request error(%v)", key, err)
-			goto failed
+			break
 		}
-		// send to writer
-		ch.CliProto.SetAdv()
-		ch.Signal()
+		if p.Operation == define.OP_HEARTBEAT {
+			// Use a previous timer value if difference between it and a new
+			// value is less than TIMER_LAZY_DELAY milliseconds: this allows
+			// to minimize the minheap operations for fast connections.
+			if !trd.Lazy(hb) {
+				tr.Set(trd, hb)
+			}
+			// heartbeat
+			p.Body = nil
+			p.Operation = define.OP_HEARTBEAT_REPLY
+		} else {
+			// process message
+			if err = server.operator.Operate(p); err != nil {
+				log.Error("operator.Operate() error(%v)", err)
+				break
+			}
+		}
+		if err = server.writeTCPResponse(ch, wr, p); err != nil {
+			log.Error("server.writeTCPResponse() error(%v)", err)
+			break
+		}
+		if _, err = rr.Discard(bodyLen); err != nil {
+			log.Error("rr.Discard() error(%v)", err)
+			break
+		}
 	}
-failed:
-	// dialog finish
-	// may call twice
+	tr.Del(trd)
 	if err = conn.Close(); err != nil {
 		log.Error("reader: conn.Close() error(%v)", err)
 	}
@@ -166,55 +179,17 @@ failed:
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.Writer, ch *Channel, hb time.Duration, tr *Timer) {
+func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.Writer, ch *Channel) {
 	var (
 		p   *Proto
 		err error
-		trd *TimerData
 	)
 	if Debug {
 		log.Debug("start dispatch goroutine")
 	}
-	if trd, err = tr.Add(hb, conn); err != nil {
-		log.Error("dispatch: timer.Add() error(%v)", err)
-		goto failed
-	}
 	for {
 		if !ch.Ready() {
 			goto failed
-		}
-		// fetch message from clibox(client send)
-		for {
-			if p, err = ch.CliProto.Get(); err != nil {
-				// must be empty error
-				break
-			}
-			if p.Operation == define.OP_HEARTBEAT {
-				// Use a previous timer value if difference between it and a new
-				// value is less than TIMER_LAZY_DELAY milliseconds: this allows
-				// to minimize the minheap operations for fast connections.
-				if !trd.Lazy(hb) {
-					tr.Del(trd)
-					if trd, err = tr.Add(hb, conn); err != nil {
-						log.Error("dispatch: timer.Add() error(%v)", err)
-						goto failed
-					}
-				}
-				// heartbeat
-				p.Body = nil
-				p.Operation = define.OP_HEARTBEAT_REPLY
-			} else {
-				// process message
-				if err = server.operator.Operate(p); err != nil {
-					log.Error("operator.Operate() error(%v)", err)
-					goto failed
-				}
-			}
-			if err = server.writeTCPResponse(wr, p); err != nil {
-				log.Error("server.writeTCPResponse() error(%v)", err)
-				goto failed
-			}
-			ch.CliProto.GetAdv()
 		}
 		// fetch message from svrbox(server send)
 		for {
@@ -223,7 +198,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 				break
 			}
 			// just forward the message
-			if err = server.writeTCPResponse(wr, p); err != nil {
+			if err = server.writeTCPResponse(ch, wr, p); err != nil {
 				log.Error("server.writeTCPResponse() error(%v)", err)
 				goto failed
 			}
@@ -239,8 +214,6 @@ failed:
 	if err = conn.Close(); err != nil {
 		log.Warn("conn.Close() error(%v)", err)
 	}
-	// deltimer
-	tr.Del(trd)
 	PutBufioWriter(wrp, wr)
 	if Debug {
 		log.Debug("dispatch goroutine exit")
@@ -250,13 +223,11 @@ failed:
 
 // auth for goim handshake with client, use rsa & aes.
 func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (subKey string, heartbeat time.Duration, err error) {
-	var p *Proto
-	// WARN
-	// don't adv the cli proto, after auth simply discard it.
-	if p, err = ch.CliProto.Set(); err != nil {
-		return
-	}
-	if err = server.readTCPRequest(rr, p); err != nil {
+	var (
+		bodyLen int
+		p       = &ch.CliProto
+	)
+	if bodyLen, err = server.readTCPRequest(rr, p); err != nil {
 		return
 	}
 	if p.Operation != define.OP_AUTH {
@@ -270,23 +241,26 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (
 	}
 	p.Body = nil
 	p.Operation = define.OP_AUTH_REPLY
-	if err = server.writeTCPResponse(wr, p); err != nil {
+	if err = server.writeTCPResponse(ch, wr, p); err != nil {
 		log.Error("[%s] server.sendTCPResponse() error(%v)", subKey, err)
 	}
-	err = wr.Flush()
+	if err = wr.Flush(); err != nil {
+		return
+	}
+	_, err = rr.Discard(bodyLen)
 	return
 }
 
 // readRequest
-func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (err error) {
+func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (bodyLen int, err error) {
 	var (
-		bodySize int32
-		buf      []byte
+		packLen int32
+		buf     []byte
 	)
 	if buf, err = rr.Peek(RawHeaderSize); err != nil {
 		return
 	}
-	p.PackLen = binary.BigEndian.Int32(buf[PackOffset:HeaderOffset])
+	packLen = binary.BigEndian.Int32(buf[PackOffset:HeaderOffset])
 	p.HeaderLen = binary.BigEndian.Int16(buf[HeaderOffset:VerOffset])
 	p.Ver = binary.BigEndian.Int16(buf[VerOffset:OperationOffset])
 	p.Operation = binary.BigEndian.Int32(buf[OperationOffset:SeqIdOffset])
@@ -294,15 +268,14 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (err error) {
 	if _, err = rr.Discard(RawHeaderSize); err != nil {
 		return
 	}
-	if p.PackLen > MaxPackSize {
-		return ErrProtoPackLen
+	if packLen > MaxPackSize {
+		return 0, ErrProtoPackLen
 	}
 	if p.HeaderLen != RawHeaderSize {
-		return ErrProtoHeaderLen
+		return 0, ErrProtoHeaderLen
 	}
-	if bodySize = p.PackLen - int32(p.HeaderLen); bodySize > 0 {
-		p.Body = p.Readbuf[0:bodySize]
-		err = ioutil.ReadAll(rr, p.Body)
+	if bodyLen = int(packLen - int32(p.HeaderLen)); bodyLen > 0 {
+		p.Body, err = rr.Peek(bodyLen)
 	} else {
 		p.Body = nil
 	}
@@ -313,23 +286,26 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (err error) {
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) writeTCPResponse(wr *bufio.Writer, p *Proto) (err error) {
+func (server *Server) writeTCPResponse(ch *Channel, wr *bufio.Writer, p *Proto) (err error) {
+	var packLen int32
 	if Debug {
 		log.Debug("write proto: %v", p)
 	}
-	p.PackLen = RawHeaderSize + int32(len(p.Body))
+	packLen = RawHeaderSize + int32(len(p.Body))
 	p.HeaderLen = RawHeaderSize
+	ch.SLock.Lock()
 	// if no available memory bufio.Writer auth flush response
-	binary.BigEndian.PutInt32(p.Writebuf[PackOffset:], p.PackLen)
-	binary.BigEndian.PutInt16(p.Writebuf[HeaderOffset:], p.HeaderLen)
-	binary.BigEndian.PutInt16(p.Writebuf[VerOffset:], p.Ver)
-	binary.BigEndian.PutInt32(p.Writebuf[OperationOffset:], p.Operation)
-	binary.BigEndian.PutInt32(p.Writebuf[SeqIdOffset:], p.SeqId)
-	if _, err = wr.Write(p.Writebuf[:]); err != nil {
+	binary.BigEndian.PutInt32(ch.Buf[PackOffset:], packLen)
+	binary.BigEndian.PutInt16(ch.Buf[HeaderOffset:], p.HeaderLen)
+	binary.BigEndian.PutInt16(ch.Buf[VerOffset:], p.Ver)
+	binary.BigEndian.PutInt32(ch.Buf[OperationOffset:], p.Operation)
+	binary.BigEndian.PutInt32(ch.Buf[SeqIdOffset:], p.SeqId)
+	if _, err = wr.Write(ch.Buf[:]); err != nil {
 		return
 	}
 	if p.Body != nil {
 		_, err = wr.Write(p.Body)
 	}
+	ch.SLock.Unlock()
 	return
 }

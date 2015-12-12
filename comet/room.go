@@ -153,6 +153,7 @@ func (r *Room) Online() (o int) {
 // Close close the room.
 func (r *Room) Close() {
 	var ch *Channel
+	// if chan full, wait
 	r.signal <- protoFinish
 	r.rLock.RLock()
 	for ch, _ = range r.chs {

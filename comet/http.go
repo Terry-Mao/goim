@@ -68,7 +68,7 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 		rwr  *bufio.ReadWriter
 		hj   http.Hijacker
 		// no client send
-		ch = NewChannel(0, 1, define.NoRoom)
+		ch = NewChannel(1, define.NoRoom)
 	)
 	if key, cb, hb, err = server.authHTTP(r, ch); err != nil {
 		http.Error(w, "auth failed", http.StatusForbidden)
