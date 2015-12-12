@@ -45,10 +45,10 @@ type Timer struct {
 
 // get get a free timer data.
 func (t *Timer) get() (td *TimerData, err error) {
-	td = t.free
-	t.free = td.next
-	if td == nil {
+	if td = t.free; td == nil {
 		err = ErrTimerFull
+	} else {
+		t.free = td.next
 	}
 	return
 }

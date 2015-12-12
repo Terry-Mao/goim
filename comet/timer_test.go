@@ -23,7 +23,7 @@ func TestTimer(t *testing.T) {
 	}
 	printTimer(timer)
 	for i := 0; i < 100; i++ {
-		log.Debug("td: %s, %d", tds[i].String(), tds[i].index)
+		log.Debug("td: %s, %s, %d", tds[i].Key, tds[i].ExpireString(), tds[i].index)
 		timer.Del(tds[i])
 	}
 	printTimer(timer)
@@ -35,7 +35,7 @@ func TestTimer(t *testing.T) {
 	}
 	printTimer(timer)
 	for i := 0; i < 100; i++ {
-		timer.remove(0)
+		timer.del(0)
 	}
 	printTimer(timer)
 }
@@ -58,7 +58,7 @@ func TestTimerProcess(t *testing.T) {
 func printTimer(timer *Timer) {
 	log.Debug("--------------------")
 	for i := 0; i <= timer.cur; i++ {
-		log.Debug("timer: %s, index: %d", timer.timers[i].String(), timer.timers[i].index)
+		log.Debug("timer: %s, %s, index: %d", timer.timers[i].Key, timer.timers[i].ExpireString(), timer.timers[i].index)
 	}
 	log.Debug("--------------------")
 }
