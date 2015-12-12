@@ -19,6 +19,7 @@ type Room struct {
 	proto   Ring
 	signal  chan int
 	chs     map[*Channel]struct{} // map room id with channels
+	timer   *time.Timer
 	sigTime time.Duration
 	options RoomOptions
 }
@@ -31,6 +32,7 @@ func NewRoom(id int32, options RoomOptions) (r *Room) {
 	r.proto.Init(options.ProtoSize)
 	r.signal = make(chan int, signalNum)
 	r.chs = make(map[*Channel]struct{}, options.ChannelSize)
+	r.timer = time.NewTimer(options.SignalTime)
 	go r.push()
 	return
 }
@@ -69,6 +71,7 @@ func (r *Room) push() {
 	}
 	for {
 		if least = r.options.SignalTime - time.Now().Sub(last); least > 0 {
+			r.timer.Reset(least)
 			select {
 			case s = <-r.signal:
 				if exit = (s != protoReady); exit {
@@ -95,7 +98,7 @@ func (r *Room) push() {
 					n++
 					r.proto.GetAdv()
 				}
-			case <-time.After(least):
+			case <-r.timer.C:
 				done = true
 				exit = false
 			}
@@ -119,6 +122,7 @@ func (r *Room) push() {
 			break
 		}
 	}
+	r.timer.Stop()
 	if Debug {
 		log.Debug("room: %d goroutine exit", r.id)
 	}
