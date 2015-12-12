@@ -113,9 +113,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		if trd != nil {
 			tr.Del(trd)
 		}
-		if err = conn.Close(); err != nil {
-			log.Error("handshake: conn.Close() error(%v)", err)
-		}
+		conn.Close()
 		PutBufioReader(rrp, rr)
 		PutBufioWriter(wrp, wr)
 		return
@@ -128,7 +126,6 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	for {
 		// parse request protocol
 		if bodyLen, err = server.readTCPRequest(rr, p); err != nil {
-			log.Error("%s read client request error(%v)", key, err)
 			break
 		}
 		if p.Operation == define.OP_HEARTBEAT {
@@ -144,28 +141,20 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		} else {
 			// process message
 			if err = server.operator.Operate(p); err != nil {
-				log.Error("operator.Operate() error(%v)", err)
 				break
 			}
 		}
 		if err = server.writeTCPResponse(ch, wr, p); err != nil {
-			log.Error("server.writeTCPResponse() error(%v)", err)
 			break
 		}
 		if _, err = rr.Discard(bodyLen); err != nil {
-			log.Error("rr.Discard() error(%v)", err)
 			break
 		}
 	}
 	tr.Del(trd)
-	if err = conn.Close(); err != nil {
-		log.Error("reader: conn.Close() error(%v)", err)
-	}
+	conn.Close()
 	PutBufioReader(rrp, rr)
 	b.Del(key)
-	if Debug {
-		log.Debug("wake up dispatch goroutine")
-	}
 	ch.Close()
 	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
@@ -199,7 +188,6 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 			}
 			// just forward the message
 			if err = server.writeTCPResponse(ch, wr, p); err != nil {
-				log.Error("server.writeTCPResponse() error(%v)", err)
 				goto failed
 			}
 			ch.SvrProto.GetAdv()
@@ -211,9 +199,7 @@ func (server *Server) dispatchTCP(conn *net.TCPConn, wrp *sync.Pool, wr *bufio.W
 	}
 failed:
 	// wake reader up
-	if err = conn.Close(); err != nil {
-		log.Warn("conn.Close() error(%v)", err)
-	}
+	conn.Close()
 	PutBufioWriter(wrp, wr)
 	if Debug {
 		log.Debug("dispatch goroutine exit")
@@ -236,13 +222,12 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (
 		return
 	}
 	if subKey, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
-		log.Error("operator.Connect error(%v)", err)
 		return
 	}
 	p.Body = nil
 	p.Operation = define.OP_AUTH_REPLY
 	if err = server.writeTCPResponse(ch, wr, p); err != nil {
-		log.Error("[%s] server.sendTCPResponse() error(%v)", subKey, err)
+		return
 	}
 	if err = wr.Flush(); err != nil {
 		return

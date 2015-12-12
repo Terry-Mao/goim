@@ -109,9 +109,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 		if trd != nil {
 			tr.Del(trd)
 		}
-		if err = conn.Close(); err != nil {
-			log.Error("handshake: conn.Close() error(%v)", err)
-		}
+		conn.Close()
 		return
 	}
 	// register key->channel
@@ -122,7 +120,6 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 	for {
 		// parse request protocol
 		if err = server.readWebsocketRequest(conn, p); err != nil {
-			log.Error("%s read client request error(%v)", key, err)
 			break
 		}
 		if p.Operation == define.OP_HEARTBEAT {
@@ -138,31 +135,22 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 		} else {
 			// process message
 			if err = server.operator.Operate(p); err != nil {
-				log.Error("operator.Operate() error(%v)", err)
 				break
 			}
 		}
 		if err = server.writeWebsocketResponse(conn, p); err != nil {
-			log.Error("server.writeTCPResponse() error(%v)", err)
 			break
 		}
 	}
-	// dialog finish
-	// revoke the subkey
-	// revoke the remote subkey
-	// close the net.Conn
-	// read & write goroutine
-	// return channel to bucket's free list
-	// may call twice
-	if err = conn.Close(); err != nil {
-		log.Error("reader: conn.Close() error(%v)", err)
-	}
+	conn.Close()
 	ch.Close()
 	b.Del(key)
 	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("%s operator do disconnect error(%v)", key, err)
 	}
-	log.Debug("%s serverconn goroutine exit", key)
+	if Debug {
+		log.Debug("%s serverconn goroutine exit", key)
+	}
 	return
 }
 
@@ -206,50 +194,34 @@ failed:
 	return
 }
 
-// auth for goim handshake with client, use rsa & aes.
-func (server *Server) authWebsocket(conn *websocket.Conn, ch *Channel) (subKey string, heartbeat time.Duration, err error) {
-	var p *Proto
-	// WARN
-	// don't adv the cli proto, after auth simply discard it.
-	if p, err = ch.SvrProto.Set(); err != nil {
-		return
-	}
+func (server *Server) authWebsocket(conn *websocket.Conn, ch *Channel) (key string, heartbeat time.Duration, err error) {
+	var p = &ch.CliProto
 	if err = server.readWebsocketRequest(conn, p); err != nil {
 		return
 	}
 	if p.Operation != define.OP_AUTH {
-		log.Warn("auth operation not valid: %d", p.Operation)
 		err = ErrOperation
 		return
 	}
-	if subKey, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
-		log.Error("operator.Connect error(%v)", err)
+	if key, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
 		return
 	}
 	p.Body = nil
 	p.Operation = define.OP_AUTH_REPLY
-	if err = server.writeWebsocketResponse(conn, p); err != nil {
-		log.Error("[%s] server.sendTCPResponse() error(%v)", subKey, err)
-	}
+	err = server.writeWebsocketResponse(conn, p)
 	return
 }
 
-// readRequest
-func (server *Server) readWebsocketRequest(conn *websocket.Conn, proto *Proto) (err error) {
-	if err = websocket.JSON.Receive(conn, proto); err != nil {
-		log.Error("websocket.JSON.Receive() error(%v)", err)
-	}
+func (server *Server) readWebsocketRequest(conn *websocket.Conn, p *Proto) (err error) {
+	p.Reset()
+	err = websocket.JSON.Receive(conn, p)
 	return
 }
 
-// sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) writeWebsocketResponse(conn *websocket.Conn, proto *Proto) (err error) {
-	if proto.Body == nil {
-		proto.Body = emptyJSONBody
+func (server *Server) writeWebsocketResponse(conn *websocket.Conn, p *Proto) (err error) {
+	if p.Body == nil {
+		p.Body = emptyJSONBody
 	}
-	if err = websocket.JSON.Send(conn, proto); err != nil {
-		log.Error("websocket.JSON.Send() error(%v)", err)
-	}
-	proto.Reset()
+	err = websocket.JSON.Send(conn, p)
 	return
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"sync"
+	"time"
 )
 
 // Channel used by message pusher send msg to write goroutine.
@@ -67,6 +68,17 @@ func (c *Channel) Ready() bool {
 	return (<-c.signal) == protoReady
 }
 
+// ReadyWithTimeout check the channel ready or close?
+func (c *Channel) ReadyWithTimeout(timeout time.Duration) bool {
+	var s int
+	select {
+	case s = <-c.signal:
+		return s == protoReady
+	case <-time.After(timeout):
+		return false
+	}
+}
+
 // Signal send signal to the channel, protocol ready.
 func (c *Channel) Signal() {
 	// just ignore duplication signal
@@ -78,9 +90,6 @@ func (c *Channel) Signal() {
 
 // Close close the channel.
 func (c *Channel) Close() {
-	// don't use close chan, Signal can be reused
-	// if chan full, writer goroutine next fetch from chan will exit
-	// if chan empty, send a 0(close) let the writer exit
 	select {
 	case c.signal <- protoFinish:
 	default:
