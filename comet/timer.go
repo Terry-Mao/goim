@@ -97,6 +97,9 @@ func (t *Timer) Add(expire time.Duration, closer io.Closer) (td *TimerData, err 
 		t.add(td)
 	}
 	t.lock.Unlock()
+	if Debug {
+		log.Debug("timer: push item key: %s, expire: %s, index: %d", td.Key, td.ExpireString(), td.index)
+	}
 	return
 }
 
@@ -108,9 +111,6 @@ func (t *Timer) add(td *TimerData) {
 	// add to the minheap last node
 	t.timers[t.cur] = td
 	t.up(t.cur)
-	if Debug {
-		log.Debug("timer: push item key: %s, expire: %s, index: %d", td.Key, td.ExpireString(), td.index)
-	}
 	return
 }
 
