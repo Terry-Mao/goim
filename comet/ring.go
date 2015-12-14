@@ -9,19 +9,22 @@ const (
 	SignalNum   = 1
 	ProtoFinish = 0
 	ProtoReady  = 1
+	maxUint64  = (1 << 64) -1
 )
 
 type Ring struct {
 	// read
-	rn int
-	
-	pad [64]byte
-	
-	// write
-	wn int
+	rn uint64
 	
 	// info
-	num  int
+	num  uint64
+	numMask  uint64
+	pad [40]byte
+	
+	// write
+	wn uint64
+	
+	
 	data []Proto
 }
 
@@ -44,7 +47,8 @@ func initNum(number int) (ret int) {
 
 func (r *Ring) init(num int) {
 	r.data = make([]Proto, num)
-	r.num = num
+	r.num = uint64(num)
+	r.numMask = r.num-1
 }
 
 func (r *Ring) Init(num int) {
@@ -55,12 +59,12 @@ func (r *Ring) Get() (proto *Proto, err error) {
 	if r.wn == r.rn {
 		return nil, ErrRingEmpty
 	}
-	proto = &r.data[r.rn&(r.num-1)]
+	proto = &r.data[r.rn&r.numMask]
 	return
 }
 
 func (r *Ring) GetAdv() {
-	if r.rn++; r.rn >= maxInt {
+	if r.rn++; r.rn >= maxUint64 {
 		r.rn = 0
 	}
 	if Debug {
@@ -72,12 +76,12 @@ func (r *Ring) Set() (proto *Proto, err error) {
 	if r.wn-r.rn >= r.num {
 		return nil, ErrRingFull
 	}
-	proto = &r.data[r.wn&(r.num-1)]
+	proto = &r.data[r.wn&r.numMask]
 	return
 }
 
 func (r *Ring) SetAdv() {
-	if r.wn++; r.wn >= maxInt {
+	if r.wn++; r.wn >= maxUint64 {
 		r.wn = 0
 	}
 	if Debug {
