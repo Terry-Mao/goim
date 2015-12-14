@@ -14,10 +14,12 @@ const (
 type Ring struct {
 	// read
 	rn int
-	rp int
+	
 	// write
+	pad [64]byte
+	
 	wn int
-	wp int
+	
 	// info
 	num  int
 	data []Proto
@@ -25,8 +27,19 @@ type Ring struct {
 
 func NewRing(num int) *Ring {
 	r := new(Ring)
-	r.init(num)
+	r.init(initNum(num))
 	return r
+}
+
+func initNum(number int) (ret int) {
+	if (number & (number-1) == 0) {
+		return number
+	} else {
+		for (number & (number-1) != 0){
+			 number &= (number-1)
+			 }
+		return number << 1;
+	}
 }
 
 func (r *Ring) init(num int) {
@@ -42,17 +55,17 @@ func (r *Ring) Get() (proto *Proto, err error) {
 	if r.wn == r.rn {
 		return nil, ErrRingEmpty
 	}
-	proto = &r.data[r.rp]
+	proto = &r.data[r.rn&(r.num-1)]
 	return
 }
 
 func (r *Ring) GetAdv() {
-	if r.rp++; r.rp >= r.num {
-		r.rp = 0
+	if r.rn++; r.rn >= maxInt {
+		r.rn = 0
 	}
 	r.rn++
 	if Debug {
-		log.Debug("ring rn: %d, rp: %d", r.rn, r.rp)
+		log.Debug("ring rn: %d, num: %d", r.rn, r.num)
 	}
 }
 
@@ -60,23 +73,21 @@ func (r *Ring) Set() (proto *Proto, err error) {
 	if r.wn-r.rn >= r.num {
 		return nil, ErrRingFull
 	}
-	proto = &r.data[r.wp]
+	proto = &r.data[r.wn&(r.num-1)]
 	return
 }
 
 func (r *Ring) SetAdv() {
-	if r.wp++; r.wp >= r.num {
-		r.wp = 0
+	if r.wn++; r.wn >= maxInt {
+		r.wn = 0
 	}
 	r.wn++
 	if Debug {
-		log.Debug("ring wn: %d, wp: %d", r.wn, r.wp)
+		log.Debug("ring wn: %d, num: %d", r.wn, r.num)
 	}
 }
 
 func (r *Ring) Reset() {
 	r.rn = 0
-	r.rp = 0
 	r.wn = 0
-	r.wp = 0
 }
