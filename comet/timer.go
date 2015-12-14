@@ -188,7 +188,7 @@ func (t *Timer) Expire() {
 			log.Warn("expire timer no io.Closer")
 		} else {
 			if Debug {
-				log.Debug("timer key: %s, expire: %s, index: %d expired, call Close()", td.Key, td.ExpireString, td.index)
+				log.Debug("timer key: %s, expire: %s, index: %d expired, call Close()", td.Key, td.ExpireString(), td.index)
 			}
 			if err = td.Value.Close(); err != nil {
 				log.Error("timer close error(%v)", err)

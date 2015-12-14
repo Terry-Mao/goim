@@ -19,7 +19,7 @@ type Channel struct {
 func NewChannel(svrProto int, rid int32) *Channel {
 	c := new(Channel)
 	c.RoomId = rid
-	c.signal = make(chan int, signalNum)
+	c.signal = make(chan int, SignalNum)
 	c.SvrProto.Init(svrProto)
 	return c
 }
@@ -65,7 +65,7 @@ func (c *Channel) PushMsgs(ver []int32, operations []int32, bodies [][]byte) (id
 
 // Ready check the channel ready or close?
 func (c *Channel) Ready() bool {
-	return (<-c.signal) == protoReady
+	return (<-c.signal) == ProtoReady
 }
 
 // ReadyWithTimeout check the channel ready or close?
@@ -73,7 +73,7 @@ func (c *Channel) ReadyWithTimeout(timeout time.Duration) bool {
 	var s int
 	select {
 	case s = <-c.signal:
-		return s == protoReady
+		return s == ProtoReady
 	case <-time.After(timeout):
 		return false
 	}
@@ -83,7 +83,7 @@ func (c *Channel) ReadyWithTimeout(timeout time.Duration) bool {
 func (c *Channel) Signal() {
 	// just ignore duplication signal
 	select {
-	case c.signal <- protoReady:
+	case c.signal <- ProtoReady:
 	default:
 	}
 }
@@ -91,7 +91,7 @@ func (c *Channel) Signal() {
 // Close close the channel.
 func (c *Channel) Close() {
 	select {
-	case c.signal <- protoFinish:
+	case c.signal <- ProtoFinish:
 	default:
 	}
 }

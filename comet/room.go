@@ -30,7 +30,7 @@ func NewRoom(id int32, options RoomOptions) (r *Room) {
 	r.id = id
 	r.options = options
 	r.proto.Init(options.ProtoSize)
-	r.signal = make(chan int, signalNum)
+	r.signal = make(chan int, SignalNum)
 	r.chs = make(map[*Channel]struct{}, options.ChannelSize)
 	r.timer = time.NewTimer(options.SignalTime)
 	go r.push()
@@ -56,7 +56,7 @@ func (r *Room) Del(ch *Channel) {
 func (r *Room) push() {
 	var (
 		s, n       int
-		exit, done bool
+		done       bool
 		err        error
 		p          *Proto
 		ch         *Channel
@@ -74,9 +74,8 @@ func (r *Room) push() {
 			r.timer.Reset(least)
 			select {
 			case s = <-r.signal:
-				if exit = (s != protoReady); exit {
-					done = true
-					break
+				if s != ProtoReady {
+					goto failed
 				}
 				// merge msgs
 				if n == 0 {
@@ -100,28 +99,26 @@ func (r *Room) push() {
 				}
 			case <-r.timer.C:
 				done = true
-				exit = false
 			}
 		} else {
 			done = true
 		}
-		if done {
-			if n > 0 {
-				r.rLock.RLock()
-				for ch, _ = range r.chs {
-					// ignore error
-					ch.PushMsgs(vers[:n], operations[:n], msgs[:n])
-				}
-				r.rLock.RUnlock()
-				n = 0
+		if !done {
+			continue
+		}
+		if n > 0 {
+			r.rLock.RLock()
+			for ch, _ = range r.chs {
+				// ignore error
+				ch.PushMsgs(vers[:n], operations[:n], msgs[:n])
 			}
-			done = false
-			last = time.Now()
+			r.rLock.RUnlock()
+			n = 0
 		}
-		if exit {
-			break
-		}
+		done = false
+		last = time.Now()
 	}
+failed:
 	r.timer.Stop()
 	if Debug {
 		log.Debug("room: %d goroutine exit", r.id)
@@ -140,7 +137,7 @@ func (r *Room) PushMsg(ver int16, operation int32, msg []byte) (err error) {
 	}
 	r.rLock.Unlock()
 	select {
-	case r.signal <- protoReady:
+	case r.signal <- ProtoReady:
 	default:
 	}
 	return
@@ -158,7 +155,7 @@ func (r *Room) Online() (o int) {
 func (r *Room) Close() {
 	var ch *Channel
 	// if chan full, wait
-	r.signal <- protoFinish
+	r.signal <- ProtoFinish
 	r.rLock.RLock()
 	for ch, _ = range r.chs {
 		ch.Close()

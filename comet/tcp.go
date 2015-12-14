@@ -292,11 +292,11 @@ func (server *Server) writeTCPResponse(ch *Channel, wr *bufio.Writer, p *Proto) 
 	binary.BigEndian.PutInt16(ch.Buf[VerOffset:], p.Ver)
 	binary.BigEndian.PutInt32(ch.Buf[OperationOffset:], p.Operation)
 	binary.BigEndian.PutInt32(ch.Buf[SeqIdOffset:], p.SeqId)
-	if _, err = wr.Write(ch.Buf[:]); err != nil {
-		return
-	}
-	if p.Body != nil {
-		_, err = wr.Write(p.Body)
+	// TODO if has writev no need lock, cause write is atomic
+	if _, err = wr.Write(ch.Buf[:]); err == nil {
+		if p.Body != nil {
+			_, err = wr.Write(p.Body)
+		}
 	}
 	ch.SLock.Unlock()
 	return
