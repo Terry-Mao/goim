@@ -9,7 +9,7 @@ const (
 	SignalNum   = 1
 	ProtoFinish = 0
 	ProtoReady  = 1
-	maxUint64  = (1 << 64) -1
+	maxUint64  = ^uint64(0) 
 )
 
 type Ring struct {
