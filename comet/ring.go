@@ -13,14 +13,14 @@ const (
 
 type Ring struct {
 	// read
-	rn int
+	// rn int
 	rp int
-	// write
-	wn int
-	wp int
-	// info
-	num  int
+	// add data here split reade & write in one cacheline
 	data []Proto
+	num  int
+	// write
+	// wn int
+	wp int
 }
 
 func NewRing(num int) *Ring {
@@ -39,44 +39,36 @@ func (r *Ring) Init(num int) {
 }
 
 func (r *Ring) Get() (proto *Proto, err error) {
-	if r.wn == r.rn {
+	if r.rp == r.wp {
 		return nil, ErrRingEmpty
 	}
-	proto = &r.data[r.rp]
+	proto = &r.data[r.rp%r.num]
 	return
 }
 
 func (r *Ring) GetAdv() {
-	if r.rp++; r.rp >= r.num {
-		r.rp = 0
-	}
-	r.rn++
+	r.rp++
 	if Debug {
-		log.Debug("ring rn: %d, rp: %d", r.rn, r.rp)
+		log.Debug("ring rp: %d, idx: %d", r.rp, r.rp%r.num)
 	}
 }
 
 func (r *Ring) Set() (proto *Proto, err error) {
-	if r.wn-r.rn >= r.num {
+	if r.wp-r.rp >= r.num {
 		return nil, ErrRingFull
 	}
-	proto = &r.data[r.wp]
+	proto = &r.data[r.wp%r.num]
 	return
 }
 
 func (r *Ring) SetAdv() {
-	if r.wp++; r.wp >= r.num {
-		r.wp = 0
-	}
-	r.wn++
+	r.wp++
 	if Debug {
-		log.Debug("ring wn: %d, wp: %d", r.wn, r.wp)
+		log.Debug("ring wp: %d, idx: %d", r.wp, r.wp%r.num)
 	}
 }
 
 func (r *Ring) Reset() {
-	r.rn = 0
 	r.rp = 0
-	r.wn = 0
 	r.wp = 0
 }
