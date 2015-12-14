@@ -15,9 +15,9 @@ type Ring struct {
 	// read
 	rn int
 	
-	// write
 	pad [64]byte
 	
+	// write
 	wn int
 	
 	// info
@@ -63,7 +63,6 @@ func (r *Ring) GetAdv() {
 	if r.rn++; r.rn >= maxInt {
 		r.rn = 0
 	}
-	r.rn++
 	if Debug {
 		log.Debug("ring rn: %d, num: %d", r.rn, r.num)
 	}
@@ -81,7 +80,6 @@ func (r *Ring) SetAdv() {
 	if r.wn++; r.wn >= maxInt {
 		r.wn = 0
 	}
-	r.wn++
 	if Debug {
 		log.Debug("ring wn: %d, num: %d", r.wn, r.num)
 	}
