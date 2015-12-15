@@ -91,7 +91,7 @@ func (r *Room) push() {
 		}
 		if !done {
 			if <-r.signal != ProtoReady {
-				goto failed
+				break
 			}
 		}
 		// merge msgs
@@ -125,15 +125,14 @@ func (r *Room) push() {
 		}
 		done = false
 	}
-failed:
 	r.timer.Del(td)
 	if Debug {
 		log.Debug("room: %d goroutine exit", r.id)
 	}
 }
 
-// PushMsg push msg to the room.
-func (r *Room) PushMsg(ver int16, operation int32, msg []byte) (err error) {
+// Push push msg to the room.
+func (r *Room) Push(ver int16, operation int32, msg []byte) (err error) {
 	var proto *Proto
 	r.rLock.Lock()
 	if proto, err = r.proto.Set(); err == nil {
