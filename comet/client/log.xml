@@ -16,7 +16,7 @@
     <property name="maxlines">0K</property> <!-- \d+[KMG]? Suffixes are in terms of thousands -->
     <property name="daily">true</property> <!-- Automatically rotates when a log message is written after midnight -->
   </filter>
-  <filter enabled="flase">
+  <filter enabled="false">
     <tag>info_file</tag>
     <type>file</type>
     <level>INFO</level>

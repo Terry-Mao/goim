@@ -30,7 +30,7 @@ func NewBucket(boptions BucketOptions, roptions RoomOptions) (b *Bucket) {
 }
 
 // Put put a channel according with sub key.
-func (b *Bucket) Put(key string, ch *Channel) {
+func (b *Bucket) Put(key string, ch *Channel, tr *Timer) {
 	var (
 		room *Room
 		ok   bool
@@ -39,7 +39,7 @@ func (b *Bucket) Put(key string, ch *Channel) {
 	b.chs[key] = ch
 	if ch.RoomId != define.NoRoom {
 		if room, ok = b.rooms[ch.RoomId]; !ok {
-			room = NewRoom(ch.RoomId, b.roptions)
+			room = NewRoom(ch.RoomId, tr, b.roptions)
 			b.rooms[ch.RoomId] = room
 		}
 	}

@@ -86,7 +86,7 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 	}
 	// register key->channel
 	b = server.Bucket(key)
-	b.Put(key, ch)
+	b.Put(key, ch, tr)
 	// hanshake ok start dispatch goroutine
 	server.dispatchHTTP(rwr, cb, ch, hb)
 	tr.Del(trd)

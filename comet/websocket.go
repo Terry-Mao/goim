@@ -99,23 +99,20 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 		ch  = NewChannel(server.Options.SvrProto, define.NoRoom)
 	)
 	// handshake
-	if trd, err = tr.Add(server.Options.HandshakeTimeout, conn); err == nil {
-		if key, hb, err = server.authWebsocket(conn, ch); err == nil {
-			trd.Key = key
-			tr.Set(trd, hb)
-		}
+	trd = tr.Add(server.Options.HandshakeTimeout, conn)
+	if key, hb, err = server.authWebsocket(conn, ch); err == nil {
+		trd.Key = key
+		tr.Set(trd, hb)
 	}
 	if err != nil {
 		log.Error("handshake failed error(%v)", err)
-		if trd != nil {
-			tr.Del(trd)
-		}
+		tr.Del(trd)
 		conn.Close()
 		return
 	}
 	// register key->channel
 	b = server.Bucket(key)
-	b.Put(key, ch)
+	b.Put(key, ch, tr)
 	// hanshake ok start dispatch goroutine
 	go server.dispatchWebsocket(conn, ch)
 	for {
@@ -124,13 +121,8 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 			break
 		}
 		if p.Operation == define.OP_HEARTBEAT {
-			// Use a previous timer value if difference between it and a new
-			// value is less than TIMER_LAZY_DELAY milliseconds: this allows
-			// to minimize the minheap operations for fast connections.
-			if !trd.Lazy(hb) {
-				tr.Set(trd, hb)
-			}
 			// heartbeat
+			tr.Set(trd, hb)
 			p.Body = nil
 			p.Operation = define.OP_HEARTBEAT_REPLY
 		} else {

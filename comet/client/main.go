@@ -4,7 +4,6 @@ import (
 	log "code.google.com/p/log4go"
 	"flag"
 	"runtime"
-	"time"
 )
 
 func main() {
@@ -22,5 +21,4 @@ func main() {
 	} else if Conf.Type == ProtoWebsocketTLS {
 		initWebsocketTLS()
 	}
-	time.Sleep(10 * time.Second)
 }

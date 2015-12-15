@@ -33,7 +33,7 @@ func initTCP() {
 		log.Error("tcpReadProto() error(%v)", err)
 		return
 	}
-	log.Debug("auth ok, proto: %v", proto)
+	//log.Debug("auth ok, proto: %v", proto)
 	seqId++
 	// writer
 	go func() {
@@ -99,8 +99,7 @@ func tcpWriteProto(wr *bufio.Writer, proto *Proto) (err error) {
 		return
 	}
 	if proto.Body != nil {
-		log.Debug("cipher body: %v", proto.Body)
-		if err = binary.Write(wr, binary.BigEndian, proto.Body); err != nil {
+		if _, err = wr.Write(proto.Body); err != nil {
 			return
 		}
 	}
@@ -115,22 +114,27 @@ func tcpReadProto(rd *bufio.Reader, proto *Proto) (err error) {
 	)
 	// read
 	if err = binary.Read(rd, binary.BigEndian, &packLen); err != nil {
+		log.Debug("Read() error(%v)", err)
 		return
 	}
 	log.Debug("packLen: %d", packLen)
 	if err = binary.Read(rd, binary.BigEndian, &headerLen); err != nil {
+		log.Debug("Read() error(%v)", err)
 		return
 	}
 	log.Debug("headerLen: %d", headerLen)
 	if err = binary.Read(rd, binary.BigEndian, &proto.Ver); err != nil {
+		log.Debug("Read() error(%v)", err)
 		return
 	}
 	log.Debug("ver: %d", proto.Ver)
 	if err = binary.Read(rd, binary.BigEndian, &proto.Operation); err != nil {
+		log.Debug("Read() error(%v)", err)
 		return
 	}
 	log.Debug("operation: %d", proto.Operation)
 	if err = binary.Read(rd, binary.BigEndian, &proto.SeqId); err != nil {
+		log.Debug("Read() error(%v)", err)
 		return
 	}
 	log.Debug("seqId: %d", proto.SeqId)
@@ -144,6 +148,7 @@ func tcpReadProto(rd *bufio.Reader, proto *Proto) (err error) {
 		proto.Body = make([]byte, bodyLen)
 		for {
 			if t, err = rd.Read(proto.Body[n:]); err != nil {
+				log.Debug("Read() error(%v)", err)
 				return
 			}
 			if n += t; n == bodyLen {

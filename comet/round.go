@@ -28,8 +28,6 @@ func NewRound(readBuf, writeBuf, timer, timerSize int) *Round {
 	for i := 0; i < timer; i++ {
 		r.timers[i].Init(timerSize)
 	}
-	// start timer process
-	go TimerProcess(r.timers)
 	return r
 }
 

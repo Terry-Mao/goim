@@ -111,8 +111,9 @@ func NewConfig() *Config {
 		TCPWriteBuf:      1024,
 		TCPReadBufSize:   1024,
 		TCPWriteBufSize:  1024,
-		Timer:            1024,
-		TimerSize:        1000,
+		// timer
+		Timer:     runtime.NumCPU(),
+		TimerSize: 1000,
 		// bucket
 		Bucket:        1024,
 		SvrProto:      1024,

@@ -103,17 +103,14 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		p       = &ch.CliProto
 	)
 	// handshake
-	if trd, err = tr.Add(server.Options.HandshakeTimeout, conn); err == nil {
-		if key, hb, err = server.authTCP(rr, wr, ch); err == nil {
-			trd.Key = key
-			tr.Set(trd, hb)
-		}
+	trd = tr.Add(server.Options.HandshakeTimeout, conn)
+	if key, hb, err = server.authTCP(rr, wr, ch); err == nil {
+		trd.Key = key
+		tr.Set(trd, hb)
 	}
 	if err != nil {
 		log.Error("key: %s handshake failed error(%v)", key, err)
-		if trd != nil {
-			tr.Del(trd)
-		}
+		tr.Del(trd)
 		conn.Close()
 		PutBufioReader(rrp, rr)
 		PutBufioWriter(wrp, wr)
@@ -121,7 +118,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	}
 	// register key->channel
 	b = server.Bucket(key)
-	b.Put(key, ch)
+	b.Put(key, ch, tr)
 	// hanshake ok start dispatch goroutine
 	go server.dispatchTCP(key, conn, wrp, wr, ch)
 	for {
@@ -130,15 +127,13 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 			break
 		}
 		if p.Operation == define.OP_HEARTBEAT {
-			// Use a previous timer value if difference between it and a new
-			// value is less than TIMER_LAZY_DELAY milliseconds: this allows
-			// to minimize the minheap operations for fast connections.
-			if !trd.Lazy(hb) {
-				tr.Set(trd, hb)
-			}
 			// heartbeat
+			tr.Set(trd, hb)
 			p.Body = nil
 			p.Operation = define.OP_HEARTBEAT_REPLY
+			if Debug {
+				log.Debug("key: %s receive heartbeat", key)
+			}
 		} else {
 			// process message
 			if err = server.operator.Operate(p); err != nil {
@@ -162,7 +157,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		log.Error("key: %s operator do disconnect error(%v)", key, err)
 	}
 	if Debug {
-		log.Debug("key: %s serverconn goroutine exit", key)
+		log.Debug("key: %s server tcp goroutine exit", key)
 	}
 	return
 }
@@ -176,7 +171,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wrp *sync.Pool,
 		err error
 	)
 	if Debug {
-		log.Debug("key: %s start dispatch goroutine", key)
+		log.Debug("key: %s start dispatch tcp goroutine", key)
 	}
 	for {
 		if !ch.Ready() {
@@ -280,9 +275,6 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (bodyLen int, e
 // sendResponse send resp to client, sendResponse must be goroutine safe.
 func (server *Server) writeTCPResponse(ch *Channel, wr *bufio.Writer, p *Proto) (err error) {
 	var packLen int32
-	if Debug {
-		log.Debug("write proto: %v", p)
-	}
 	packLen = RawHeaderSize + int32(len(p.Body))
 	p.HeaderLen = RawHeaderSize
 	ch.SLock.Lock()
@@ -299,5 +291,8 @@ func (server *Server) writeTCPResponse(ch *Channel, wr *bufio.Writer, p *Proto) 
 		}
 	}
 	ch.SLock.Unlock()
+	if Debug {
+		log.Debug("write proto: %v", p)
+	}
 	return
 }

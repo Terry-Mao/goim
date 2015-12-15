@@ -40,7 +40,7 @@ func NewConfig() *Config {
 		// base section
 		PidFile:   "/tmp/gopush-cluster-client.pid",
 		Dir:       "./",
-		Log:       "./log/xml",
+		Log:       "./log.xml",
 		MaxProc:   runtime.NumCPU(),
 		PprofBind: []string{"localhost:6971"},
 		// proto section
