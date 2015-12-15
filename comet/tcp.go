@@ -104,11 +104,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	)
 	// handshake
 	trd = tr.Add(server.Options.HandshakeTimeout, conn)
-	if key, hb, err = server.authTCP(rr, wr, ch); err == nil {
-		trd.Key = key
-		tr.Set(trd, hb)
-	}
-	if err != nil {
+	if key, hb, err = server.authTCP(rr, wr, ch); err != nil {
 		log.Error("key: %s handshake failed error(%v)", key, err)
 		tr.Del(trd)
 		conn.Close()
@@ -116,7 +112,8 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		PutBufioWriter(wrp, wr)
 		return
 	}
-	// register key->channel
+	trd.Key = key
+	tr.Set(trd, hb)
 	b = server.Bucket(key)
 	b.Put(key, ch, tr)
 	// hanshake ok start dispatch goroutine
@@ -185,7 +182,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wrp *sync.Pool,
 				break
 			}
 			// just forward the message
-			if err = server.writeTCPResponse(ch, wr, p); err != nil {
+			if err = server.writeTCPResponse(wr, p, ch.Buf[:]); err != nil {
 				break
 			}
 			ch.SvrProto.GetAdv()
@@ -227,7 +224,7 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (
 	}
 	p.Body = nil
 	p.Operation = define.OP_AUTH_REPLY
-	if err = server.writeTCPResponse(ch, wr, p); err != nil {
+	if err = server.writeTCPResponse(wr, p, ch.Buf[:]); err != nil {
 		return
 	}
 	if err = wr.Flush(); err != nil {
@@ -272,18 +269,18 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (bodyLen int, e
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) writeTCPResponse(ch *Channel, wr *bufio.Writer, p *Proto) (err error) {
+func (server *Server) writeTCPResponse(wr *bufio.Writer, p *Proto, buf []byte) (err error) {
 	var packLen int32
 	packLen = RawHeaderSize + int32(len(p.Body))
 	p.HeaderLen = RawHeaderSize
 	// if no available memory bufio.Writer auth flush response
-	binary.BigEndian.PutInt32(ch.Buf[PackOffset:], packLen)
-	binary.BigEndian.PutInt16(ch.Buf[HeaderOffset:], p.HeaderLen)
-	binary.BigEndian.PutInt16(ch.Buf[VerOffset:], p.Ver)
-	binary.BigEndian.PutInt32(ch.Buf[OperationOffset:], p.Operation)
-	binary.BigEndian.PutInt32(ch.Buf[SeqIdOffset:], p.SeqId)
+	binary.BigEndian.PutInt32(buf[PackOffset:], packLen)
+	binary.BigEndian.PutInt16(buf[HeaderOffset:], p.HeaderLen)
+	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)
+	binary.BigEndian.PutInt32(buf[OperationOffset:], p.Operation)
+	binary.BigEndian.PutInt32(buf[SeqIdOffset:], p.SeqId)
 	// TODO if has writev no need lock, cause write is atomic
-	if _, err = wr.Write(ch.Buf[:]); err == nil {
+	if _, err = wr.Write(buf); err == nil {
 		if p.Body != nil {
 			_, err = wr.Write(p.Body)
 		}
