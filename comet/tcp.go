@@ -99,7 +99,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		bodyLen int
 		err     error
 		trd     *TimerData
-		ch      = NewChannel(server.Options.SvrProto, define.NoRoom)
+		ch      = NewChannel(server.Options.Proto, define.NoRoom)
 		p       = &ch.CliProto
 	)
 	// handshake
@@ -122,12 +122,10 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	// hanshake ok start dispatch goroutine
 	go server.dispatchTCP(key, conn, wrp, wr, ch)
 	for {
-		// parse request protocol
 		if bodyLen, err = server.readTCPRequest(rr, p); err != nil {
 			break
 		}
 		if p.Operation == define.OP_HEARTBEAT {
-			// heartbeat
 			tr.Set(trd, hb)
 			p.Body = nil
 			p.Operation = define.OP_HEARTBEAT_REPLY
@@ -135,12 +133,11 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 				log.Debug("key: %s receive heartbeat", key)
 			}
 		} else {
-			// process message
 			if err = server.operator.Operate(p); err != nil {
 				break
 			}
 		}
-		if err = server.writeTCPResponse(ch, wr, p); err != nil {
+		if err = ch.Reply(p); err != nil {
 			break
 		}
 		if _, err = rr.Discard(bodyLen); err != nil {
@@ -178,7 +175,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wrp *sync.Pool,
 			if Debug {
 				log.Debug("key: %s wakeup exit dispatch goroutine", key)
 			}
-			goto failed
+			break
 		}
 		// fetch message from svrbox(server send)
 		for {
@@ -189,16 +186,18 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wrp *sync.Pool,
 			}
 			// just forward the message
 			if err = server.writeTCPResponse(ch, wr, p); err != nil {
-				goto failed
+				break
 			}
 			ch.SvrProto.GetAdv()
 		}
+		if err != nil {
+			break
+		}
 		// only hungry flush response
 		if err = wr.Flush(); err != nil {
-			goto failed
+			break
 		}
 	}
-failed:
 	log.Error("key: %s dispatch tcp error(%v)", key, err)
 	// wake reader up
 	conn.Close()
@@ -277,7 +276,6 @@ func (server *Server) writeTCPResponse(ch *Channel, wr *bufio.Writer, p *Proto) 
 	var packLen int32
 	packLen = RawHeaderSize + int32(len(p.Body))
 	p.HeaderLen = RawHeaderSize
-	ch.SLock.Lock()
 	// if no available memory bufio.Writer auth flush response
 	binary.BigEndian.PutInt32(ch.Buf[PackOffset:], packLen)
 	binary.BigEndian.PutInt16(ch.Buf[HeaderOffset:], p.HeaderLen)
@@ -290,7 +288,6 @@ func (server *Server) writeTCPResponse(ch *Channel, wr *bufio.Writer, p *Proto) 
 			_, err = wr.Write(p.Body)
 		}
 	}
-	ch.SLock.Unlock()
 	if Debug {
 		log.Debug("write proto: %v", p)
 	}

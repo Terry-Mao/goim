@@ -96,7 +96,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 		key string
 		err error
 		trd *TimerData
-		ch  = NewChannel(server.Options.SvrProto, define.NoRoom)
+		ch  = NewChannel(server.Options.Proto, define.NoRoom)
 	)
 	// handshake
 	trd = tr.Add(server.Options.HandshakeTimeout, conn)
@@ -131,7 +131,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 				break
 			}
 		}
-		if err = server.writeWebsocketResponse(conn, p); err != nil {
+		if err = ch.Reply(p); err != nil {
 			break
 		}
 	}

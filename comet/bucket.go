@@ -106,7 +106,7 @@ func (b *Bucket) Broadcast(ver int16, operation int32, msg []byte) {
 	b.cLock.RLock()
 	for _, ch = range b.chs {
 		// ignore error
-		ch.PushMsg(ver, operation, msg)
+		ch.Push(ver, operation, msg)
 	}
 	b.cLock.RUnlock()
 }

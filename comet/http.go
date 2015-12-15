@@ -135,9 +135,12 @@ func (server *Server) authHTTP(r *http.Request, ch *Channel) (subKey, callback s
 	var (
 		pStr   string
 		pInt   int64
+		p      *Proto
 		params = r.URL.Query()
-		p      = &ch.CliProto
 	)
+	if p, err = ch.SvrProto.Set(); err != nil {
+		return
+	}
 	pStr = params.Get("ver")
 	if pInt, err = strconv.ParseInt(pStr, 10, 16); err != nil {
 		log.Error("strconv.ParseInt(\"%s\", 10) error(%v)", err)

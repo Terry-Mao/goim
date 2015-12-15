@@ -9,23 +9,35 @@ import (
 type Channel struct {
 	RoomId   int32
 	signal   chan int
-	SvrProto Ring
 	CliProto Proto
+	SvrProto Ring
 	cLock    sync.Mutex
-	SLock    sync.Mutex // sending buffer lock
 	Buf      [RawHeaderSize]byte
 }
 
-func NewChannel(svrProto int, rid int32) *Channel {
+func NewChannel(proto int, rid int32) *Channel {
 	c := new(Channel)
 	c.RoomId = rid
 	c.signal = make(chan int, SignalNum)
-	c.SvrProto.Init(svrProto)
+	c.SvrProto.Init(proto)
 	return c
 }
 
-// not goroutine safe, must push one by one.
-func (c *Channel) PushMsg(ver int16, operation int32, body []byte) (err error) {
+// Reply server reply message.
+func (c *Channel) Reply(p *Proto) (err error) {
+	var proto *Proto
+	c.cLock.Lock()
+	if proto, err = c.SvrProto.Set(); err == nil {
+		*proto = *p
+		c.SvrProto.SetAdv()
+	}
+	c.cLock.Unlock()
+	c.Signal()
+	return
+}
+
+// Push server push message.
+func (c *Channel) Push(ver int16, operation int32, body []byte) (err error) {
 	var proto *Proto
 	c.cLock.Lock()
 	if proto, err = c.SvrProto.Set(); err == nil {
@@ -39,8 +51,8 @@ func (c *Channel) PushMsg(ver int16, operation int32, body []byte) (err error) {
 	return
 }
 
-// not goroutine safe, must push one by one.
-func (c *Channel) PushMsgs(ver []int32, operations []int32, bodies [][]byte) (idx int32, err error) {
+// Pushs server push messages.
+func (c *Channel) Pushs(ver []int32, operations []int32, bodies [][]byte) (idx int32, err error) {
 	var (
 		proto *Proto
 		n     int32

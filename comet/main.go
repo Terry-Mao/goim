@@ -43,7 +43,7 @@ func main() {
 	round := NewRound(Conf.TCPReadBuf, Conf.TCPWriteBuf, Conf.Timer, Conf.TimerSize)
 	operator := new(DefaultOperator)
 	DefaultServer = NewServer(buckets, round, operator, ServerOptions{
-		SvrProto:         Conf.SvrProto,
+		Proto:            Conf.Proto,
 		HandshakeTimeout: Conf.HandshakeTimeout,
 		TCPKeepalive:     Conf.TCPKeepalive,
 		TCPRcvbuf:        Conf.TCPRcvbuf,

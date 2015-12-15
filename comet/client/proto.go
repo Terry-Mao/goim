@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	rawHeaderLen = uint16(16)
+	rawHeaderLen = int16(16)
 )
 
 const (
@@ -37,5 +37,5 @@ type Proto struct {
 }
 
 func (p *Proto) Print() {
-	log.Debug("\n-------- proto --------ver: %d\nop: %d\nseq: %d\nbody: %s\n", p.Ver, p.Operation, p.SeqId, string(p.Body))
+	log.Info("\n-------- proto --------\nver: %d\nop: %d\nseq: %d\nbody: %s\n", p.Ver, p.Operation, p.SeqId, string(p.Body))
 }

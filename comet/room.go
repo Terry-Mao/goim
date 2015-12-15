@@ -118,7 +118,7 @@ func (r *Room) push() {
 			r.rLock.RLock()
 			for ch, _ = range r.chs {
 				// ignore error
-				ch.PushMsgs(vers[:n], ops[:n], msgs[:n])
+				ch.Pushs(vers[:n], ops[:n], msgs[:n])
 			}
 			r.rLock.RUnlock()
 			n = 0
