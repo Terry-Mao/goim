@@ -34,6 +34,10 @@ func NewRing(num int) *Ring {
 	return r
 }
 
+func PreventCompileroptimization(r *Ring){
+	log.Info("To prevent the compiler optimization padding is: %s", r.pad);
+}
+
 func initNum(number int) (ret int) {
 	if (number & (number-1) == 0) {
 		return number
