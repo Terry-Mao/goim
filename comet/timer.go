@@ -36,6 +36,7 @@ type Timer struct {
 	free   *TimerData
 	timers []*TimerData
 	signal *time.Timer
+	num    int
 }
 
 // A heap must be initialized before any of the heap operations
@@ -64,6 +65,7 @@ func (t *Timer) init(num int) {
 		td.next = &(tds[i])
 		td = td.next
 	}
+	t.num = num
 	go t.start()
 }
 
@@ -71,14 +73,13 @@ func (t *Timer) init(num int) {
 func (t *Timer) get() (td *TimerData) {
 	var (
 		i   int
-		num = len(t.timers)
 		tds []TimerData
 	)
 	if td = t.free; td == nil {
-		tds = make([]TimerData, num)
+		tds = make([]TimerData, t.num)
 		t.free = &(tds[0])
 		td = t.free
-		for i = 1; i < num; i++ {
+		for i = 1; i < t.num; i++ {
 			td.next = &(tds[i])
 			td = td.next
 		}
@@ -106,6 +107,16 @@ func (t *Timer) Add(expire time.Duration, fn func()) (td *TimerData) {
 	return
 }
 
+// Del removes the element at index i from the heap.
+// The complexity is O(log(n)) where n = h.Len().
+func (t *Timer) Del(td *TimerData) {
+	t.lock.Lock()
+	t.del(td)
+	t.put(td)
+	t.lock.Unlock()
+	return
+}
+
 // Push pushes the element x onto the heap. The complexity is
 // O(log(n)) where n = h.Len().
 func (t *Timer) add(td *TimerData) {
@@ -128,18 +139,7 @@ func (t *Timer) add(td *TimerData) {
 	return
 }
 
-// Del removes the element at index i from the heap.
-// The complexity is O(log(n)) where n = h.Len().
-func (t *Timer) Del(td *TimerData) {
-	t.lock.Lock()
-	if t.del(td) {
-		t.put(td)
-	}
-	t.lock.Unlock()
-	return
-}
-
-func (t *Timer) del(td *TimerData) bool {
+func (t *Timer) del(td *TimerData) {
 	var (
 		i    = td.index
 		last = len(t.timers) - 1
@@ -149,7 +149,7 @@ func (t *Timer) del(td *TimerData) bool {
 		if Debug {
 			log.Debug("timer del i: %d, last: %d, %p,%p", i, last, t.timers[i], td)
 		}
-		return false
+		return
 	}
 	if i != last {
 		t.swap(i, last)
@@ -162,7 +162,7 @@ func (t *Timer) del(td *TimerData) bool {
 	if Debug {
 		log.Debug("timer: remove item key: %s, expire: %s, index: %d", td.Key, td.ExpireString(), td.index)
 	}
-	return true
+	return
 }
 
 // Set update timer data.
@@ -257,7 +257,6 @@ func (t *Timer) less(i, j int) bool {
 }
 
 func (t *Timer) swap(i, j int) {
-	//log.Debug("swap(%d, %d)", i, j)
 	t.timers[i], t.timers[j] = t.timers[j], t.timers[i]
 	t.timers[i].index = i
 	t.timers[j].index = j
