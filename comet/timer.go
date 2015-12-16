@@ -2,7 +2,6 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"io"
 	"sync"
 	"time"
 )
@@ -18,18 +17,18 @@ var (
 
 type TimerData struct {
 	Key    string
-	Expire time.Time
-	Value  io.Closer
+	expire time.Time
+	fn     func()
 	index  int
 	next   *TimerData
 }
 
 func (td *TimerData) Delay() time.Duration {
-	return td.Expire.Sub(time.Now())
+	return td.expire.Sub(time.Now())
 }
 
 func (td *TimerData) ExpireString() string {
-	return td.Expire.Format(timerFormat)
+	return td.expire.Format(timerFormat)
 }
 
 type Timer struct {
@@ -97,11 +96,11 @@ func (t *Timer) put(td *TimerData) {
 
 // Push pushes the element x onto the heap. The complexity is
 // O(log(n)) where n = h.Len().
-func (t *Timer) Add(expire time.Duration, closer io.Closer) (td *TimerData) {
+func (t *Timer) Add(expire time.Duration, fn func()) (td *TimerData) {
 	t.lock.Lock()
 	td = t.get()
-	td.Expire = time.Now().Add(expire)
-	td.Value = closer
+	td.expire = time.Now().Add(expire)
+	td.fn = fn
 	t.add(td)
 	t.lock.Unlock()
 	return
@@ -170,7 +169,7 @@ func (t *Timer) del(td *TimerData) bool {
 func (t *Timer) Set(td *TimerData, expire time.Duration) {
 	t.lock.Lock()
 	t.del(td)
-	td.Expire = time.Now().Add(expire)
+	td.expire = time.Now().Add(expire)
 	t.add(td)
 	t.lock.Unlock()
 	return
@@ -189,9 +188,8 @@ func (t *Timer) start() {
 // It is equivalent to Del(0).
 func (t *Timer) expire() {
 	var (
-		err error
-		td  *TimerData
-		d   time.Duration
+		td *TimerData
+		d  time.Duration
 	)
 	t.lock.Lock()
 	for {
@@ -206,15 +204,13 @@ func (t *Timer) expire() {
 		if d = td.Delay(); d > 0 {
 			break
 		}
-		if td.Value == nil {
-			log.Warn("expire timer no io.Closer")
+		if td.fn == nil {
+			log.Warn("expire timer no fn")
 		} else {
 			if Debug {
-				log.Debug("timer key: %s, expire: %s, index: %d expired, call Close()", td.Key, td.ExpireString(), td.index)
+				log.Debug("timer key: %s, expire: %s, index: %d expired, call fn", td.Key, td.ExpireString(), td.index)
 			}
-			if err = td.Value.Close(); err != nil {
-				log.Error("timer close error(%v)", err)
-			}
+			td.fn()
 		}
 		// let caller put back
 		t.del(td)
@@ -257,7 +253,7 @@ func (t *Timer) down(i, n int) {
 }
 
 func (t *Timer) less(i, j int) bool {
-	return t.timers[i].Expire.Before(t.timers[j].Expire)
+	return t.timers[i].expire.Before(t.timers[j].expire)
 }
 
 func (t *Timer) swap(i, j int) {

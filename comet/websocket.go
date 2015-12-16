@@ -99,7 +99,9 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
 		ch  = NewChannel(server.Options.Proto, define.NoRoom)
 	)
 	// handshake
-	trd = tr.Add(server.Options.HandshakeTimeout, conn)
+	trd = tr.Add(server.Options.HandshakeTimeout, func() {
+		conn.Close()
+	})
 	if key, hb, err = server.authWebsocket(conn, ch); err == nil {
 		trd.Key = key
 		tr.Set(trd, hb)

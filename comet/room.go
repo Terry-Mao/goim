@@ -13,14 +13,6 @@ type RoomOptions struct {
 	SignalTime  time.Duration
 }
 
-type RoomSignal chan int
-
-// implement io.Closer
-func (r RoomSignal) Close() error {
-	r <- ProtoReady
-	return nil
-}
-
 type Room struct {
 	id      int32
 	rLock   sync.RWMutex
@@ -78,7 +70,9 @@ func (r *Room) push() {
 	if Debug {
 		log.Debug("start room: %d goroutine", r.id)
 	}
-	td = r.timer.Add(r.options.SignalTime, RoomSignal(r.signal))
+	td = r.timer.Add(r.options.SignalTime, func() {
+		r.signal <- ProtoReady
+	})
 	for {
 		if n > 0 {
 			if least = r.options.SignalTime - time.Now().Sub(last); least > 0 {

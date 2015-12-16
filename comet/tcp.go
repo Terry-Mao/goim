@@ -103,7 +103,9 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		p       = &ch.CliProto
 	)
 	// handshake
-	trd = tr.Add(server.Options.HandshakeTimeout, conn)
+	trd = tr.Add(server.Options.HandshakeTimeout, func() {
+		conn.Close()
+	})
 	if key, hb, err = server.authTCP(rr, wr, ch); err != nil {
 		log.Error("key: %s handshake failed error(%v)", key, err)
 		tr.Del(trd)
