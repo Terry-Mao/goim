@@ -13,32 +13,37 @@ const (
 
 type Ring struct {
 	// read
-	// rn int
-	rp int
-	// add data here split reade & write in one cacheline
-	data []Proto
-	num  int
-	mask int
+	rp   uint64
+	num  uint64
+	mask uint64
+	// TODO split cacheline, many cpu cache line size is 64
+	// pad [40]byte
 	// write
-	// wn int
-	wp int
+	wp   uint64
+	data []Proto
 }
 
 func NewRing(num int) *Ring {
 	r := new(Ring)
-	r.init(num)
+	r.init(uint64(num))
 	return r
 }
 
-func (r *Ring) init(num int) {
-	num = (num + 1) & ^1
+func (r *Ring) Init(num int) {
+	r.init(uint64(num))
+}
+
+func (r *Ring) init(num uint64) {
+	// 2^N
+	if num&(num-1) != 0 {
+		for num&(num-1) != 0 {
+			num &= (num - 1)
+		}
+		num = num << 1
+	}
 	r.data = make([]Proto, num)
 	r.num = num
 	r.mask = r.num - 1
-}
-
-func (r *Ring) Init(num int) {
-	r.init(num)
 }
 
 func (r *Ring) Get() (proto *Proto, err error) {
@@ -74,4 +79,6 @@ func (r *Ring) SetAdv() {
 func (r *Ring) Reset() {
 	r.rp = 0
 	r.wp = 0
+	// prevent pad compiler optimization
+	// r.pad = [40]byte{}
 }
