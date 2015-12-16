@@ -5,7 +5,7 @@ import (
 )
 
 func TestRing(t *testing.T) {
-	r := NewRing(3)
+	r := NewRing(3) // aligned to 4
 	p0, err := r.Set()
 	if err != nil {
 		t.Error(err)
@@ -28,7 +28,14 @@ func TestRing(t *testing.T) {
 	p2.SeqId = 12
 	r.SetAdv()
 	p3, err := r.Set()
-	if err != ErrRingFull || p3 != nil {
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	p3.SeqId = 13
+	r.SetAdv()
+	p4, err := r.Set()
+	if err != ErrRingFull || p4 != nil {
 		t.Error(err)
 		t.FailNow()
 	}
@@ -51,7 +58,13 @@ func TestRing(t *testing.T) {
 	}
 	r.GetAdv()
 	p3, err = r.Get()
-	if err != ErrRingEmpty || p3 != nil {
+	if err != nil && p3.SeqId != 13 {
+		t.Error(err)
+		t.FailNow()
+	}
+	r.GetAdv()
+	p4, err = r.Get()
+	if err != ErrRingEmpty || p4 != nil {
 		t.Error(err)
 		t.FailNow()
 	}
@@ -77,7 +90,13 @@ func TestRing(t *testing.T) {
 	p2.SeqId = 12
 	r.SetAdv()
 	p3, err = r.Set()
-	if err != ErrRingFull || p3 != nil {
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	r.SetAdv()
+	p4, err = r.Set()
+	if err != ErrRingFull || p4 != nil {
 		t.Error(err)
 		t.FailNow()
 	}
@@ -100,7 +119,13 @@ func TestRing(t *testing.T) {
 	}
 	r.GetAdv()
 	p3, err = r.Get()
-	if err != ErrRingEmpty || p3 != nil {
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	r.GetAdv()
+	p4, err = r.Get()
+	if err != ErrRingEmpty || p4 != nil {
 		t.Error(err)
 		t.FailNow()
 	}
