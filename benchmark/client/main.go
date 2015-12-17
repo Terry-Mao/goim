@@ -7,7 +7,6 @@ package main
 
 import (
 	"bufio"
-	log "code.google.com/p/log4go"
 	"encoding/binary"
 	"flag"
 	"fmt"
@@ -18,6 +17,8 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	log "code.google.com/p/log4go"
 )
 
 const (
@@ -93,7 +94,7 @@ func startClient(key string) {
 
 	conn, err := net.Dial("tcp", os.Args[3])
 	if err != nil {
-		log.Error("net.Dial(\"%s\") error(%v)", os.Args[2], err)
+		log.Error("net.Dial(\"%s\") error(%v)", os.Args[3], err)
 		return
 	}
 	seqId := int32(0)
