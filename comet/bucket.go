@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/Terry-Mao/goim/libs/define"
+	"github.com/Terry-Mao/goim/libs/time"
 	"sync"
 )
 
@@ -30,7 +31,7 @@ func NewBucket(boptions BucketOptions, roptions RoomOptions) (b *Bucket) {
 }
 
 // Put put a channel according with sub key.
-func (b *Bucket) Put(key string, ch *Channel, tr *Timer) {
+func (b *Bucket) Put(key string, ch *Channel, tr *time.Timer) {
 	var (
 		room *Room
 		ok   bool

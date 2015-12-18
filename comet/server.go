@@ -17,8 +17,6 @@ type ServerOptions struct {
 	TCPKeepalive     bool
 	TCPRcvbuf        int
 	TCPSndbuf        int
-	TCPReadBufSize   int
-	TCPWriteBufSize  int
 }
 
 type Server struct {

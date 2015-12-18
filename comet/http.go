@@ -5,6 +5,7 @@ import (
 	log "code.google.com/p/log4go"
 	"encoding/json"
 	"github.com/Terry-Mao/goim/libs/define"
+	itime "github.com/Terry-Mao/goim/libs/time"
 	"math/rand"
 	"net"
 	"net/http"
@@ -55,7 +56,7 @@ func serveHTTP(w http.ResponseWriter, r *http.Request) {
 	DefaultServer.serveHTTP(w, r, tr)
 }
 
-func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Timer) {
+func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *itime.Timer) {
 	var (
 		b    *Bucket
 		ok   bool
@@ -63,7 +64,7 @@ func (server *Server) serveHTTP(w http.ResponseWriter, r *http.Request, tr *Time
 		key  string
 		cb   string
 		err  error
-		trd  *TimerData
+		trd  *itime.TimerData
 		conn net.Conn
 		rwr  *bufio.ReadWriter
 		hj   http.Hijacker

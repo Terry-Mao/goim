@@ -1,4 +1,4 @@
-package main
+package time
 
 import (
 	log "code.google.com/p/log4go"

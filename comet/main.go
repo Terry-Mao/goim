@@ -40,7 +40,16 @@ func main() {
 			SignalTime:  Conf.RoomSignal,
 		})
 	}
-	round := NewRound(Conf.TCPReadBuf, Conf.TCPWriteBuf, Conf.Timer, Conf.TimerSize)
+	round := NewRound(RoundOptions{
+		Reader:       Conf.TCPReader,
+		ReadBuf:      Conf.TCPReadBuf,
+		ReadBufSize:  Conf.TCPReadBufSize,
+		Writer:       Conf.TCPWriter,
+		WriteBuf:     Conf.TCPWriteBuf,
+		WriteBufSize: Conf.TCPWriteBufSize,
+		Timer:        Conf.Timer,
+		TimerSize:    Conf.TimerSize,
+	})
 	operator := new(DefaultOperator)
 	DefaultServer = NewServer(buckets, round, operator, ServerOptions{
 		Proto:            Conf.Proto,
@@ -48,8 +57,6 @@ func main() {
 		TCPKeepalive:     Conf.TCPKeepalive,
 		TCPRcvbuf:        Conf.TCPRcvbuf,
 		TCPSndbuf:        Conf.TCPSndbuf,
-		TCPReadBufSize:   Conf.TCPReadBufSize,
-		TCPWriteBufSize:  Conf.TCPWriteBufSize,
 	})
 	// tcp comet
 	if err := InitTCP(Conf.TCPBind, Conf.MaxProc); err != nil {

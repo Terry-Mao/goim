@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Terry-Mao/goim/libs/bufio"
 	"sync"
 	"time"
 )
@@ -12,7 +13,8 @@ type Channel struct {
 	CliProto Proto
 	SvrProto Ring
 	cLock    sync.Mutex
-	Buf      [RawHeaderSize]byte
+	Writer   bufio.Writer
+	Reader   bufio.Reader
 }
 
 func NewChannel(proto int, rid int32) *Channel {
@@ -32,7 +34,9 @@ func (c *Channel) Reply(p *Proto) (err error) {
 		c.SvrProto.SetAdv()
 	}
 	c.cLock.Unlock()
-	c.Signal()
+	if err == nil {
+		c.Signal()
+	}
 	return
 }
 
@@ -47,7 +51,9 @@ func (c *Channel) Push(ver int16, operation int32, body []byte) (err error) {
 		c.SvrProto.SetAdv()
 	}
 	c.cLock.Unlock()
-	c.Signal()
+	if err == nil {
+		c.Signal()
+	}
 	return
 }
 

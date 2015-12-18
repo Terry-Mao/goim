@@ -48,9 +48,11 @@ type Config struct {
 	TCPSndbuf       int      `goconf:"tcp:sndbuf:memory"`
 	TCPRcvbuf       int      `goconf:"tcp:rcvbuf:memory"`
 	TCPKeepalive    bool     `goconf:"tcp:keepalive"`
+	TCPReader       int      `goconf:"tcp:reader"`
 	TCPReadBuf      int      `goconf:"tcp:readbuf"`
-	TCPWriteBuf     int      `goconf:"tcp:writebuf"`
 	TCPReadBufSize  int      `goconf:"tcp:readbuf.size"`
+	TCPWriter       int      `goconf:"tcp:writer"`
+	TCPWriteBuf     int      `goconf:"tcp:writebuf"`
 	TCPWriteBufSize int      `goconf:"tcp:writebuf.size"`
 	// websocket
 	WebsocketBind        []string `goconf:"websocket:bind:,"`
