@@ -14,14 +14,14 @@
 * 推送到达: 2,440万/秒左右
 * 推送内容: {"test":1}
 * 推送类型: 单房间推送
-* 到达收集方式: 30秒统计一次平均每秒到达,共30次统计
+* 到达计算方式: 30秒统计一次,共30次
 
 <h4>资源使用</h4>
 
 * 每台服务端CPU使用: 1400%~2340%左右(刚好满负载)
 * 每台服务端内存使用: 4.22GB左右
 * GC耗时: 77毫秒左右
-* 流量使用: Incoming(302MBit左右), Outgoing(3.19GBit左右)
+* 流量使用: Incoming(302MBit/s), Outgoing(3.19GBit/s)
 
 ## comet模块
 ![benchmark-comet](benchmark-comet.png)
