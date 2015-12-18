@@ -2,6 +2,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	itime "github.com/Terry-Mao/goim/libs/time"
 	"sync"
 	"time"
 )
@@ -19,13 +20,13 @@ type Room struct {
 	proto   Ring
 	signal  chan int
 	chs     map[*Channel]struct{} // map room id with channels
-	timer   *Timer
+	timer   *itime.Timer
 	sigTime time.Duration
 	options RoomOptions
 }
 
 // NewRoom new a room struct, store channel room info.
-func NewRoom(id int32, t *Timer, options RoomOptions) (r *Room) {
+func NewRoom(id int32, t *itime.Timer, options RoomOptions) (r *Room) {
 	r = new(Room)
 	r.id = id
 	r.options = options
@@ -61,7 +62,7 @@ func (r *Room) push() {
 		p     *Proto
 		ch    *Channel
 		last  time.Time
-		td    *TimerData
+		td    *itime.TimerData
 		least time.Duration
 		vers  = make([]int32, r.options.BatchNum)
 		ops   = make([]int32, r.options.BatchNum)

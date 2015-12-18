@@ -1,12 +1,13 @@
 package main
 
 import (
-	"bufio"
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/libs/bufio"
+	"github.com/Terry-Mao/goim/libs/bytes"
 	"github.com/Terry-Mao/goim/libs/define"
 	"github.com/Terry-Mao/goim/libs/encoding/binary"
+	itime "github.com/Terry-Mao/goim/libs/time"
 	"net"
-	"sync"
 	"time"
 )
 
@@ -73,14 +74,10 @@ func acceptTCP(server *Server, lis *net.TCPListener) {
 
 func serveTCP(server *Server, conn *net.TCPConn, r int) {
 	var (
-		// bufpool
-		rrp = server.round.Reader(r) // reader
-		wrp = server.round.Writer(r) // writer
 		// timer
 		tr = server.round.Timer(r)
-		// buf
-		rr = NewBufioReaderSize(rrp, conn, server.Options.TCPReadBufSize)  // reader buf
-		wr = NewBufioWriterSize(wrp, conn, server.Options.TCPWriteBufSize) // writer buf
+		rp = server.round.Reader(r)
+		wp = server.round.Writer(r)
 		// ip addr
 		lAddr = conn.LocalAddr().String()
 		rAddr = conn.RemoteAddr().String()
@@ -88,30 +85,36 @@ func serveTCP(server *Server, conn *net.TCPConn, r int) {
 	if Debug {
 		log.Debug("start tcp serve \"%s\" with \"%s\"", lAddr, rAddr)
 	}
-	server.serveTCP(conn, rrp, wrp, rr, wr, tr)
+	server.serveTCP(conn, rp, wp, tr)
 }
 
-func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio.Reader, wr *bufio.Writer, tr *Timer) {
+func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.Timer) {
 	var (
 		b       *Bucket
 		key     string
 		hb      time.Duration // heartbeat
 		bodyLen int
 		err     error
-		trd     *TimerData
+		trd     *itime.TimerData
+		rb      = rp.Get()
+		wb      = wp.Get()
 		ch      = NewChannel(server.Options.Proto, define.NoRoom)
+		rr      = &ch.Reader
+		wr      = &ch.Writer
 		p       = &ch.CliProto
 	)
+	ch.Reader.ResetBuffer(conn, rb.Bytes())
+	ch.Writer.ResetBuffer(conn, wb.Bytes())
 	// handshake
 	trd = tr.Add(server.Options.HandshakeTimeout, func() {
 		conn.Close()
 	})
-	if key, hb, err = server.authTCP(rr, wr, ch); err != nil {
-		log.Error("key: %s handshake failed error(%v)", key, err)
-		tr.Del(trd)
+	if key, ch.RoomId, hb, err = server.authTCP(rr, wr, p); err != nil {
 		conn.Close()
-		PutBufioReader(rrp, rr)
-		PutBufioWriter(wrp, wr)
+		rp.Put(rb)
+		wp.Put(wb)
+		tr.Del(trd)
+		log.Error("key: %s handshake failed error(%v)", key, err)
 		return
 	}
 	trd.Key = key
@@ -119,7 +122,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 	b = server.Bucket(key)
 	b.Put(key, ch, tr)
 	// hanshake ok start dispatch goroutine
-	go server.dispatchTCP(key, conn, wrp, wr, ch)
+	go server.dispatchTCP(key, conn, wr, wp, wb, ch)
 	for {
 		if bodyLen, err = server.readTCPRequest(rr, p); err != nil {
 			break
@@ -144,11 +147,11 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 		}
 	}
 	log.Error("key: %s server tcp failed error(%v)", key, err)
-	tr.Del(trd)
 	conn.Close()
-	PutBufioReader(rrp, rr)
-	b.Del(key)
 	ch.Close()
+	rp.Put(rb)
+	b.Del(key)
+	tr.Del(trd)
 	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("key: %s operator do disconnect error(%v)", key, err)
 	}
@@ -161,7 +164,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rrp, wrp *sync.Pool, rr *bufio
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wrp *sync.Pool, wr *bufio.Writer, ch *Channel) {
+func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool, wb *bytes.Buffer, ch *Channel) {
 	var (
 		p   *Proto
 		err error
@@ -184,7 +187,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wrp *sync.Pool,
 				break
 			}
 			// just forward the message
-			if err = server.writeTCPResponse(wr, p, ch.Buf[:]); err != nil {
+			if err = server.writeTCPResponse(wr, p); err != nil {
 				break
 			}
 			ch.SvrProto.GetAdv()
@@ -198,9 +201,8 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wrp *sync.Pool,
 		}
 	}
 	log.Error("key: %s dispatch tcp error(%v)", key, err)
-	// wake reader up
 	conn.Close()
-	PutBufioWriter(wrp, wr)
+	wp.Put(wb)
 	if Debug {
 		log.Debug("key: %s dispatch goroutine exit", key)
 	}
@@ -208,10 +210,9 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wrp *sync.Pool,
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (key string, heartbeat time.Duration, err error) {
+func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	var (
 		bodyLen int
-		p       = &ch.CliProto
 	)
 	if bodyLen, err = server.readTCPRequest(rr, p); err != nil {
 		return
@@ -221,12 +222,12 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, ch *Channel) (
 		err = ErrOperation
 		return
 	}
-	if key, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
+	if key, rid, heartbeat, err = server.operator.Connect(p); err != nil {
 		return
 	}
 	p.Body = nil
 	p.Operation = define.OP_AUTH_REPLY
-	if err = server.writeTCPResponse(wr, p, ch.Buf[:]); err != nil {
+	if err = server.writeTCPResponse(wr, p); err != nil {
 		return
 	}
 	if err = wr.Flush(); err != nil {
@@ -271,21 +272,24 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (bodyLen int, e
 }
 
 // sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) writeTCPResponse(wr *bufio.Writer, p *Proto, buf []byte) (err error) {
-	var packLen int32
+func (server *Server) writeTCPResponse(wr *bufio.Writer, p *Proto) (err error) {
+	var (
+		buf     []byte
+		packLen int32
+	)
+	if buf, err = wr.Peek(RawHeaderSize); err != nil {
+		return
+	}
 	packLen = RawHeaderSize + int32(len(p.Body))
 	p.HeaderLen = RawHeaderSize
-	// if no available memory bufio.Writer auth flush response
 	binary.BigEndian.PutInt32(buf[PackOffset:], packLen)
 	binary.BigEndian.PutInt16(buf[HeaderOffset:], p.HeaderLen)
 	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)
 	binary.BigEndian.PutInt32(buf[OperationOffset:], p.Operation)
 	binary.BigEndian.PutInt32(buf[SeqIdOffset:], p.SeqId)
-	// TODO if has writev no need lock, cause write is atomic
-	if _, err = wr.Write(buf); err == nil {
-		if p.Body != nil {
-			_, err = wr.Write(p.Body)
-		}
+	// TODO writev
+	if p.Body != nil {
+		_, err = wr.Write(p.Body)
 	}
 	if Debug {
 		log.Debug("write proto: %v", p)

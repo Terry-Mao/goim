@@ -4,6 +4,7 @@ import (
 	log "code.google.com/p/log4go"
 	"crypto/tls"
 	"github.com/Terry-Mao/goim/libs/define"
+	itime "github.com/Terry-Mao/goim/libs/time"
 	"golang.org/x/net/websocket"
 	"math/rand"
 	"net"
@@ -88,14 +89,14 @@ func serveWebsocket(conn *websocket.Conn) {
 	DefaultServer.serveWebsocket(conn, tr)
 }
 
-func (server *Server) serveWebsocket(conn *websocket.Conn, tr *Timer) {
+func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	var (
 		p   *Proto
 		b   *Bucket
 		hb  time.Duration // heartbeat
 		key string
 		err error
-		trd *TimerData
+		trd *itime.TimerData
 		ch  = NewChannel(server.Options.Proto, define.NoRoom)
 	)
 	// handshake
