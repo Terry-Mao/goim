@@ -35,7 +35,7 @@ iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 
 ## Benchmark
 
-![benchmark](https://github.com/Terry-Mao/goim/blob/master/doc/benchmark.png)
+![benchmark](./doc/benchmark.jpg)
 
 ### Benchmark Server
 
