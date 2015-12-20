@@ -250,7 +250,7 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (bodyLen int, e
 	p.HeaderLen = binary.BigEndian.Int16(buf[HeaderOffset:VerOffset])
 	p.Ver = binary.BigEndian.Int16(buf[VerOffset:OperationOffset])
 	p.Operation = binary.BigEndian.Int32(buf[OperationOffset:SeqIdOffset])
-	p.SeqId = binary.BigEndian.Int32(buf[SeqIdOffset:EndOffset])
+	p.SeqId = binary.BigEndian.Int32(buf[SeqIdOffset:])
 	if _, err = rr.Discard(RawHeaderSize); err != nil {
 		return
 	}
@@ -277,11 +277,11 @@ func (server *Server) writeTCPResponse(wr *bufio.Writer, p *Proto) (err error) {
 		buf     []byte
 		packLen int32
 	)
+	packLen = RawHeaderSize + int32(len(p.Body))
+	p.HeaderLen = RawHeaderSize
 	if buf, err = wr.Peek(RawHeaderSize); err != nil {
 		return
 	}
-	packLen = RawHeaderSize + int32(len(p.Body))
-	p.HeaderLen = RawHeaderSize
 	binary.BigEndian.PutInt32(buf[PackOffset:], packLen)
 	binary.BigEndian.PutInt16(buf[HeaderOffset:], p.HeaderLen)
 	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)

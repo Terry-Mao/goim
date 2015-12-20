@@ -25,7 +25,6 @@ const (
 	VerOffset       = HeaderOffset + HeaderSize
 	OperationOffset = VerOffset + VerSize
 	SeqIdOffset     = OperationOffset + OperationSize
-	EndOffset       = SeqIdOffset + SeqIdSize
 )
 
 var (
