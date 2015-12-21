@@ -90,18 +90,17 @@ func serveTCP(server *Server, conn *net.TCPConn, r int) {
 
 func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.Timer) {
 	var (
-		b       *Bucket
-		key     string
-		hb      time.Duration // heartbeat
-		bodyLen int
-		err     error
-		trd     *itime.TimerData
-		rb      = rp.Get()
-		wb      = wp.Get()
-		ch      = NewChannel(server.Options.Proto, define.NoRoom)
-		rr      = &ch.Reader
-		wr      = &ch.Writer
-		p       = &ch.CliProto
+		b   *Bucket
+		key string
+		hb  time.Duration // heartbeat
+		err error
+		trd *itime.TimerData
+		rb  = rp.Get()
+		wb  = wp.Get()
+		ch  = NewChannel(server.Options.Proto, define.NoRoom)
+		rr  = &ch.Reader
+		wr  = &ch.Writer
+		p   = &ch.CliProto
 	)
 	ch.Reader.ResetBuffer(conn, rb.Bytes())
 	ch.Writer.ResetBuffer(conn, wb.Bytes())
@@ -124,7 +123,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	// hanshake ok start dispatch goroutine
 	go server.dispatchTCP(key, conn, wr, wp, wb, ch)
 	for {
-		if bodyLen, err = server.readTCPRequest(rr, p); err != nil {
+		if err = server.readTCPRequest(rr, p); err != nil {
 			break
 		}
 		if p.Operation == define.OP_HEARTBEAT {
@@ -140,9 +139,6 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 			}
 		}
 		if err = ch.Reply(p); err != nil {
-			break
-		}
-		if _, err = rr.Discard(bodyLen); err != nil {
 			break
 		}
 	}
@@ -211,10 +207,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 
 // auth for goim handshake with client, use rsa & aes.
 func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
-	var (
-		bodyLen int
-	)
-	if bodyLen, err = server.readTCPRequest(rr, p); err != nil {
+	if err = server.readTCPRequest(rr, p); err != nil {
 		return
 	}
 	if p.Operation != define.OP_AUTH {
@@ -233,17 +226,17 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *Proto) (key
 	if err = wr.Flush(); err != nil {
 		return
 	}
-	_, err = rr.Discard(bodyLen)
 	return
 }
 
 // readRequest
-func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (bodyLen int, err error) {
+func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (err error) {
 	var (
+		bodyLen int
 		packLen int32
 		buf     []byte
 	)
-	if buf, err = rr.Peek(RawHeaderSize); err != nil {
+	if buf, err = rr.Pop(RawHeaderSize); err != nil {
 		return
 	}
 	packLen = binary.BigEndian.Int32(buf[PackOffset:HeaderOffset])
@@ -251,17 +244,14 @@ func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (bodyLen int, e
 	p.Ver = binary.BigEndian.Int16(buf[VerOffset:OperationOffset])
 	p.Operation = binary.BigEndian.Int32(buf[OperationOffset:SeqIdOffset])
 	p.SeqId = binary.BigEndian.Int32(buf[SeqIdOffset:])
-	if _, err = rr.Discard(RawHeaderSize); err != nil {
-		return
-	}
 	if packLen > MaxPackSize {
-		return 0, ErrProtoPackLen
+		return ErrProtoPackLen
 	}
 	if p.HeaderLen != RawHeaderSize {
-		return 0, ErrProtoHeaderLen
+		return ErrProtoHeaderLen
 	}
 	if bodyLen = int(packLen - int32(p.HeaderLen)); bodyLen > 0 {
-		p.Body, err = rr.Peek(bodyLen)
+		p.Body, err = rr.Pop(bodyLen)
 	} else {
 		p.Body = nil
 	}
@@ -287,7 +277,6 @@ func (server *Server) writeTCPResponse(wr *bufio.Writer, p *Proto) (err error) {
 	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)
 	binary.BigEndian.PutInt32(buf[OperationOffset:], p.Operation)
 	binary.BigEndian.PutInt32(buf[SeqIdOffset:], p.SeqId)
-	// TODO writev
 	if p.Body != nil {
 		_, err = wr.Write(p.Body)
 	}
