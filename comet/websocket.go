@@ -51,8 +51,7 @@ func InitWebsocketWithTLS(addrs []string, cert, priv string) (err error) {
 	httpServeMux.Handle("/sub", websocket.Handler(serveWebsocket))
 	config := &tls.Config{}
 	config.Certificates = make([]tls.Certificate, 1)
-	config.Certificates[0], err = tls.LoadX509KeyPair(cert, priv)
-	if err != nil {
+	if config.Certificates[0], err = tls.LoadX509KeyPair(cert, priv); err != nil {
 		return
 	}
 	for _, bind := range addrs {
@@ -91,19 +90,19 @@ func serveWebsocket(conn *websocket.Conn) {
 
 func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	var (
-		p   *Proto
 		b   *Bucket
 		hb  time.Duration // heartbeat
 		key string
 		err error
 		trd *itime.TimerData
 		ch  = NewChannel(server.Options.Proto, define.NoRoom)
+		p   = &ch.CliProto
 	)
 	// handshake
 	trd = tr.Add(server.Options.HandshakeTimeout, func() {
 		conn.Close()
 	})
-	if key, hb, err = server.authWebsocket(conn, ch); err == nil {
+	if key, ch.RoomId, hb, err = server.authWebsocket(conn, p); err == nil {
 		trd.Key = key
 		tr.Set(trd, hb)
 	}
@@ -117,7 +116,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	b = server.Bucket(key)
 	b.Put(key, ch, tr)
 	// hanshake ok start dispatch goroutine
-	go server.dispatchWebsocket(conn, ch)
+	go server.dispatchWebsocket(key, conn, ch)
 	for {
 		// parse request protocol
 		if err = server.readWebsocketRequest(conn, p); err != nil {
@@ -153,7 +152,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 // dispatch accepts connections on the listener and serves requests
 // for each incoming connection.  dispatch blocks; the caller typically
 // invokes it in a go statement.
-func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel) {
+func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Channel) {
 	var (
 		p   *Proto
 		err error
@@ -163,12 +162,16 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel) {
 	}
 	for {
 		if !ch.Ready() {
-			goto failed
+			if Debug {
+				log.Debug("key: %s wakeup exit dispatch goroutine", key)
+			}
+			break
 		}
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
 				log.Warn("ch.SvrProto.Get() error(%v)", err)
+				err = nil
 				break
 			}
 			// just forward the message
@@ -180,7 +183,7 @@ func (server *Server) dispatchWebsocket(conn *websocket.Conn, ch *Channel) {
 		}
 	}
 failed:
-	// wake reader up
+	log.Error("key: %s dispatch websocket error(%v)", key, err)
 	if err = conn.Close(); err != nil {
 		log.Warn("conn.Close() error(%v)", err)
 	}
@@ -190,8 +193,7 @@ failed:
 	return
 }
 
-func (server *Server) authWebsocket(conn *websocket.Conn, ch *Channel) (key string, heartbeat time.Duration, err error) {
-	var p = &ch.CliProto
+func (server *Server) authWebsocket(conn *websocket.Conn, p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	if err = server.readWebsocketRequest(conn, p); err != nil {
 		return
 	}
@@ -199,7 +201,7 @@ func (server *Server) authWebsocket(conn *websocket.Conn, ch *Channel) (key stri
 		err = ErrOperation
 		return
 	}
-	if key, ch.RoomId, heartbeat, err = server.operator.Connect(p); err != nil {
+	if key, rid, heartbeat, err = server.operator.Connect(p); err != nil {
 		return
 	}
 	p.Body = nil
@@ -209,7 +211,6 @@ func (server *Server) authWebsocket(conn *websocket.Conn, ch *Channel) (key stri
 }
 
 func (server *Server) readWebsocketRequest(conn *websocket.Conn, p *Proto) (err error) {
-	p.Reset()
 	err = websocket.JSON.Receive(conn, p)
 	return
 }

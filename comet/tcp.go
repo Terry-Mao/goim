@@ -184,18 +184,16 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 			}
 			// just forward the message
 			if err = server.writeTCPResponse(wr, p); err != nil {
-				break
+				goto failed
 			}
 			ch.SvrProto.GetAdv()
-		}
-		if err != nil {
-			break
 		}
 		// only hungry flush response
 		if err = wr.Flush(); err != nil {
 			break
 		}
 	}
+failed:
 	log.Error("key: %s dispatch tcp error(%v)", key, err)
 	conn.Close()
 	wp.Put(wb)
