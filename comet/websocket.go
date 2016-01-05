@@ -107,9 +107,9 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		tr.Set(trd, hb)
 	}
 	if err != nil {
-		log.Error("handshake failed error(%v)", err)
 		tr.Del(trd)
 		conn.Close()
+		log.Error("handshake failed error(%v)", err)
 		return
 	}
 	// register key->channel
@@ -137,14 +137,15 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 			break
 		}
 	}
+	log.Error("key: %s server websocket failed error(%v)", key, err)
 	conn.Close()
 	ch.Close()
 	b.Del(key)
 	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
-		log.Error("%s operator do disconnect error(%v)", key, err)
+		log.Error("key: %s operator do disconnect error(%v)", key, err)
 	}
 	if Debug {
-		log.Debug("%s serverconn goroutine exit", key)
+		log.Debug("key: %s server websocket goroutine exit", key)
 	}
 	return
 }
@@ -158,7 +159,7 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 		err error
 	)
 	if Debug {
-		log.Debug("start dispatch goroutine")
+		log.Debug("key: %s start dispatch websocket goroutine", key)
 	}
 	for {
 		if !ch.Ready() {
@@ -189,7 +190,7 @@ failed:
 		log.Warn("conn.Close() error(%v)", err)
 	}
 	if Debug {
-		log.Debug("dispatch goroutine exit")
+		log.Debug("key: %s dispatch goroutine exit", key)
 	}
 	return
 }
