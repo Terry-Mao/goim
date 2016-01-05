@@ -179,6 +179,7 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 				log.Error("server.sendTCPResponse() error(%v)", err)
 				goto failed
 			}
+			p.Body = nil // avoid memory leak
 			ch.SvrProto.GetAdv()
 		}
 	}

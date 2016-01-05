@@ -187,6 +187,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 			if err = server.writeTCPResponse(wr, p); err != nil {
 				goto failed
 			}
+			p.Body = nil // avoid memory leak
 			ch.SvrProto.GetAdv()
 		}
 		// only hungry flush response
