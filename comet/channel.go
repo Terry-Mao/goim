@@ -26,11 +26,11 @@ func NewChannel(proto int, rid int32) *Channel {
 }
 
 // Reply server reply message.
-func (c *Channel) Reply(p *Proto) (err error) {
+func (c *Channel) Reply() (err error) {
 	var proto *Proto
 	c.cLock.Lock()
 	if proto, err = c.SvrProto.Set(); err == nil {
-		*proto = *p
+		*proto = c.CliProto
 		c.SvrProto.SetAdv()
 	}
 	c.cLock.Unlock()

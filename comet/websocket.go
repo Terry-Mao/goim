@@ -133,7 +133,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 				break
 			}
 		}
-		if err = ch.Reply(p); err != nil {
+		if err = ch.Reply(); err != nil {
 			break
 		}
 	}

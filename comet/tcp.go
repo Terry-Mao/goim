@@ -88,6 +88,7 @@ func serveTCP(server *Server, conn *net.TCPConn, r int) {
 	server.serveTCP(conn, rp, wp, tr)
 }
 
+// TODO linger close?
 func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.Timer) {
 	var (
 		b   *Bucket
@@ -138,7 +139,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 				break
 			}
 		}
-		if err = ch.Reply(p); err != nil {
+		if err = ch.Reply(); err != nil {
 			break
 		}
 	}
@@ -221,9 +222,7 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *Proto) (key
 	if err = server.writeTCPResponse(wr, p); err != nil {
 		return
 	}
-	if err = wr.Flush(); err != nil {
-		return
-	}
+	err = wr.Flush()
 	return
 }
 
