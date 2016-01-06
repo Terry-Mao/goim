@@ -35,7 +35,6 @@ func main() {
 			RoomSize:    Conf.BucketRoom,
 		}, RoomOptions{
 			ChannelSize: Conf.RoomChannel,
-			ProtoSize:   Conf.RoomProto,
 			BatchNum:    Conf.RoomBatch,
 			SignalTime:  Conf.RoomSignal,
 		})

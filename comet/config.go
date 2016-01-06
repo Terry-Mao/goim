@@ -75,7 +75,6 @@ type Config struct {
 	BucketRoom    int `goconf:"bucket:room"`
 	// room
 	RoomChannel int           `goconf:"room:channel"`
-	RoomProto   int           `goconf:"room:proto"`
 	RoomBatch   int           `goconf:"room:batch"`
 	RoomSignal  time.Duration `goconf:"room:signal:time"`
 	// push
