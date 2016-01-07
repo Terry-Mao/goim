@@ -61,10 +61,10 @@ func (r *Room) Del(ch *Channel) {
 func (r *Room) push(timer *itime.Timer, batch int, sigTime time.Duration) {
 	var (
 		done  bool
-		ch    *Channel
 		last  time.Time
-		td    *itime.TimerData
 		least time.Duration
+		ch    *Channel
+		td    *itime.TimerData
 	)
 	if Debug {
 		log.Debug("start room: %d goroutine", r.id)
@@ -103,6 +103,7 @@ func (r *Room) push(timer *itime.Timer, batch int, sigTime time.Duration) {
 		r.n = 0
 		r.rLock.RUnlock()
 		done = false
+		ch = nil // avoid gc memory leak
 	}
 	timer.Del(td)
 	if Debug {
