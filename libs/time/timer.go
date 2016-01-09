@@ -9,7 +9,6 @@ import (
 const (
 	timerFormat      = "2006-01-02 15:04:05"
 	infiniteDuration = itime.Duration(1<<63 - 1)
-	timerBatchExpire = 1000
 )
 
 var (
@@ -188,7 +187,7 @@ func (t *Timer) start() {
 // It is equivalent to Del(0).
 func (t *Timer) expire() {
 	var (
-		i  int
+		fn func()
 		td *TimerData
 		d  itime.Duration
 	)
@@ -205,19 +204,19 @@ func (t *Timer) expire() {
 		if d = td.Delay(); d > 0 {
 			break
 		}
-		if td.fn == nil {
+		fn = td.fn
+		// let caller put back
+		t.del(td)
+		t.lock.Unlock()
+		if fn == nil {
 			log.Warn("expire timer no fn")
 		} else {
 			if Debug {
 				log.Debug("timer key: %s, expire: %s, index: %d expired, call fn", td.Key, td.ExpireString(), td.index)
 			}
-			td.fn()
+			fn()
 		}
-		// let caller put back
-		t.del(td)
-		if i++; i >= timerBatchExpire {
-			break
-		}
+		t.lock.Lock()
 	}
 	t.signal.Reset(d)
 	if Debug {
