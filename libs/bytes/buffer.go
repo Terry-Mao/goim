@@ -62,6 +62,7 @@ func (p *Pool) grow() {
 		b = b.next
 	}
 	b.buf = buf[(i-1)*p.size : i*p.size]
+	b.next = nil
 	return
 }
 
