@@ -75,6 +75,7 @@ func (t *Timer) grow() {
 		td.next = &(tds[i])
 		td = td.next
 	}
+	td.next = nil
 	return
 }
 
