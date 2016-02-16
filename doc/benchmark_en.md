@@ -21,7 +21,7 @@
 * Network: Incoming(302MBit/s), Outgoing(3.19GBit/s)
 
 ### Benchmark Result
-* Received: 2,440,000/s, 12,200,000/s per server.
+* Received: 24,400,000/s, 12,200,000/s per server.
 
 ## Comet
 ![benchmark-comet](benchmark-comet.png)

@@ -9,32 +9,36 @@ import (
 
 type RoomOptions struct {
 	ChannelSize int
-	ProtoSize   int
 	BatchNum    int
 	SignalTime  time.Duration
 }
 
 type Room struct {
-	id      int32
-	rLock   sync.RWMutex
-	proto   Ring
-	signal  chan int
-	chs     map[*Channel]struct{} // map room id with channels
-	timer   *itime.Timer
-	sigTime time.Duration
-	options RoomOptions
+	id     int32
+	rLock  sync.RWMutex
+	signal chan int
+	// TODO use double-linked list
+	chs map[*Channel]struct{} // map room id with channels
+	// buffer msg
+	mn   int
+	n    int
+	vers []int32
+	ops  []int32
+	msgs [][]byte
 }
 
 // NewRoom new a room struct, store channel room info.
 func NewRoom(id int32, t *itime.Timer, options RoomOptions) (r *Room) {
 	r = new(Room)
 	r.id = id
-	r.options = options
-	r.proto.Init(options.ProtoSize)
 	r.signal = make(chan int, SignalNum)
 	r.chs = make(map[*Channel]struct{}, options.ChannelSize)
-	r.timer = t
-	go r.push()
+	r.n = 0
+	r.mn = options.BatchNum
+	r.vers = make([]int32, options.BatchNum)
+	r.ops = make([]int32, options.BatchNum)
+	r.msgs = make([][]byte, options.BatchNum)
+	go r.push(t, options.BatchNum, options.SignalTime)
 	return
 }
 
@@ -54,31 +58,29 @@ func (r *Room) Del(ch *Channel) {
 }
 
 // push merge proto and push msgs in batch.
-func (r *Room) push() {
+func (r *Room) push(timer *itime.Timer, batch int, sigTime time.Duration) {
 	var (
-		n     int
 		done  bool
-		err   error
-		p     *Proto
-		ch    *Channel
 		last  time.Time
-		td    *itime.TimerData
 		least time.Duration
-		vers  = make([]int32, r.options.BatchNum)
-		ops   = make([]int32, r.options.BatchNum)
-		msgs  = make([][]byte, r.options.BatchNum)
+		ch    *Channel
+		td    *itime.TimerData
 	)
 	if Debug {
 		log.Debug("start room: %d goroutine", r.id)
 	}
-	td = r.timer.Add(r.options.SignalTime, func() {
-		r.signal <- ProtoReady
+	td = timer.Add(sigTime, func() {
+		select {
+		case r.signal <- ProtoReady:
+		default:
+		}
 	})
 	for {
-		if n > 0 {
-			if least = r.options.SignalTime - time.Now().Sub(last); least > 0 {
-				r.timer.Set(td, least)
+		if r.n > 0 {
+			if least = sigTime - time.Now().Sub(last); least > 0 {
+				timer.Set(td, least)
 			} else {
+				// timeout
 				done = true
 			}
 		} else {
@@ -88,39 +90,22 @@ func (r *Room) push() {
 			if <-r.signal != ProtoReady {
 				break
 			}
-		}
-		// merge msgs
-		for {
-			if n >= r.options.BatchNum {
-				// msgs full
-				done = true
-				break
+			// try merge msg hard
+			if r.n < batch {
+				continue
 			}
-			if p, err = r.proto.Get(); err != nil {
-				// must be empty error
-				break
-			}
-			vers[n] = int32(p.Ver)
-			ops[n] = p.Operation
-			msgs[n] = p.Body
-			n++
-			r.proto.GetAdv()
 		}
-		if !done {
-			continue
+		r.rLock.RLock()
+		for ch, _ = range r.chs {
+			ch.Pushs(r.vers[:r.n], r.ops[:r.n], r.msgs[:r.n])
 		}
-		if n > 0 {
-			r.rLock.RLock()
-			for ch, _ = range r.chs {
-				// ignore error
-				ch.Pushs(vers[:n], ops[:n], msgs[:n])
-			}
-			r.rLock.RUnlock()
-			n = 0
-		}
+		// r.n set here and Push, so RLock is exclusive with Lock
+		r.n = 0
+		r.rLock.RUnlock()
 		done = false
+		ch = nil // avoid gc memory leak
 	}
-	r.timer.Del(td)
+	timer.Del(td)
 	if Debug {
 		log.Debug("room: %d goroutine exit", r.id)
 	}
@@ -128,13 +113,12 @@ func (r *Room) push() {
 
 // Push push msg to the room.
 func (r *Room) Push(ver int16, operation int32, msg []byte) (err error) {
-	var proto *Proto
 	r.rLock.Lock()
-	if proto, err = r.proto.Set(); err == nil {
-		proto.Ver = ver
-		proto.Operation = operation
-		proto.Body = msg
-		r.proto.SetAdv()
+	if r.n < r.mn {
+		r.vers[r.n] = int32(ver)
+		r.ops[r.n] = operation
+		r.msgs[r.n] = msg
+		r.n++
 	}
 	r.rLock.Unlock()
 	select {

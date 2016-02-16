@@ -144,6 +144,19 @@ func (b *Reader) Peek(n int) ([]byte, error) {
 	return b.buf[b.r : b.r+n], err
 }
 
+// Pop returns the next n bytes with advancing the reader. The bytes stop
+// being valid at the next read call. If Pop returns fewer than n bytes, it
+// also returns an error explaining why the read is short. The error is
+// ErrBufferFull if n is larger than b's buffer size.
+func (b *Reader) Pop(n int) ([]byte, error) {
+	if d, err := b.Peek(n); err == nil {
+		b.r += n
+		return d, err
+	} else {
+		return nil, err
+	}
+}
+
 // Discard skips the next n bytes, returning the number of bytes discarded.
 //
 // If Discard skips fewer than n bytes, it also returns an error.
