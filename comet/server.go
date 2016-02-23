@@ -12,7 +12,8 @@ var (
 )
 
 type ServerOptions struct {
-	Proto            int
+	CliProto         int
+	SvrProto         int
 	HandshakeTimeout time.Duration
 	TCPKeepalive     bool
 	TCPRcvbuf        int

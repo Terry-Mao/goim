@@ -90,35 +90,38 @@ func serveWebsocket(conn *websocket.Conn) {
 
 func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	var (
-		b   *Bucket
-		hb  time.Duration // heartbeat
-		key string
 		err error
+		key string
+		hb  time.Duration // heartbeat
+		p   *Proto
+		b   *Bucket
 		trd *itime.TimerData
-		ch  = NewChannel(server.Options.Proto, define.NoRoom)
-		p   = &ch.CliProto
+		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
 	)
 	// handshake
 	trd = tr.Add(server.Options.HandshakeTimeout, func() {
 		conn.Close()
 	})
-	if key, ch.RoomId, hb, err = server.authWebsocket(conn, p); err == nil {
-		trd.Key = key
-		tr.Set(trd, hb)
+	// must not setadv, only used in auth
+	if p, err = ch.CliProto.Set(); err == nil {
+		key, ch.RoomId, hb, err = server.authWebsocket(conn, p)
 	}
 	if err != nil {
-		tr.Del(trd)
 		conn.Close()
+		tr.Del(trd)
 		log.Error("handshake failed error(%v)", err)
 		return
 	}
-	// register key->channel
+	trd.Key = key
+	tr.Set(trd, hb)
 	b = server.Bucket(key)
 	b.Put(key, ch, tr)
 	// hanshake ok start dispatch goroutine
 	go server.dispatchWebsocket(key, conn, ch)
 	for {
-		// parse request protocol
+		if p, err = ch.CliProto.Set(); err != nil {
+			break
+		}
 		if err = server.readWebsocketRequest(conn, p); err != nil {
 			break
 		}
@@ -133,9 +136,8 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 				break
 			}
 		}
-		if err = ch.Reply(); err != nil {
-			break
-		}
+		ch.CliProto.SetAdv()
+		ch.Signal()
 	}
 	log.Error("key: %s server websocket failed error(%v)", key, err)
 	conn.Close()

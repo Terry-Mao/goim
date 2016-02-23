@@ -91,17 +91,17 @@ func serveTCP(server *Server, conn *net.TCPConn, r int) {
 // TODO linger close?
 func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.Timer) {
 	var (
-		b   *Bucket
+		err error
 		key string
 		hb  time.Duration // heartbeat
-		err error
+		p   *Proto
+		b   *Bucket
 		trd *itime.TimerData
 		rb  = rp.Get()
 		wb  = wp.Get()
-		ch  = NewChannel(server.Options.Proto, define.NoRoom)
+		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
 		rr  = &ch.Reader
 		wr  = &ch.Writer
-		p   = &ch.CliProto
 	)
 	ch.Reader.ResetBuffer(conn, rb.Bytes())
 	ch.Writer.ResetBuffer(conn, wb.Bytes())
@@ -109,7 +109,11 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	trd = tr.Add(server.Options.HandshakeTimeout, func() {
 		conn.Close()
 	})
-	if key, ch.RoomId, hb, err = server.authTCP(rr, wr, p); err != nil {
+	// must not setadv, only used in auth
+	if p, err = ch.CliProto.Set(); err == nil {
+		key, ch.RoomId, hb, err = server.authTCP(rr, wr, p)
+	}
+	if err != nil {
 		conn.Close()
 		rp.Put(rb)
 		wp.Put(wb)
@@ -124,6 +128,9 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	// hanshake ok start dispatch goroutine
 	go server.dispatchTCP(key, conn, wr, wp, wb, ch)
 	for {
+		if p, err = ch.CliProto.Set(); err != nil {
+			break
+		}
 		if err = server.readTCPRequest(rr, p); err != nil {
 			break
 		}
@@ -139,9 +146,8 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 				break
 			}
 		}
-		if err = ch.Reply(); err != nil {
-			break
-		}
+		ch.CliProto.SetAdv()
+		ch.Signal()
 	}
 	log.Error("key: %s server tcp failed error(%v)", key, err)
 	conn.Close()
@@ -175,6 +181,20 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 				log.Debug("key: %s wakeup exit dispatch goroutine", key)
 			}
 			break
+		}
+		// fetch message from svrbox(client send)
+		for {
+			if p, err = ch.CliProto.Get(); err != nil {
+				// must be empty error
+				err = nil
+				break
+			}
+			// just forward the message
+			if err = server.writeTCPResponse(wr, p); err != nil {
+				goto failed
+			}
+			p.Body = nil // avoid memory leak
+			ch.CliProto.GetAdv()
 		}
 		// fetch message from svrbox(server send)
 		for {

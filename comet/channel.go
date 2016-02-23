@@ -10,34 +10,20 @@ import (
 type Channel struct {
 	RoomId   int32
 	signal   chan int
-	CliProto Proto
+	CliProto Ring
 	SvrProto Ring
 	cLock    sync.Mutex
 	Writer   bufio.Writer
 	Reader   bufio.Reader
 }
 
-func NewChannel(proto int, rid int32) *Channel {
+func NewChannel(cli, svr int, rid int32) *Channel {
 	c := new(Channel)
 	c.RoomId = rid
 	c.signal = make(chan int, SignalNum)
-	c.SvrProto.Init(proto)
+	c.CliProto.Init(cli)
+	c.SvrProto.Init(svr)
 	return c
-}
-
-// Reply server reply message.
-func (c *Channel) Reply() (err error) {
-	var proto *Proto
-	c.cLock.Lock()
-	if proto, err = c.SvrProto.Set(); err == nil {
-		*proto = c.CliProto
-		c.SvrProto.SetAdv()
-	}
-	c.cLock.Unlock()
-	if err == nil {
-		c.Signal()
-	}
-	return
 }
 
 // Push server push message.
