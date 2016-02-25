@@ -65,6 +65,7 @@ message BoardcastRoomArg {
     int32 operation = 2;
     bytes msg = 3;
     int32 roomId = 4;
+    bool ensure = 5;
 }
 
 message RoomsReply {

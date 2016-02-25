@@ -122,7 +122,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		if p, err = ch.CliProto.Set(); err != nil {
 			break
 		}
-		if err = server.readWebsocketRequest(conn, p); err != nil {
+		if err = p.ReadWebsocket(conn); err != nil {
 			break
 		}
 		if p.Operation == define.OP_HEARTBEAT {
@@ -178,7 +178,7 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 				break
 			}
 			// just forward the message
-			if err = server.writeWebsocketResponse(conn, p); err != nil {
+			if err = p.WriteWebsocket(conn); err != nil {
 				log.Error("server.sendTCPResponse() error(%v)", err)
 				goto failed
 			}
@@ -198,7 +198,7 @@ failed:
 }
 
 func (server *Server) authWebsocket(conn *websocket.Conn, p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
-	if err = server.readWebsocketRequest(conn, p); err != nil {
+	if err = p.ReadWebsocket(conn); err != nil {
 		return
 	}
 	if p.Operation != define.OP_AUTH {
@@ -210,19 +210,6 @@ func (server *Server) authWebsocket(conn *websocket.Conn, p *Proto) (key string,
 	}
 	p.Body = nil
 	p.Operation = define.OP_AUTH_REPLY
-	err = server.writeWebsocketResponse(conn, p)
-	return
-}
-
-func (server *Server) readWebsocketRequest(conn *websocket.Conn, p *Proto) (err error) {
-	err = websocket.JSON.Receive(conn, p)
-	return
-}
-
-func (server *Server) writeWebsocketResponse(conn *websocket.Conn, p *Proto) (err error) {
-	if p.Body == nil {
-		p.Body = emptyJSONBody
-	}
-	err = websocket.JSON.Send(conn, p)
+	err = p.WriteWebsocket(conn)
 	return
 }

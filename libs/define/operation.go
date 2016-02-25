@@ -18,6 +18,10 @@ const (
 	// handshake with sid
 	OP_HANDSHAKE_SID       = int32(9)
 	OP_HANDSHAKE_SID_REPLY = int32(10)
+	// raw message
+	OP_RAW = int32(11)
+	// room
+	OP_ROOM_READY = int32(12)
 
 	// for test
 	OP_TEST       = int32(254)

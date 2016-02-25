@@ -5,7 +5,6 @@ import (
 	"github.com/Terry-Mao/goim/libs/bufio"
 	"github.com/Terry-Mao/goim/libs/bytes"
 	"github.com/Terry-Mao/goim/libs/define"
-	"github.com/Terry-Mao/goim/libs/encoding/binary"
 	itime "github.com/Terry-Mao/goim/libs/time"
 	"net"
 	"time"
@@ -131,7 +130,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		if p, err = ch.CliProto.Set(); err != nil {
 			break
 		}
-		if err = server.readTCPRequest(rr, p); err != nil {
+		if err = p.ReadTCP(rr); err != nil {
 			break
 		}
 		if p.Operation == define.OP_HEARTBEAT {
@@ -185,12 +184,10 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 		// fetch message from svrbox(client send)
 		for {
 			if p, err = ch.CliProto.Get(); err != nil {
-				// must be empty error
-				err = nil
+				err = nil // must be empty error
 				break
 			}
-			// just forward the message
-			if err = server.writeTCPResponse(wr, p); err != nil {
+			if err = p.WriteTCP(wr); err != nil {
 				goto failed
 			}
 			p.Body = nil // avoid memory leak
@@ -199,12 +196,10 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 		// fetch message from svrbox(server send)
 		for {
 			if p, err = ch.SvrProto.Get(); err != nil {
-				// must be empty error
-				err = nil
+				err = nil // must be empty error
 				break
 			}
-			// just forward the message
-			if err = server.writeTCPResponse(wr, p); err != nil {
+			if err = p.WriteTCP(wr); err != nil {
 				goto failed
 			}
 			p.Body = nil // avoid memory leak
@@ -227,7 +222,7 @@ failed:
 
 // auth for goim handshake with client, use rsa & aes.
 func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
-	if err = server.readTCPRequest(rr, p); err != nil {
+	if err = p.ReadTCP(rr); err != nil {
 		return
 	}
 	if p.Operation != define.OP_AUTH {
@@ -240,66 +235,9 @@ func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *Proto) (key
 	}
 	p.Body = nil
 	p.Operation = define.OP_AUTH_REPLY
-	if err = server.writeTCPResponse(wr, p); err != nil {
+	if err = p.WriteTCP(wr); err != nil {
 		return
 	}
 	err = wr.Flush()
-	return
-}
-
-// readRequest
-func (server *Server) readTCPRequest(rr *bufio.Reader, p *Proto) (err error) {
-	var (
-		bodyLen int
-		packLen int32
-		buf     []byte
-	)
-	if buf, err = rr.Pop(RawHeaderSize); err != nil {
-		return
-	}
-	packLen = binary.BigEndian.Int32(buf[PackOffset:HeaderOffset])
-	p.HeaderLen = binary.BigEndian.Int16(buf[HeaderOffset:VerOffset])
-	p.Ver = binary.BigEndian.Int16(buf[VerOffset:OperationOffset])
-	p.Operation = binary.BigEndian.Int32(buf[OperationOffset:SeqIdOffset])
-	p.SeqId = binary.BigEndian.Int32(buf[SeqIdOffset:])
-	if packLen > MaxPackSize {
-		return ErrProtoPackLen
-	}
-	if p.HeaderLen != RawHeaderSize {
-		return ErrProtoHeaderLen
-	}
-	if bodyLen = int(packLen - int32(p.HeaderLen)); bodyLen > 0 {
-		p.Body, err = rr.Pop(bodyLen)
-	} else {
-		p.Body = nil
-	}
-	if Debug {
-		log.Debug("read proto: %v", p)
-	}
-	return
-}
-
-// sendResponse send resp to client, sendResponse must be goroutine safe.
-func (server *Server) writeTCPResponse(wr *bufio.Writer, p *Proto) (err error) {
-	var (
-		buf     []byte
-		packLen int32
-	)
-	packLen = RawHeaderSize + int32(len(p.Body))
-	p.HeaderLen = RawHeaderSize
-	if buf, err = wr.Peek(RawHeaderSize); err != nil {
-		return
-	}
-	binary.BigEndian.PutInt32(buf[PackOffset:], packLen)
-	binary.BigEndian.PutInt16(buf[HeaderOffset:], p.HeaderLen)
-	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)
-	binary.BigEndian.PutInt32(buf[OperationOffset:], p.Operation)
-	binary.BigEndian.PutInt32(buf[SeqIdOffset:], p.SeqId)
-	if p.Body != nil {
-		_, err = wr.Write(p.Body)
-	}
-	if Debug {
-		log.Debug("write proto: %v", p)
-	}
 	return
 }

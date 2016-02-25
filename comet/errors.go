@@ -25,4 +25,6 @@ var (
 	ErrMPushMsgsArg = errors.New("rpc mpushmsgs arg error")
 	// rpc
 	ErrLogic = errors.New("logic rpc is not available")
+	// room
+	ErrRoomFull = errors.New("room proto chan full")
 )
