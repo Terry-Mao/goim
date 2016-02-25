@@ -60,25 +60,22 @@ func (p *Proto) String() string {
 	return fmt.Sprintf("\n-------- proto --------\nheader: %d\nver: %d\nop: %d\nseq: %d\nbody: %s\n-----------------------", p.HeaderLen, p.Ver, p.Operation, p.SeqId, string(p.Body))
 }
 
-func (p *Proto) WriteTo(b *bytes.Buffer) (err error) {
+func (p *Proto) WriteTo(b *bytes.Writer) {
 	var (
 		buf     []byte
 		packLen int32
 	)
 	packLen = RawHeaderSize + int32(len(p.Body))
 	p.HeaderLen = RawHeaderSize
-	if buf, err = b.Peek(RawHeaderSize); err != nil {
-		return
-	}
+	buf = b.Peek(RawHeaderSize)
 	binary.BigEndian.PutInt32(buf[PackOffset:], packLen)
 	binary.BigEndian.PutInt16(buf[HeaderOffset:], p.HeaderLen)
 	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)
 	binary.BigEndian.PutInt32(buf[OperationOffset:], p.Operation)
 	binary.BigEndian.PutInt32(buf[SeqIdOffset:], p.SeqId)
 	if p.Body != nil {
-		_, err = b.Write(p.Body)
+		b.Write(p.Body)
 	}
-	return
 }
 
 func (p *Proto) ReadTCP(rr *bufio.Reader) (err error) {

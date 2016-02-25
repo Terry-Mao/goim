@@ -89,7 +89,7 @@ func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
 		p     *Proto
 		ch    *Channel
 		td    *itime.TimerData
-		buf   = bytes.NewBuffer(make([]byte, MaxBodySize))
+		buf   = bytes.NewWriterSize(int(MaxBodySize))
 	)
 	if Debug {
 		log.Debug("start room: %d goroutine", r.id)
@@ -116,7 +116,7 @@ func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
 				break // exit
 			} else if p != roomReadyProto {
 				// merge buffer ignore error, always nil
-				_ = p.WriteTo(buf)
+				p.WriteTo(buf)
 				if n++; n < batch {
 					continue
 				}
@@ -124,14 +124,14 @@ func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
 		}
 		r.rLock.RLock()
 		for ch, _ = range r.chs {
-			ch.Push(0, define.OP_RAW, buf.Bytes())
+			ch.Push(0, define.OP_RAW, buf.Buffer())
 		}
 		r.rLock.RUnlock()
 		n = 0
 		done = false
 		ch = nil // avoid gc memory leak
 		// after push to room channel, renew a buffer, let old buffer gc
-		buf = bytes.NewBuffer(make([]byte, buf.Cap()))
+		buf = bytes.NewWriterSize(buf.Size())
 	}
 	timer.Del(td)
 	if Debug {
