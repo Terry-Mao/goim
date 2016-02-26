@@ -82,14 +82,12 @@ func (r *Room) Online() (o int) {
 // pushproc merge proto and push msgs in batch.
 func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
 	var (
-		n     int
-		done  bool
-		last  time.Time
-		least time.Duration
-		p     *Proto
-		ch    *Channel
-		td    *itime.TimerData
-		buf   = bytes.NewWriterSize(int(MaxBodySize))
+		n    int
+		last time.Time
+		p    *Proto
+		ch   *Channel
+		td   *itime.TimerData
+		buf  = bytes.NewWriterSize(int(MaxBodySize))
 	)
 	if Debug {
 		log.Debug("start room: %d goroutine", r.id)
@@ -101,25 +99,23 @@ func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
 		}
 	})
 	for {
-		if n > 0 {
-			if least = sigTime - time.Now().Sub(last); least > 0 {
-				timer.Set(td, least)
-			} else {
-				// timeout
-				done = true
-			}
-		} else {
-			last = time.Now()
-		}
-		if !done {
-			if p = <-r.proto; p == nil {
-				break // exit
-			} else if p != roomReadyProto {
-				// merge buffer ignore error, always nil
-				p.WriteTo(buf)
-				if n++; n < batch {
+		if p = <-r.proto; p == nil {
+			break // exit
+		} else if p != roomReadyProto {
+			// merge buffer ignore error, always nil
+			p.WriteTo(buf)
+			if n++; n == 1 {
+				last = time.Now()
+				timer.Set(td, sigTime)
+				continue
+			} else if n < batch {
+				if sigTime > time.Now().Sub(last) {
 					continue
 				}
+			}
+		} else {
+			if n == 0 {
+				continue
 			}
 		}
 		r.rLock.RLock()
@@ -128,7 +124,6 @@ func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
 		}
 		r.rLock.RUnlock()
 		n = 0
-		done = false
 		ch = nil // avoid gc memory leak
 		// after push to room channel, renew a buffer, let old buffer gc
 		buf = bytes.NewWriterSize(buf.Size())
