@@ -1,10 +1,11 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"flag"
-	"github.com/Terry-Mao/goim/libs/perf"
 	"runtime"
+
+	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/libs/perf"
 )
 
 var (
@@ -71,10 +72,6 @@ func main() {
 		if err := InitWebsocketWithTLS(Conf.WebsocketTLSBind, Conf.WebsocketCertFile, Conf.WebsocketPrivateFile); err != nil {
 			panic(err)
 		}
-	}
-	// http comet
-	if err := InitHTTP(Conf.HTTPBind); err != nil {
-		panic(err)
 	}
 	// start rpc
 	if err := InitRPCPush(Conf.RPCPushAddrs); err != nil {
