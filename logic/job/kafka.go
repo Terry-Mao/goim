@@ -1,14 +1,16 @@
 package main
 
 import (
+	llog "log"
+	"os"
+	"time"
+
 	log "code.google.com/p/log4go"
 	"github.com/Shopify/sarama"
 	"github.com/Terry-Mao/goim/libs/define"
 	lproto "github.com/Terry-Mao/goim/libs/proto/logic"
 	"github.com/gogo/protobuf/proto"
 	"github.com/wvanbergen/kafka/consumergroup"
-	"strconv"
-	"time"
 )
 
 const (
@@ -20,6 +22,7 @@ const (
 func InitKafka() error {
 	log.Info("start topic:%s consumer", Conf.KafkaTopic)
 	log.Info("consumer group name:%s", KAFKA_GROUP_NAME)
+	sarama.Logger = llog.New(os.Stdout, "[Sarama] ", llog.LstdFlags)
 	config := consumergroup.NewConfig()
 	config.Offsets.Initial = sarama.OffsetNewest
 	config.Offsets.ProcessingTimeout = OFFSETS_PROCESSING_TIMEOUT_SECONDS
@@ -49,18 +52,21 @@ func push(op string, msg []byte) (err error) {
 	if op == define.KAFKA_MESSAGE_MULTI {
 		m := &lproto.PushsMsg{}
 		if err = proto.Unmarshal(msg, m); err != nil {
-			log.Error("proto.Unmarshal(%s) serverId:%d error(%s)", msg, err)
+			log.Error("proto.Unmarshal(%s) error(%s)", msg, err)
 			return
 		}
 		mpush(m.Server, m.SubKeys, m.Msg)
 	} else if op == define.KAFKA_MESSAGE_BROADCAST {
 		broadcast(msg)
-	} else {
-		if roomId, err := strconv.Atoi(op); err != nil {
-			log.Warn("strconv.Atoi(\"%s\") error(%v)", op, err)
-		} else {
-			broadcastRoom(int32(roomId), msg)
+	} else if op == define.KAFKA_MESSAGE_BROADCAST_ROOM {
+		m := &lproto.BroadCastRoom{}
+		if err = proto.Unmarshal(msg, m); err != nil {
+			log.Error("proto.Unmarshal(%s) error(%s)", msg, err)
+			return
 		}
+		broadcastRoom(int32(m.RoomId), m.Msg, m.Ensure)
+	} else {
+		log.Error("unknown operation:%s", op)
 	}
 	return
 }

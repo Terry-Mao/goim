@@ -10,7 +10,7 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
-	mrand "math/rand"
+	//mrand "math/rand"
 	"net"
 	"os"
 	"runtime"
@@ -98,7 +98,7 @@ func result() {
 }
 
 func startClient(key string, quit chan bool) {
-	time.Sleep(time.Duration(mrand.Intn(30)) * time.Second)
+	//time.Sleep(time.Duration(mrand.Intn(30)) * time.Second)
 
 	conn, err := net.Dial("tcp", os.Args[3])
 	if err != nil {

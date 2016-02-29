@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/Terry-Mao/protorpc"
 	"time"
+
+	"github.com/Terry-Mao/protorpc"
 )
 
 const (

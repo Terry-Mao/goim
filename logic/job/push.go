@@ -1,10 +1,11 @@
 package main
 
 import (
+	"math/rand"
+
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/define"
 	"github.com/Terry-Mao/protorpc"
-	"math/rand"
 )
 
 type pushArg struct {
@@ -12,6 +13,7 @@ type pushArg struct {
 	SubKeys []string
 	Msg     []byte
 	RoomId  int32
+	Ensure  bool
 }
 
 var (
@@ -49,7 +51,7 @@ func mpush(server int32, subkeys []string, msg []byte) {
 }
 
 // mssage broadcast room
-func broadcastRoom(roomId int32, msg []byte) {
+func broadcastRoom(roomId int32, msg []byte, ensure bool) {
 	var (
 		c        *protorpc.Client
 		ok       bool
@@ -60,7 +62,7 @@ func broadcastRoom(roomId int32, msg []byte) {
 	if servers, ok = RoomServersMap[roomId]; ok {
 		for serverId, _ = range servers {
 			if c, err = getCometByServerId(serverId); err == nil {
-				pushChs[rand.Int()%Conf.PushChan] <- &pushArg{C: c, Msg: msg, RoomId: roomId}
+				pushChs[rand.Int()%Conf.PushChan] <- &pushArg{C: c, Msg: msg, RoomId: roomId, Ensure: ensure}
 			}
 		}
 	}

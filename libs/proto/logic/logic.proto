@@ -14,6 +14,12 @@ message PushsMsg {
     bytes msg = 3;
 }
 
+message BroadCastRoom {
+	int32 roomId=1;
+    bytes msg = 2;
+	bool ensure = 3;
+}
+
 message PingArg {
 }
 
