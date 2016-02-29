@@ -67,6 +67,12 @@ func main() {
 	if err := InitWebsocket(Conf.WebsocketBind); err != nil {
 		panic(err)
 	}
+	// flash safe policy
+	if Conf.FlashPolicyOpen {
+		if err := InitFlashPolicy(); err != nil {
+			panic(err)
+		}
+	}
 	// wss comet
 	if Conf.WebsocketTLSOpen {
 		if err := InitWebsocketWithTLS(Conf.WebsocketTLSBind, Conf.WebsocketCertFile, Conf.WebsocketPrivateFile); err != nil {

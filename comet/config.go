@@ -61,6 +61,9 @@ type Config struct {
 	WebsocketTLSBind     []string `goconf:"websocket:tls.bind:,"`
 	WebsocketCertFile    string   `goconf:"websocket:cert.file"`
 	WebsocketPrivateFile string   `goconf:"websocket:private.file"`
+	// flash safe policy
+	FlashPolicyOpen bool     `goconf:"flash:policy.open"`
+	FlashPolicyBind []string `goconf:"flash:policy.bind:,"`
 	// proto section
 	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
 	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
@@ -105,6 +108,9 @@ func NewConfig() *Config {
 		WebsocketTLSBind:     []string{"0.0.0.0:8095"},
 		WebsocketCertFile:    "../source/cert.pem",
 		WebsocketPrivateFile: "../source/private.pem",
+		// flash safe policy
+		FlashPolicyOpen: false,
+		FlashPolicyBind: []string{"0.0.0.0:843"},
 		// proto section
 		HandshakeTimeout: 5 * time.Second,
 		WriteTimeout:     5 * time.Second,

@@ -1,13 +1,15 @@
 package main
 
 import (
+	"io"
+	"net"
+	"time"
+
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/bufio"
 	"github.com/Terry-Mao/goim/libs/bytes"
 	"github.com/Terry-Mao/goim/libs/define"
 	itime "github.com/Terry-Mao/goim/libs/time"
-	"net"
-	"time"
 )
 
 // InitTCP listen all tcp.bind and start accept connections.
@@ -148,7 +150,9 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		ch.CliProto.SetAdv()
 		ch.Signal()
 	}
-	log.Error("key: %s server tcp failed error(%v)", key, err)
+	if err != nil && err != io.EOF {
+		log.Error("key: %s server tcp failed error(%v)", key, err)
+	}
 	conn.Close()
 	ch.Close()
 	rp.Put(rb)
@@ -211,7 +215,9 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 		}
 	}
 failed:
-	log.Error("key: %s dispatch tcp error(%v)", key, err)
+	if err != nil {
+		log.Error("key: %s dispatch tcp error(%v)", key, err)
+	}
 	conn.Close()
 	wp.Put(wb)
 	if Debug {
