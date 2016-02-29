@@ -1,6 +1,6 @@
 goim
 ==============
-`Terry-Mao/goim` 是一个支持集群的im及实时推送服务（支持websocket，http和tcp协议）。
+`Terry-Mao/goim` 是一个支持集群的im及实时推送服务。
 
 ---------------------------------------
   * [特性](#特性)
@@ -19,7 +19,7 @@ goim
  * 纯Golang实现
  * 支持单个、多个、单房间以及广播消息推送
  * 支持单个Key多个订阅者（可限制订阅者最大人数）
- * 心跳支持（应用心跳和tcp、keepalive、http long pulling）
+ * 心跳支持（应用心跳和tcp、keepalive）
  * 支持安全验证（未授权用户不能订阅）
  * 多协议支持（websocket，tcp）
  * 可拓扑的架构（job、logic模块可动态无限扩展）
