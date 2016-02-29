@@ -65,7 +65,8 @@ type Config struct {
 	// proto section
 	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
 	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
-	Proto            int           `goconf:"proto:proto"`
+	SvrProto         int           `goconf:"proto:svr.proto"`
+	CliProto         int           `goconf:"proto:cli.proto"`
 	// timer
 	Timer     int `goconf:"timer:num"`
 	TimerSize int `goconf:"timer:size"`
@@ -117,7 +118,8 @@ func NewConfig() *Config {
 		TimerSize: 1000,
 		// bucket
 		Bucket:        1024,
-		Proto:         100,
+		CliProto:      10,
+		SvrProto:      100,
 		BucketChannel: 1024,
 		// push
 		RPCPushAddrs: []string{"localhost:8083"},

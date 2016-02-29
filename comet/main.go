@@ -51,7 +51,8 @@ func main() {
 	})
 	operator := new(DefaultOperator)
 	DefaultServer = NewServer(buckets, round, operator, ServerOptions{
-		Proto:            Conf.Proto,
+		CliProto:         Conf.CliProto,
+		SvrProto:         Conf.SvrProto,
 		HandshakeTimeout: Conf.HandshakeTimeout,
 		TCPKeepalive:     Conf.TCPKeepalive,
 		TCPRcvbuf:        Conf.TCPRcvbuf,

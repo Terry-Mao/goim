@@ -1,8 +1,14 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"encoding/json"
 	"fmt"
+	"github.com/Terry-Mao/goim/libs/bufio"
+	"github.com/Terry-Mao/goim/libs/bytes"
+	"github.com/Terry-Mao/goim/libs/define"
+	"github.com/Terry-Mao/goim/libs/encoding/binary"
+	"golang.org/x/net/websocket"
 )
 
 // for tcp
@@ -52,4 +58,95 @@ func (p *Proto) Reset() {
 
 func (p *Proto) String() string {
 	return fmt.Sprintf("\n-------- proto --------\nheader: %d\nver: %d\nop: %d\nseq: %d\nbody: %s\n-----------------------", p.HeaderLen, p.Ver, p.Operation, p.SeqId, string(p.Body))
+}
+
+func (p *Proto) WriteTo(b *bytes.Writer) {
+	var (
+		buf     []byte
+		packLen int32
+	)
+	packLen = RawHeaderSize + int32(len(p.Body))
+	p.HeaderLen = RawHeaderSize
+	buf = b.Peek(RawHeaderSize)
+	binary.BigEndian.PutInt32(buf[PackOffset:], packLen)
+	binary.BigEndian.PutInt16(buf[HeaderOffset:], p.HeaderLen)
+	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)
+	binary.BigEndian.PutInt32(buf[OperationOffset:], p.Operation)
+	binary.BigEndian.PutInt32(buf[SeqIdOffset:], p.SeqId)
+	if p.Body != nil {
+		b.Write(p.Body)
+	}
+}
+
+func (p *Proto) ReadTCP(rr *bufio.Reader) (err error) {
+	var (
+		bodyLen int
+		packLen int32
+		buf     []byte
+	)
+	if Debug {
+		log.Debug("read proto: %v", p)
+	}
+	if buf, err = rr.Pop(RawHeaderSize); err != nil {
+		return
+	}
+	packLen = binary.BigEndian.Int32(buf[PackOffset:HeaderOffset])
+	p.HeaderLen = binary.BigEndian.Int16(buf[HeaderOffset:VerOffset])
+	p.Ver = binary.BigEndian.Int16(buf[VerOffset:OperationOffset])
+	p.Operation = binary.BigEndian.Int32(buf[OperationOffset:SeqIdOffset])
+	p.SeqId = binary.BigEndian.Int32(buf[SeqIdOffset:])
+	if packLen > MaxPackSize {
+		return ErrProtoPackLen
+	}
+	if p.HeaderLen != RawHeaderSize {
+		return ErrProtoHeaderLen
+	}
+	if bodyLen = int(packLen - int32(p.HeaderLen)); bodyLen > 0 {
+		p.Body, err = rr.Pop(bodyLen)
+	} else {
+		p.Body = nil
+	}
+	return
+}
+
+func (p *Proto) WriteTCP(wr *bufio.Writer) (err error) {
+	var (
+		buf     []byte
+		packLen int32
+	)
+	if Debug {
+		log.Debug("write proto: %v", p)
+	}
+	if p.Operation == define.OP_RAW {
+		_, err = wr.Write(p.Body)
+		return
+	}
+	packLen = RawHeaderSize + int32(len(p.Body))
+	p.HeaderLen = RawHeaderSize
+	if buf, err = wr.Peek(RawHeaderSize); err != nil {
+		return
+	}
+	binary.BigEndian.PutInt32(buf[PackOffset:], packLen)
+	binary.BigEndian.PutInt16(buf[HeaderOffset:], p.HeaderLen)
+	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)
+	binary.BigEndian.PutInt32(buf[OperationOffset:], p.Operation)
+	binary.BigEndian.PutInt32(buf[SeqIdOffset:], p.SeqId)
+	if p.Body != nil {
+		_, err = wr.Write(p.Body)
+	}
+	return
+}
+
+func (p *Proto) ReadWebsocket(wr *websocket.Conn) (err error) {
+	err = websocket.JSON.Receive(wr, p)
+	return
+}
+
+func (p *Proto) WriteWebsocket(wr *websocket.Conn) (err error) {
+	if p.Body == nil {
+		p.Body = emptyJSONBody
+	}
+	// TODO
+	err = websocket.JSON.Send(wr, p)
+	return
 }

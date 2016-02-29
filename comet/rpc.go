@@ -145,7 +145,11 @@ func (this *PushRPC) BroadcastRoom(arg *proto.BoardcastRoomArg, reply *proto.NoR
 	)
 	for _, bucket = range DefaultServer.Buckets {
 		if room = bucket.Room(arg.RoomId); room != nil {
-			go room.Push(int16(arg.Ver), arg.Operation, arg.Msg)
+			if arg.Ensure {
+				go room.EPush(int16(arg.Ver), arg.Operation, arg.Msg)
+			} else {
+				room.Push(int16(arg.Ver), arg.Operation, arg.Msg)
+			}
 		}
 	}
 	return

@@ -9,7 +9,6 @@ type Buffer struct {
 	next *Buffer // next free buffer
 }
 
-// Bytes return a slice of the contents of the buffer.
 func (b *Buffer) Bytes() []byte {
 	return b.buf
 }

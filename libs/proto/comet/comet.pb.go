@@ -133,6 +133,7 @@ type BoardcastRoomArg struct {
 	Operation int32  `protobuf:"varint,2,opt,name=operation,proto3" json:"operation,omitempty"`
 	Msg       []byte `protobuf:"bytes,3,opt,name=msg,proto3" json:"msg,omitempty"`
 	RoomId    int32  `protobuf:"varint,4,opt,name=roomId,proto3" json:"roomId,omitempty"`
+	Ensure    bool   `protobuf:"varint,5,opt,name=ensure,proto3" json:"ensure,omitempty"`
 }
 
 func (m *BoardcastRoomArg) Reset()         { *m = BoardcastRoomArg{} }
@@ -1063,6 +1064,23 @@ func (m *BoardcastRoomArg) Unmarshal(data []byte) error {
 					break
 				}
 			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ensure", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Ensure = bool(v != 0)
 		default:
 			var sizeOfWire int
 			for {
@@ -1460,6 +1478,9 @@ func (m *BoardcastRoomArg) Size() (n int) {
 	}
 	if m.RoomId != 0 {
 		n += 1 + sovComet(uint64(m.RoomId))
+	}
+	if m.Ensure {
+		n += 2
 	}
 	return n
 }
@@ -1863,6 +1884,16 @@ func (m *BoardcastRoomArg) MarshalTo(data []byte) (n int, err error) {
 		data[i] = 0x20
 		i++
 		i = encodeVarintComet(data, i, uint64(m.RoomId))
+	}
+	if m.Ensure {
+		data[i] = 0x28
+		i++
+		if m.Ensure {
+			data[i] = 1
+		} else {
+			data[i] = 0
+		}
+		i++
 	}
 	return i, nil
 }
