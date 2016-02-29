@@ -2,8 +2,9 @@ package main
 
 import (
 	"flag"
-	"github.com/Terry-Mao/goconf"
 	"runtime"
+
+	"github.com/Terry-Mao/goconf"
 )
 
 var (
@@ -18,11 +19,10 @@ func init() {
 
 type Config struct {
 	// base section
-	PidFile   string   `goconf:"base:pidfile"`
-	Dir       string   `goconf:"base:dir"`
-	Log       string   `goconf:"base:log"`
-	MaxProc   int      `goconf:"base:maxproc"`
-	PprofBind []string `goconf:"base:pprof.bind:,"`
+	PidFile string `goconf:"base:pidfile"`
+	Dir     string `goconf:"base:dir"`
+	Log     string `goconf:"base:log"`
+	MaxProc int    `goconf:"base:maxproc"`
 	// cert
 	CertFile string `goconf:"cert:cert.file"`
 	// proto section
@@ -38,11 +38,10 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		// base section
-		PidFile:   "/tmp/gopush-cluster-client.pid",
-		Dir:       "./",
-		Log:       "./log.xml",
-		MaxProc:   runtime.NumCPU(),
-		PprofBind: []string{"localhost:6971"},
+		PidFile: "/tmp/goim-client.pid",
+		Dir:     "./",
+		Log:     "./log.xml",
+		MaxProc: runtime.NumCPU(),
 		// proto section
 		TCPAddr:       "localhost:8080",
 		WebsocketAddr: "localhost:8090",
