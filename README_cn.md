@@ -17,11 +17,11 @@ goim
  * 轻量级
  * 高性能
  * 纯Golang实现
- * 支持单个、多个以及广播消息推送
+ * 支持单个、多个、单房间以及广播消息推送
  * 支持单个Key多个订阅者（可限制订阅者最大人数）
  * 心跳支持（应用心跳和tcp、keepalive、http long pulling）
  * 支持安全验证（未授权用户不能订阅）
- * 多协议支持（websocket，tcp，http）
+ * 多协议支持（websocket，tcp）
  * 可拓扑的架构（job、logic模块可动态无限扩展）
  * 基于Kafka做异步消息推送
 
@@ -39,8 +39,8 @@ kafka在官网已经描述的非常详细，在这里就不过多说明，安装
 1.下载源码(根据自己的系统下载对应的[安装包](http://golang.org/dl/))
 ```sh
 $ cd /data/programfiles
-$ wget -c --no-check-certificate https://storage.googleapis.com/golang/go1.5.linux-amd64.tar.gz
-$ tar -xvf go1.5.linux-amd64.tar.gz -C /usr/local
+$ wget -c --no-check-certificate https://storage.googleapis.com/golang/go1.5.2.linux-amd64.tar.gz
+$ tar -xvf go1.5.2.linux-amd64.tar.gz -C /usr/local
 ```
 2.配置GO环境变量
 (这里我加在/etc/profile.d/golang.sh)
