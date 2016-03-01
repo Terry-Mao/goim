@@ -5,7 +5,8 @@ import (
 
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/define"
-	"github.com/Terry-Mao/protorpc"
+	//"github.com/Terry-Mao/protorpc"
+	protorpc "net/rpc"
 )
 
 type pushArg struct {

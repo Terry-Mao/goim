@@ -1,18 +1,20 @@
 package main
 
 import (
+	"net/rpc"
+	"time"
+
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	proto "github.com/Terry-Mao/goim/libs/proto/logic"
-	"github.com/Terry-Mao/protorpc"
-	"time"
 )
 
 var (
-	logicRpcClient *protorpc.Client
+	logicRpcClient *rpc.Client
 	logicRpcQuit   = make(chan struct{}, 1)
 
 	logicService           = "RPC"
+	logicServicePing       = "RPC.Ping"
 	logicServiceConnect    = "RPC.Connect"
 	logicServiceDisconnect = "RPC.Disconnect"
 )
@@ -23,13 +25,41 @@ func InitLogicRpc(addrs string) (err error) {
 		log.Error("inet.ParseNetwork() error(%v)", err)
 		return
 	}
-	logicRpcClient, err = protorpc.Dial(network, addr)
+	logicRpcClient, err = rpc.Dial(network, addr)
 	if err != nil {
 		log.Error("rpc.Dial(\"%s\", \"%s\") error(%s)", network, addr, err)
 	}
-	go protorpc.Reconnect(&logicRpcClient, logicRpcQuit, network, addr)
+	go Reconnect(&logicRpcClient, logicRpcQuit, network, addr)
 	log.Debug("logic rpc addr %s:%s connected", network, addr)
 	return
+}
+
+// Reconnect for ping rpc server and reconnect with it when it's crash.
+func Reconnect(dst **rpc.Client, quit chan struct{}, network, address string) {
+	var (
+		tmp    *rpc.Client
+		err    error
+		call   *rpc.Call
+		ch     = make(chan *rpc.Call, 1)
+		client = *dst
+	)
+	for {
+		select {
+		case <-quit:
+			return
+		default:
+			if client != nil {
+				call = <-client.Go(logicServicePing, 0, 0, ch).Done
+			}
+			if client == nil || call.Error != nil {
+				if tmp, err = rpc.Dial(network, address); err == nil {
+					*dst = tmp
+					client = tmp
+				}
+			}
+		}
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func connect(p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {

@@ -1,11 +1,12 @@
 package main
 
 import (
+	"net"
+	"net/rpc"
+
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	proto "github.com/Terry-Mao/goim/libs/proto/comet"
-	rpc "github.com/Terry-Mao/protorpc"
-	"net"
+	proto "github.com/thinkboy/goim/libs/proto/comet"
 )
 
 func InitRPCPush(addrs []string) (err error) {
@@ -45,8 +46,12 @@ func rpcListen(network, addr string) {
 type PushRPC struct {
 }
 
+func (this *PushRPC) Ping(args *int, reply *int) error {
+	return nil
+}
+
 // Push push a message to a specified sub key
-func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *proto.NoReply) (err error) {
+func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *int) (err error) {
 	var (
 		bucket  *Bucket
 		channel *Channel
@@ -130,7 +135,7 @@ func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsRe
 	return
 }
 
-func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *proto.NoReply) (err error) {
+func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *int) (err error) {
 	var bucket *Bucket
 	for _, bucket = range DefaultServer.Buckets {
 		go bucket.Broadcast(int16(arg.Ver), arg.Operation, arg.Msg)
@@ -138,7 +143,7 @@ func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *proto.NoReply) (e
 	return
 }
 
-func (this *PushRPC) BroadcastRoom(arg *proto.BoardcastRoomArg, reply *proto.NoReply) (err error) {
+func (this *PushRPC) BroadcastRoom(arg *proto.BoardcastRoomArg, reply *int) (err error) {
 	var (
 		bucket *Bucket
 		room   *Room
@@ -155,7 +160,7 @@ func (this *PushRPC) BroadcastRoom(arg *proto.BoardcastRoomArg, reply *proto.NoR
 	return
 }
 
-func (this *PushRPC) Rooms(arg *proto.NoArgs, reply *proto.RoomsReply) (err error) {
+func (this *PushRPC) Rooms(arg *int, reply *proto.RoomsReply) (err error) {
 	var (
 		roomId int32
 		bucket *Bucket

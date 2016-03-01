@@ -3,7 +3,9 @@ package main
 import (
 	"time"
 
-	"github.com/Terry-Mao/protorpc"
+	protorpc "net/rpc"
+
+	//"github.com/Terry-Mao/protorpc"
 )
 
 const (

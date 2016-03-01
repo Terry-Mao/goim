@@ -3,10 +3,10 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	lproto "github.com/Terry-Mao/goim/libs/proto/logic"
-	rpc "github.com/Terry-Mao/protorpc"
+	lproto "github.com/thinkboy/goim/libs/proto/logic"
 
 	"net"
+	"net/rpc"
 )
 
 func InitRPC(auther Auther) (err error) {
@@ -45,6 +45,10 @@ func rpcListen(network, addr string) {
 // RPC
 type RPC struct {
 	auther Auther
+}
+
+func (r *RPC) Ping(arg *int, reply *int) error {
+	return nil
 }
 
 // Connect auth and registe login

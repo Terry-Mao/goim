@@ -1,12 +1,14 @@
 package main
 
 import (
+	"net/rpc"
+	"strconv"
+	"time"
+
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/hash/ketama"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	rproto "github.com/Terry-Mao/goim/libs/proto/router"
-	rpc "github.com/Terry-Mao/protorpc"
-	"strconv"
+	rproto "github.com/thinkboy/goim/libs/proto/router"
 )
 
 var (
@@ -16,6 +18,7 @@ var (
 
 const (
 	routerService               = "RouterRPC"
+	routerServicePing           = "RouterRPC.Ping"
 	routerServicePut            = "RouterRPC.Put"
 	routerServiceDel            = "RouterRPC.Del"
 	routerServiceDelServer      = "RouterRPC.DelServer"
@@ -45,13 +48,41 @@ func InitRouter() (err error) {
 		if err != nil {
 			log.Error("rpc.Dial(\"%s\", \"%s\") error(%v)", network, addr, err)
 		}
-		go rpc.Reconnect(&r, routerQuit, network, addr)
+		go Reconnect(&r, routerQuit, network, addr)
 		log.Debug("router rpc addr:%s connect", addr)
 		routerServiceMap[serverId] = &r
 		routerRing.AddNode(serverId, 1)
 	}
 	routerRing.Bake()
 	return
+}
+
+// Reconnect for ping rpc server and reconnect with it when it's crash.
+func Reconnect(dst **rpc.Client, quit chan struct{}, network, address string) {
+	var (
+		tmp    *rpc.Client
+		err    error
+		call   *rpc.Call
+		ch     = make(chan *rpc.Call, 1)
+		client = *dst
+	)
+	for {
+		select {
+		case <-quit:
+			return
+		default:
+			if client != nil {
+				call = <-client.Go(routerServicePing, 0, 0, ch).Done
+			}
+			if client == nil || call.Error != nil {
+				if tmp, err = rpc.Dial(network, address); err == nil {
+					*dst = tmp
+					client = tmp
+				}
+			}
+		}
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func getRouters() map[string]**rpc.Client {
@@ -112,7 +143,7 @@ func delServer(server int32) (err error) {
 		arg    = &rproto.DelServerArg{Server: server}
 	)
 	for _, client = range routerServiceMap {
-		if err = (*client).Call(routerServiceDelServer, arg, nil); err != nil {
+		if err = (*client).Call(routerServiceDelServer, arg, 0); err != nil {
 			log.Error("c.Call(\"%s\",\"%v\") error(%v)", routerServiceDelServer, *arg, err)
 		}
 	}
@@ -123,7 +154,7 @@ func allRoomCount(client *rpc.Client) (counter map[int32]int32, err error) {
 	var (
 		reply = &rproto.AllRoomCountReply{}
 	)
-	if err = client.Call(routerServiceAllRoomCount, nil, reply); err != nil {
+	if err = client.Call(routerServiceAllRoomCount, 0, reply); err != nil {
 		log.Error("c.Call(\"%s\", nil) error(%v)", routerServiceAllRoomCount, err)
 	} else {
 		counter = reply.Counter
@@ -135,7 +166,7 @@ func allServerCount(client *rpc.Client) (counter map[int32]int32, err error) {
 	var (
 		reply = &rproto.AllServerCountReply{}
 	)
-	if err = client.Call(routerServiceAllServerCount, nil, reply); err != nil {
+	if err = client.Call(routerServiceAllServerCount, 0, reply); err != nil {
 		log.Error("c.Call(\"%s\", nil) error(%v)", routerServiceAllServerCount, err)
 	} else {
 		counter = reply.Counter
