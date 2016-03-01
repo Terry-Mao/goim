@@ -7,7 +7,7 @@ import (
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/define"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	cproto "github.com/thinkboy/goim/libs/proto/comet"
+	cproto "github.com/Terry-Mao/goim/libs/proto/comet"
 )
 
 var (

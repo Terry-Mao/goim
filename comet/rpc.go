@@ -6,7 +6,7 @@ import (
 
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	proto "github.com/thinkboy/goim/libs/proto/comet"
+	proto "github.com/Terry-Mao/goim/libs/proto/comet"
 )
 
 func InitRPCPush(addrs []string) (err error) {

@@ -2,15 +2,14 @@ package main
 
 import (
 	"math/rand"
+	"net/rpc"
 
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/define"
-	//"github.com/Terry-Mao/protorpc"
-	protorpc "net/rpc"
 )
 
 type pushArg struct {
-	C       *protorpc.Client
+	C       *rpc.Client
 	SubKeys []string
 	Msg     []byte
 	RoomId  int32
@@ -54,7 +53,7 @@ func mpush(server int32, subkeys []string, msg []byte) {
 // mssage broadcast room
 func broadcastRoom(roomId int32, msg []byte, ensure bool) {
 	var (
-		c        *protorpc.Client
+		c        *rpc.Client
 		ok       bool
 		err      error
 		serverId int32

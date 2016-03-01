@@ -1,11 +1,8 @@
 package main
 
 import (
+	"net/rpc"
 	"time"
-
-	protorpc "net/rpc"
-
-	//"github.com/Terry-Mao/protorpc"
 )
 
 const (
@@ -18,7 +15,7 @@ var (
 
 func MergeRoomServers() {
 	var (
-		c           **protorpc.Client
+		c           **rpc.Client
 		ok          bool
 		roomId      int32
 		serverId    int32

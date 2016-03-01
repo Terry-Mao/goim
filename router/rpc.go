@@ -2,11 +2,11 @@ package main
 
 import (
 	"net"
+	"net/rpc"
 
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	rpc "github.com/Terry-Mao/protorpc"
-	proto "github.com/thinkboy/goim/libs/proto/router"
+	proto "github.com/Terry-Mao/goim/libs/proto/router"
 )
 
 func InitRPC(bs []*Bucket) (err error) {
