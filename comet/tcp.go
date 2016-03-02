@@ -10,6 +10,7 @@ import (
 	"github.com/Terry-Mao/goim/libs/bytes"
 	"github.com/Terry-Mao/goim/libs/define"
 	itime "github.com/Terry-Mao/goim/libs/time"
+	"github.com/thinkboy/goim/libs/proto"
 )
 
 // InitTCP listen all tcp.bind and start accept connections.
@@ -95,7 +96,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		err error
 		key string
 		hb  time.Duration // heartbeat
-		p   *Proto
+		p   *proto.Proto
 		b   *Bucket
 		trd *itime.TimerData
 		rb  = rp.Get()
@@ -172,7 +173,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 // invokes it in a go statement.
 func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool, wb *bytes.Buffer, ch *Channel) {
 	var (
-		p   *Proto
+		p   *proto.Proto
 		err error
 	)
 	if Debug {
@@ -227,7 +228,7 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
+func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *proto.Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	if err = p.ReadTCP(rr); err != nil {
 		return
 	}

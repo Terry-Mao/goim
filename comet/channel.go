@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/Terry-Mao/goim/libs/bufio"
 	"sync"
 	"time"
+
+	"github.com/Terry-Mao/goim/libs/bufio"
+	"github.com/thinkboy/goim/libs/proto"
 )
 
 // Channel used by message pusher send msg to write goroutine.
@@ -27,13 +29,11 @@ func NewChannel(cli, svr int, rid int32) *Channel {
 }
 
 // Push server push message.
-func (c *Channel) Push(ver int16, operation int32, body []byte) (err error) {
-	var proto *Proto
+func (c *Channel) Push(p *proto.Proto) (err error) {
+	var proto *proto.Proto
 	c.cLock.Lock()
 	if proto, err = c.SvrProto.Set(); err == nil {
-		proto.Ver = ver
-		proto.Operation = operation
-		proto.Body = body
+		*proto = *p
 		c.SvrProto.SetAdv()
 	}
 	c.cLock.Unlock()
@@ -46,16 +46,16 @@ func (c *Channel) Push(ver int16, operation int32, body []byte) (err error) {
 // Pushs server push messages.
 func (c *Channel) Pushs(ver []int32, operations []int32, bodies [][]byte) (idx int32, err error) {
 	var (
-		proto *Proto
-		n     int32
+		p *proto.Proto
+		n int32
 	)
 	c.cLock.Lock()
 	for n = 0; n < int32(len(ver)); n++ {
 		// fetch a proto from channel free list
-		if proto, err = c.SvrProto.Set(); err == nil {
-			proto.Ver = int16(ver[n])
-			proto.Operation = operations[n]
-			proto.Body = bodies[n]
+		if p, err = c.SvrProto.Set(); err == nil {
+			p.Ver = int16(ver[n])
+			p.Operation = operations[n]
+			p.Body = bodies[n]
 			c.SvrProto.SetAdv()
 			idx = n
 		} else {

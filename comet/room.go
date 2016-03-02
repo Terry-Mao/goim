@@ -1,18 +1,14 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/libs/bytes"
-	"github.com/Terry-Mao/goim/libs/define"
-	itime "github.com/Terry-Mao/goim/libs/time"
 	"sync"
-	"time"
+
+	itime "github.com/Terry-Mao/goim/libs/time"
+	"github.com/thinkboy/goim/libs/proto"
 )
 
 type RoomOptions struct {
 	ChannelSize int
-	BatchNum    int
-	SignalTime  time.Duration
 }
 
 type Room struct {
@@ -20,21 +16,14 @@ type Room struct {
 	rLock sync.RWMutex
 	// map room id with channels
 	// TODO use double-linked list
-	chs   map[*Channel]struct{}
-	proto chan *Proto
+	chs map[*Channel]struct{}
 }
-
-var (
-	roomReadyProto = &Proto{Operation: define.OP_ROOM_READY}
-)
 
 // NewRoom new a room struct, store channel room info.
 func NewRoom(id int32, t *itime.Timer, options RoomOptions) (r *Room) {
 	r = new(Room)
 	r.id = id
-	r.proto = make(chan *Proto, options.BatchNum*2)
 	r.chs = make(map[*Channel]struct{}, options.ChannelSize)
-	go r.pushproc(t, options.BatchNum, options.SignalTime)
 	return
 }
 
@@ -54,20 +43,13 @@ func (r *Room) Del(ch *Channel) {
 }
 
 // Push push msg to the room, if chan full discard it.
-func (r *Room) Push(ver int16, operation int32, msg []byte) (err error) {
-	var p = &Proto{Ver: ver, Operation: operation, Body: msg}
-	select {
-	case r.proto <- p:
-	default:
-		err = ErrRoomFull
+func (r *Room) Push(p *proto.Proto) {
+	var ch *Channel
+	r.rLock.RLock()
+	for ch, _ = range r.chs {
+		ch.Push(p)
 	}
-	return
-}
-
-// EPush ensure push msg to the room.
-func (r *Room) EPush(ver int16, operation int32, msg []byte) (err error) {
-	var p = &Proto{Ver: ver, Operation: operation, Body: msg}
-	r.proto <- p
+	r.rLock.RUnlock()
 	return
 }
 
@@ -79,65 +61,9 @@ func (r *Room) Online() (o int) {
 	return
 }
 
-// pushproc merge proto and push msgs in batch.
-func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
-	var (
-		n    int
-		last time.Time
-		p    *Proto
-		ch   *Channel
-		td   *itime.TimerData
-		buf  = bytes.NewWriterSize(int(MaxBodySize))
-	)
-	if Debug {
-		log.Debug("start room: %d goroutine", r.id)
-	}
-	td = timer.Add(sigTime, func() {
-		select {
-		case r.proto <- roomReadyProto:
-		default:
-		}
-	})
-	for {
-		if p = <-r.proto; p == nil {
-			break // exit
-		} else if p != roomReadyProto {
-			// merge buffer ignore error, always nil
-			p.WriteTo(buf)
-			if n++; n == 1 {
-				last = time.Now()
-				timer.Set(td, sigTime)
-				continue
-			} else if n < batch {
-				if sigTime > time.Now().Sub(last) {
-					continue
-				}
-			}
-		} else {
-			if n == 0 {
-				continue
-			}
-		}
-		r.rLock.RLock()
-		for ch, _ = range r.chs {
-			ch.Push(0, define.OP_RAW, buf.Buffer())
-		}
-		r.rLock.RUnlock()
-		n = 0
-		ch = nil // avoid gc memory leak
-		// after push to room channel, renew a buffer, let old buffer gc
-		buf = bytes.NewWriterSize(buf.Size())
-	}
-	timer.Del(td)
-	if Debug {
-		log.Debug("room: %d goroutine exit", r.id)
-	}
-}
-
 // Close close the room.
 func (r *Room) Close() {
 	var ch *Channel
-	r.proto <- nil
 	r.rLock.RLock()
 	for ch, _ = range r.chs {
 		ch.Close()

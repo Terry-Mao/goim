@@ -36,8 +36,6 @@ func main() {
 			RoomSize:    Conf.BucketRoom,
 		}, RoomOptions{
 			ChannelSize: Conf.RoomChannel,
-			BatchNum:    Conf.RoomBatch,
-			SignalTime:  Conf.RoomSignal,
 		})
 	}
 	round := NewRound(RoundOptions{

@@ -1,16 +1,18 @@
 package main
 
 import (
+	"time"
+
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/define"
-	"time"
+	"github.com/thinkboy/goim/libs/proto"
 )
 
 type Operator interface {
 	// Operate process the common operation such as send message etc.
-	Operate(*Proto) error
+	Operate(*proto.Proto) error
 	// Connect used for auth user and return a subkey, roomid, hearbeat.
-	Connect(*Proto) (string, int32, time.Duration, error)
+	Connect(*proto.Proto) (string, int32, time.Duration, error)
 	// Disconnect used for revoke the subkey.
 	Disconnect(string, int32) error
 }
@@ -18,7 +20,7 @@ type Operator interface {
 type DefaultOperator struct {
 }
 
-func (operator *DefaultOperator) Operate(p *Proto) error {
+func (operator *DefaultOperator) Operate(p *proto.Proto) error {
 	var (
 		body []byte
 	)
@@ -37,7 +39,7 @@ func (operator *DefaultOperator) Operate(p *Proto) error {
 	return nil
 }
 
-func (operator *DefaultOperator) Connect(p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
+func (operator *DefaultOperator) Connect(p *proto.Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	key, rid, heartbeat, err = connect(p)
 	return
 }

@@ -53,7 +53,7 @@ func (r *RouterRPC) bucket(userId int64) *Bucket {
 	return r.Buckets[idx]
 }
 
-func (r *RouterRPC) Ping(arg *int, reply *int) error {
+func (r *RouterRPC) Ping(arg *proto.NoArg, reply *proto.NoReply) error {
 	return nil
 }
 
@@ -67,7 +67,7 @@ func (r *RouterRPC) Del(arg *proto.DelArg, reply *proto.DelReply) error {
 	return nil
 }
 
-func (r *RouterRPC) DelServer(arg *proto.DelServerArg, reply *int) error {
+func (r *RouterRPC) DelServer(arg *proto.DelServerArg, reply *proto.NoReply) error {
 	var (
 		bucket *Bucket
 	)
@@ -82,7 +82,7 @@ func (r *RouterRPC) Get(arg *proto.GetArg, reply *proto.GetReply) error {
 	return nil
 }
 
-func (r *RouterRPC) GetAll(arg *int, reply *proto.GetAllReply) error {
+func (r *RouterRPC) GetAll(arg *proto.NoArg, reply *proto.GetAllReply) error {
 	var (
 		i             int64
 		j             int
@@ -120,7 +120,7 @@ func (r *RouterRPC) MGet(arg *proto.MGetArg, reply *proto.MGetReply) error {
 	return nil
 }
 
-func (r *RouterRPC) Count(arg *int, reply *proto.CountReply) error {
+func (r *RouterRPC) Count(arg *proto.NoArg, reply *proto.CountReply) error {
 	var (
 		bucket *Bucket
 	)
@@ -140,7 +140,7 @@ func (r *RouterRPC) RoomCount(arg *proto.RoomCountArg, reply *proto.RoomCountRep
 	return nil
 }
 
-func (r *RouterRPC) AllRoomCount(arg *int, reply *proto.AllRoomCountReply) error {
+func (r *RouterRPC) AllRoomCount(arg *proto.NoArg, reply *proto.AllRoomCountReply) error {
 	var (
 		bucket        *Bucket
 		roomId, count int32
@@ -154,7 +154,7 @@ func (r *RouterRPC) AllRoomCount(arg *int, reply *proto.AllRoomCountReply) error
 	return nil
 }
 
-func (r *RouterRPC) AllServerCount(arg *int, reply *proto.AllServerCountReply) error {
+func (r *RouterRPC) AllServerCount(arg *proto.NoArg, reply *proto.AllServerCountReply) error {
 	var (
 		bucket        *Bucket
 		server, count int32

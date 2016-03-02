@@ -82,7 +82,7 @@ func Push(w http.ResponseWriter, r *http.Request) {
 	}
 	var (
 		body      string
-		server    int32
+		serverId  int32
 		keys      []string
 		subKeys   map[int32][]string
 		bodyBytes []byte
@@ -104,8 +104,8 @@ func Push(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	subKeys = genSubKey(userId)
-	for server, keys = range subKeys {
-		if err = mpushKafka(server, keys, bodyBytes); err != nil {
+	for serverId, keys = range subKeys {
+		if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
 			res["ret"] = InternalErr
 			return
 		}
@@ -138,7 +138,7 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 	var (
 		body      string
 		bodyBytes []byte
-		server    int32
+		serverId  int32
 		userIds   []int64
 		err       error
 		res       = map[string]interface{}{"ret": OK}
@@ -158,8 +158,8 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	subKeys = genSubKeys(userIds)
-	for server, keys = range subKeys {
-		if err = mpushKafka(server, keys, bodyBytes); err != nil {
+	for serverId, keys = range subKeys {
+		if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
 			res["ret"] = InternalErr
 			return
 		}

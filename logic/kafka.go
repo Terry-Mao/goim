@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
+
 	log "code.google.com/p/log4go"
 	"github.com/Shopify/sarama"
 	"github.com/Terry-Mao/goim/libs/define"
-	lproto "github.com/Terry-Mao/goim/libs/proto/logic"
-	"github.com/gogo/protobuf/proto"
+	"github.com/Terry-Mao/goim/libs/encoding/binary"
+	"github.com/thinkboy/goim/libs/proto"
 )
 
 const (
@@ -19,7 +21,7 @@ var (
 func InitKafka(kafkaAddrs []string) (err error) {
 	config := sarama.NewConfig()
 	config.Producer.RequiredAcks = sarama.NoResponse
-	config.Producer.Partitioner = sarama.NewRandomPartitioner
+	config.Producer.Partitioner = sarama.NewHashPartitioner
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
 	producer, err = sarama.NewAsyncProducer(kafkaAddrs, config)
@@ -52,31 +54,40 @@ func handleError() {
 	}
 }
 
-func mpushKafka(server int32, keys []string, msg []byte) (err error) {
+func mpushKafka(serverId int32, keys []string, msg []byte) (err error) {
 	var (
 		vBytes []byte
-		v      = &lproto.PushsMsg{Server: server, SubKeys: keys, Msg: msg}
+		v      = &proto.KafkaMsg{OP: define.KAFKA_MESSAGE_MULTI, ServerId: serverId, SubKeys: keys, Msg: msg}
 	)
-	if vBytes, err = proto.Marshal(v); err != nil {
+	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
-	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Key: sarama.StringEncoder(define.KAFKA_MESSAGE_MULTI), Value: sarama.ByteEncoder(vBytes)}
+	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Value: sarama.ByteEncoder(vBytes)}
 	return
 }
 
 func broadcastKafka(msg []byte) (err error) {
-	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Key: sarama.StringEncoder(define.KAFKA_MESSAGE_BROADCAST), Value: sarama.ByteEncoder(msg)}
+	var (
+		vBytes []byte
+		v      = &proto.KafkaMsg{OP: define.KAFKA_MESSAGE_BROADCAST, Msg: msg}
+	)
+	if vBytes, err = json.Marshal(v); err != nil {
+		return
+	}
+	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Value: sarama.ByteEncoder(vBytes)}
 	return
 }
 
 func broadcastRoomKafka(rid int32, msg []byte, ensure bool) (err error) {
 	var (
-		vBytes []byte
-		v      = &lproto.BroadCastRoom{RoomId: rid, Msg: msg, Ensure: ensure}
+		vBytes   []byte
+		ridBytes [4]byte
+		v        = &proto.KafkaMsg{OP: define.KAFKA_MESSAGE_BROADCAST_ROOM, RoomId: rid, Msg: msg, Ensure: ensure}
 	)
-	if vBytes, err = proto.Marshal(v); err != nil {
+	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
-	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Key: sarama.StringEncoder(define.KAFKA_MESSAGE_BROADCAST_ROOM), Value: sarama.ByteEncoder(vBytes)}
+	binary.BigEndian.PutInt32(ridBytes[:], rid)
+	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Key: sarama.ByteEncoder(ridBytes[:]), Value: sarama.ByteEncoder(vBytes)}
 	return
 }

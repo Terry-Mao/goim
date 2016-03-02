@@ -77,9 +77,7 @@ type Config struct {
 	BucketChannel int `goconf:"bucket:channel"`
 	BucketRoom    int `goconf:"bucket:room"`
 	// room
-	RoomChannel int           `goconf:"room:channel"`
-	RoomBatch   int           `goconf:"room:batch"`
-	RoomSignal  time.Duration `goconf:"room:signal:time"`
+	RoomChannel int `goconf:"room:channel"`
 	// push
 	RPCPushAddrs []string `goconf:"push:rpc.addrs:,"`
 	// logic

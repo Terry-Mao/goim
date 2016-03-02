@@ -1,10 +1,14 @@
-package comet
+package proto
+
+type NoArg struct {
+}
+
+type NoReply struct {
+}
 
 type PushMsgArg struct {
-	Key       string
-	Ver       int32
-	Operation int32
-	Msg       []byte
+	Key string
+	P   *Proto
 }
 
 type PushMsgsArg struct {
@@ -19,10 +23,8 @@ type PushMsgsReply struct {
 }
 
 type MPushMsgArg struct {
-	Keys      []string
-	Ver       int32
-	Operation int32
-	Msg       []byte
+	Keys []string
+	P    *Proto
 }
 
 type MPushMsgReply struct {
@@ -30,10 +32,7 @@ type MPushMsgReply struct {
 }
 
 type MPushMsgsArg struct {
-	Keys       []string
-	Vers       []int32
-	Operations []int32
-	Msgs       [][]byte
+	PMArgs []*PushMsgArg
 }
 
 type MPushMsgsReply struct {
@@ -41,19 +40,14 @@ type MPushMsgsReply struct {
 }
 
 type BoardcastArg struct {
-	Ver       int32
-	Operation int32
-	Msg       []byte
+	P *Proto
 }
 
 type BoardcastRoomArg struct {
-	Ver       int32
-	Operation int32
-	Msg       []byte
-	RoomId    int32
-	Ensure    bool
+	RoomId int32
+	P      *Proto
 }
 
 type RoomsReply struct {
-	Rooms map[int32]bool
+	RoomIds []int32
 }

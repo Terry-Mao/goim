@@ -1,13 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"net/rpc"
 	"time"
 
 	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/libs/define"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	cproto "github.com/Terry-Mao/goim/libs/proto/comet"
+	"github.com/thinkboy/goim/libs/define"
+	"github.com/thinkboy/goim/libs/proto"
 )
 
 var (
@@ -19,30 +20,27 @@ const (
 	CometServicePing          = "PushRPC.Ping"
 	CometServiceRooms         = "PushRPC.Rooms"
 	CometServicePushMsg       = "PushRPC.PushMsg"
-	CometServicePushMsgs      = "PushRPC.PushMsgs"
 	CometServiceMPushMsg      = "PushRPC.MPushMsg"
-	CometServiceMPushMsgs     = "PushRPC.MPushMsgs"
 	CometServiceBroadcast     = "PushRPC.Broadcast"
 	CometServiceBroadcastRoom = "PushRPC.BroadcastRoom"
 )
 
 func InitComet(addrs map[int32]string) (err error) {
-	for serverID, addrs := range addrs {
+	for serverID, addrsTmp := range addrs {
 		var (
 			rpcClient     *rpc.Client
 			quit          chan struct{}
 			network, addr string
 		)
-		if network, addr, err = inet.ParseNetwork(addrs); err != nil {
+		if network, addr, err = inet.ParseNetwork(addrsTmp); err != nil {
 			log.Error("inet.ParseNetwork() error(%v)", err)
 			return
 		}
 		if rpcClient, err = rpc.Dial(network, addr); err != nil {
 			log.Error("rpc.Dial(\"%s\") error(%s)", addr, err)
-			return
 		}
 		go Reconnect(&rpcClient, quit, network, addr)
-		log.Info("rpc addr:%s connected", addr)
+		log.Info("init comet rpc addr:%s connection", addr)
 		cometServiceMap[serverID] = &rpcClient
 	}
 	return
@@ -56,6 +54,8 @@ func Reconnect(dst **rpc.Client, quit chan struct{}, network, address string) {
 		call   *rpc.Call
 		ch     = make(chan *rpc.Call, 1)
 		client = *dst
+		args   = proto.NoArg{}
+		reply  = proto.NoReply{}
 	)
 	for {
 		select {
@@ -63,7 +63,10 @@ func Reconnect(dst **rpc.Client, quit chan struct{}, network, address string) {
 			return
 		default:
 			if client != nil {
-				call = <-client.Go(CometServicePing, 0, 0, ch).Done
+				call = <-client.Go(CometServicePing, &args, &reply, ch).Done
+				if call.Error != nil {
+					log.Error("rpc ping %s error(%v)", address, call.Error)
+				}
 			}
 			if client == nil || call.Error != nil {
 				if tmp, err = rpc.Dial(network, address); err == nil {
@@ -77,53 +80,88 @@ func Reconnect(dst **rpc.Client, quit chan struct{}, network, address string) {
 }
 
 // get comet server client by server id
-func getCometByServerId(serverID int32) (*rpc.Client, error) {
-	if client, ok := cometServiceMap[serverID]; !ok || *client == nil {
+func getCometByServerId(serverId int32) (*rpc.Client, error) {
+	if client, ok := cometServiceMap[serverId]; !ok || *client == nil {
 		return nil, ErrComet
 	} else {
 		return *client, nil
 	}
 }
 
-func mpushComet(c *rpc.Client, subkeys []string, body []byte) {
+func mPushComet(serverId int32, subkeys []string, body json.RawMessage) {
 	var (
-		args = &cproto.MPushMsgArg{Keys: subkeys, Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Msg: body}
-		rep  = &cproto.MPushMsgReply{}
-		err  error
+		p     = &proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: body}
+		args  = &proto.MPushMsgArg{Keys: subkeys, P: p}
+		reply = &proto.MPushMsgReply{}
+		c     *rpc.Client
+		err   error
 	)
-	if err = c.Call(CometServiceMPushMsg, args, rep); err != nil {
+	c, err = getCometByServerId(serverId)
+	if err != nil {
+		log.Error("getCometByServerId(\"%d\") error(%v)", serverId, err)
+		return
+	}
+	if err = c.Call(CometServiceMPushMsg, args, reply); err != nil {
 		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceMPushMsg, *args, err)
 	}
 }
 
-func broadcastComet(c *rpc.Client, msg []byte) {
+func broadcast(msg []byte) {
 	var (
-		args = &cproto.BoardcastArg{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Msg: msg}
-		err  error
+		p    = &proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: msg}
+		args = &proto.BoardcastArg{P: p}
 	)
-	if err = c.Call(CometServiceBroadcast, args, 0); err != nil {
+	for serverId, c := range cometServiceMap {
+		if *c != nil {
+			go broadcastComet(*c, args)
+		} else {
+			log.Error("doesn`t push message to serverId:%d", serverId)
+		}
+	}
+}
+
+func broadcastComet(c *rpc.Client, args *proto.BoardcastArg) (err error) {
+	var reply = proto.NoReply{}
+	if err = c.Call(CometServiceBroadcast, args, &reply); err != nil {
 		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceBroadcast, *args, err)
 	}
+	return
 }
 
-func broadcastRoomComet(c *rpc.Client, roomId int32, msg []byte) {
+func broadcastRoomBytes(roomId int32, body []byte) {
 	var (
-		args = &cproto.BoardcastRoomArg{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Msg: msg, RoomId: roomId}
-		err  error
+		p        = &proto.Proto{Ver: 0, Operation: define.OP_RAW, Body: body}
+		args     = proto.BoardcastRoomArg{P: p, RoomId: roomId}
+		reply    = proto.NoReply{}
+		c        *rpc.Client
+		serverId int32
+		servers  map[int32]struct{}
+		err      error
+		ok       bool
 	)
-	if err = c.Call(CometServiceBroadcastRoom, args, 0); err != nil {
-		log.Error("c.Call(\"%s\", %v, reply) error(%v)", CometServiceBroadcastRoom, *args, err)
+
+	if servers, ok = RoomServersMap[roomId]; ok {
+		for serverId, _ = range servers {
+			if c, err = getCometByServerId(serverId); err != nil {
+				log.Error("getCometByServerId(%d) error(%v)", serverId, err)
+				continue
+			}
+			if err = c.Call(CometServiceBroadcastRoom, &args, &reply); err != nil {
+				log.Error("c.Call(\"%s\", %v, reply) serverId:%d error(%v)", CometServiceBroadcastRoom, args, serverId, err)
+			}
+		}
 	}
 }
 
-func roomsComet(c *rpc.Client) map[int32]bool {
+func roomsComet(c *rpc.Client) []int32 {
 	var (
-		reply = &cproto.RoomsReply{}
+		args  = proto.NoArg{}
+		reply = proto.RoomsReply{}
 		err   error
 	)
-	if err = c.Call(CometServiceRooms, 0, reply); err != nil {
-		log.Error("c.Call(\"%s\", nil, reply) error(%v)", CometServiceRooms, err)
+	if err = c.Call(CometServiceRooms, &args, &reply); err != nil {
+		log.Error("c.Call(\"%s\", 0, reply) error(%v)", CometServiceRooms, err)
 		return nil
 	}
-	return reply.Rooms
+	return reply.RoomIds
 }

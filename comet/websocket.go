@@ -1,15 +1,17 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"crypto/tls"
-	"github.com/Terry-Mao/goim/libs/define"
-	itime "github.com/Terry-Mao/goim/libs/time"
-	"golang.org/x/net/websocket"
 	"math/rand"
 	"net"
 	"net/http"
 	"time"
+
+	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/libs/define"
+	itime "github.com/Terry-Mao/goim/libs/time"
+	"github.com/thinkboy/goim/libs/proto"
+	"golang.org/x/net/websocket"
 )
 
 func InitWebsocket(addrs []string) (err error) {
@@ -93,7 +95,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		err error
 		key string
 		hb  time.Duration // heartbeat
-		p   *Proto
+		p   *proto.Proto
 		b   *Bucket
 		trd *itime.TimerData
 		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
@@ -157,7 +159,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 // invokes it in a go statement.
 func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Channel) {
 	var (
-		p   *Proto
+		p   *proto.Proto
 		err error
 	)
 	if Debug {
@@ -197,7 +199,7 @@ failed:
 	return
 }
 
-func (server *Server) authWebsocket(conn *websocket.Conn, p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
+func (server *Server) authWebsocket(conn *websocket.Conn, p *proto.Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	if err = p.ReadWebsocket(conn); err != nil {
 		return
 	}

@@ -1,12 +1,12 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
-	inet "github.com/Terry-Mao/goim/libs/net"
-	lproto "github.com/Terry-Mao/goim/libs/proto/logic"
-
 	"net"
 	"net/rpc"
+
+	log "code.google.com/p/log4go"
+	inet "github.com/Terry-Mao/goim/libs/net"
+	"github.com/thinkboy/goim/libs/proto"
 )
 
 func InitRPC(auther Auther) (err error) {
@@ -47,12 +47,12 @@ type RPC struct {
 	auther Auther
 }
 
-func (r *RPC) Ping(arg *int, reply *int) error {
+func (r *RPC) Ping(arg *proto.NoArg, reply *proto.NoReply) error {
 	return nil
 }
 
 // Connect auth and registe login
-func (r *RPC) Connect(arg *lproto.ConnArg, reply *lproto.ConnReply) (err error) {
+func (r *RPC) Connect(arg *proto.ConnArg, reply *proto.ConnReply) (err error) {
 	if arg == nil {
 		err = ErrConnectArgs
 		log.Error("Connect() error(%v)", err)
@@ -70,7 +70,7 @@ func (r *RPC) Connect(arg *lproto.ConnArg, reply *lproto.ConnReply) (err error) 
 }
 
 // Disconnect notice router offline
-func (r *RPC) Disconnect(arg *lproto.DisconnArg, reply *lproto.DisconnReply) (err error) {
+func (r *RPC) Disconnect(arg *proto.DisconnArg, reply *proto.DisconnReply) (err error) {
 	if arg == nil {
 		err = ErrDisconnectArgs
 		log.Error("Disconnect() error(%v)", err)

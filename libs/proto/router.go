@@ -1,4 +1,4 @@
-package router
+package proto
 
 type PutArg struct {
 	UserId int64

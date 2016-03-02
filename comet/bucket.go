@@ -1,9 +1,11 @@
 package main
 
 import (
+	"sync"
+
 	"github.com/Terry-Mao/goim/libs/define"
 	"github.com/Terry-Mao/goim/libs/time"
-	"sync"
+	"github.com/thinkboy/goim/libs/proto"
 )
 
 type BucketOptions struct {
@@ -102,12 +104,12 @@ func (b *Bucket) Del(key string) {
 }
 
 // Broadcast push msgs to all channels in the bucket.
-func (b *Bucket) Broadcast(ver int16, operation int32, msg []byte) {
+func (b *Bucket) Broadcast(p *proto.Proto) {
 	var ch *Channel
 	b.cLock.RLock()
 	for _, ch = range b.chs {
 		// ignore error
-		ch.Push(ver, operation, msg)
+		ch.Push(p)
 	}
 	b.cLock.RUnlock()
 }

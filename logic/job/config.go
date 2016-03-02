@@ -2,8 +2,11 @@ package main
 
 import (
 	"flag"
-	"github.com/Terry-Mao/goconf"
+	"runtime"
 	"strconv"
+	"time"
+
+	"github.com/Terry-Mao/goconf"
 )
 
 var (
@@ -24,6 +27,12 @@ type Config struct {
 	Comets       map[int32]string `goconf:"-"`
 	PushChan     int              `goconf:"push:chan"`
 	PushChanSize int              `goconf:"push:chan.size"`
+	// timer
+	Timer     int `goconf:"timer:num"`
+	TimerSize int `goconf:"timer:size"`
+	// room
+	RoomBatch  int           `goconf:"room:batch"`
+	RoomSignal time.Duration `goconf:"room:signal:time"`
 }
 
 func NewConfig() *Config {
@@ -33,6 +42,10 @@ func NewConfig() *Config {
 		KafkaTopic:   "kafka_topic_push",
 		PushChan:     4,
 		PushChanSize: 100,
+		//timer
+		// timer
+		Timer:     runtime.NumCPU(),
+		TimerSize: 1000,
 	}
 }
 

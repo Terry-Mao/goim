@@ -7,9 +7,6 @@ import (
 
 	log "code.google.com/p/log4go"
 	"github.com/Shopify/sarama"
-	"github.com/Terry-Mao/goim/libs/define"
-	lproto "github.com/Terry-Mao/goim/libs/proto/logic"
-	"github.com/gogo/protobuf/proto"
 	"github.com/wvanbergen/kafka/consumergroup"
 )
 
@@ -41,32 +38,9 @@ func InitKafka() error {
 	go func() {
 		for msg := range cg.Messages() {
 			log.Info("deal with topic:%s, partitionId:%d, Offset:%d, Key:%s msg:%s", msg.Topic, msg.Partition, msg.Offset, msg.Key, msg.Value)
-			push(string(msg.Key), msg.Value)
+			push(msg.Value)
 			cg.CommitUpto(msg)
 		}
 	}()
 	return nil
-}
-
-func push(op string, msg []byte) (err error) {
-	if op == define.KAFKA_MESSAGE_MULTI {
-		m := &lproto.PushsMsg{}
-		if err = proto.Unmarshal(msg, m); err != nil {
-			log.Error("proto.Unmarshal(%s) error(%s)", msg, err)
-			return
-		}
-		mpush(m.Server, m.SubKeys, m.Msg)
-	} else if op == define.KAFKA_MESSAGE_BROADCAST {
-		broadcast(msg)
-	} else if op == define.KAFKA_MESSAGE_BROADCAST_ROOM {
-		m := &lproto.BroadCastRoom{}
-		if err = proto.Unmarshal(msg, m); err != nil {
-			log.Error("proto.Unmarshal(%s) error(%s)", msg, err)
-			return
-		}
-		broadcastRoom(int32(m.RoomId), m.Msg, m.Ensure)
-	} else {
-		log.Error("unknown operation:%s", op)
-	}
-	return
 }

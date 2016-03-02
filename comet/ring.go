@@ -2,6 +2,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
+	"github.com/thinkboy/goim/libs/proto"
 )
 
 const (
@@ -20,7 +21,7 @@ type Ring struct {
 	// pad [40]byte
 	// write
 	wp   uint64
-	data []Proto
+	data []proto.Proto
 }
 
 func NewRing(num int) *Ring {
@@ -41,12 +42,12 @@ func (r *Ring) init(num uint64) {
 		}
 		num = num << 1
 	}
-	r.data = make([]Proto, num)
+	r.data = make([]proto.Proto, num)
 	r.num = num
 	r.mask = r.num - 1
 }
 
-func (r *Ring) Get() (proto *Proto, err error) {
+func (r *Ring) Get() (proto *proto.Proto, err error) {
 	if r.rp == r.wp {
 		return nil, ErrRingEmpty
 	}
@@ -61,7 +62,7 @@ func (r *Ring) GetAdv() {
 	}
 }
 
-func (r *Ring) Set() (proto *Proto, err error) {
+func (r *Ring) Set() (proto *proto.Proto, err error) {
 	if r.wp-r.rp >= r.num {
 		return nil, ErrRingFull
 	}

@@ -1,4 +1,4 @@
-package logic
+package proto
 
 type ConnArg struct {
 	Token  string

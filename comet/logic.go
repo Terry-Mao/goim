@@ -6,7 +6,7 @@ import (
 
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	proto "github.com/Terry-Mao/goim/libs/proto/logic"
+	"github.com/thinkboy/goim/libs/proto"
 )
 
 var (
@@ -42,6 +42,8 @@ func Reconnect(dst **rpc.Client, quit chan struct{}, network, address string) {
 		call   *rpc.Call
 		ch     = make(chan *rpc.Call, 1)
 		client = *dst
+		args   = proto.NoArg{}
+		reply  = proto.NoReply{}
 	)
 	for {
 		select {
@@ -49,7 +51,10 @@ func Reconnect(dst **rpc.Client, quit chan struct{}, network, address string) {
 			return
 		default:
 			if client != nil {
-				call = <-client.Go(logicServicePing, 0, 0, ch).Done
+				call = <-client.Go(logicServicePing, &args, &reply, ch).Done
+				if call.Error != nil {
+					log.Error("rpc ping %s error(%v)", address, call.Error)
+				}
 			}
 			if client == nil || call.Error != nil {
 				if tmp, err = rpc.Dial(network, address); err == nil {
@@ -62,7 +67,7 @@ func Reconnect(dst **rpc.Client, quit chan struct{}, network, address string) {
 	}
 }
 
-func connect(p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
+func connect(p *proto.Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	if logicRpcClient == nil {
 		err = ErrLogic
 		return
