@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/Terry-Mao/goim/libs/define"
+	"github.com/Terry-Mao/goim/libs/proto"
 	"github.com/Terry-Mao/goim/libs/time"
-	"github.com/thinkboy/goim/libs/proto"
 )
 
 type BucketOptions struct {

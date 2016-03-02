@@ -9,8 +9,8 @@ import (
 
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/define"
+	"github.com/Terry-Mao/goim/libs/proto"
 	itime "github.com/Terry-Mao/goim/libs/time"
-	"github.com/thinkboy/goim/libs/proto"
 	"golang.org/x/net/websocket"
 )
 

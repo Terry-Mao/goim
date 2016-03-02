@@ -6,9 +6,9 @@ import (
 	"time"
 
 	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/goim/libs/define"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	"github.com/thinkboy/goim/libs/define"
-	"github.com/thinkboy/goim/libs/proto"
+	"github.com/Terry-Mao/goim/libs/proto"
 )
 
 var (

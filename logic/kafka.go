@@ -7,7 +7,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/Terry-Mao/goim/libs/define"
 	"github.com/Terry-Mao/goim/libs/encoding/binary"
-	"github.com/thinkboy/goim/libs/proto"
+	"github.com/Terry-Mao/goim/libs/proto"
 )
 
 const (

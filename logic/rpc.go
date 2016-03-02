@@ -6,7 +6,7 @@ import (
 
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	"github.com/thinkboy/goim/libs/proto"
+	"github.com/Terry-Mao/goim/libs/proto"
 )
 
 func InitRPC(auther Auther) (err error) {

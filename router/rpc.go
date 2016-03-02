@@ -6,7 +6,7 @@ import (
 
 	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
-	proto "github.com/Terry-Mao/goim/libs/proto/router"
+	"github.com/Terry-Mao/goim/libs/proto"
 )
 
 func InitRPC(bs []*Bucket) (err error) {

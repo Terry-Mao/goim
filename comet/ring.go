@@ -2,7 +2,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"github.com/thinkboy/goim/libs/proto"
+	"github.com/Terry-Mao/goim/libs/proto"
 )
 
 const (

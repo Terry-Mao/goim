@@ -3,8 +3,8 @@ package main
 import (
 	"sync"
 
+	"github.com/Terry-Mao/goim/libs/proto"
 	itime "github.com/Terry-Mao/goim/libs/time"
-	"github.com/thinkboy/goim/libs/proto"
 )
 
 type RoomOptions struct {

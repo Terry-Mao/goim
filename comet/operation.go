@@ -5,7 +5,7 @@ import (
 
 	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/define"
-	"github.com/thinkboy/goim/libs/proto"
+	"github.com/Terry-Mao/goim/libs/proto"
 )
 
 type Operator interface {
