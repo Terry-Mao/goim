@@ -4,11 +4,11 @@ import (
 	"sync"
 	"time"
 
-	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/bytes"
 	"github.com/Terry-Mao/goim/libs/define"
 	"github.com/Terry-Mao/goim/libs/proto"
 	itime "github.com/Terry-Mao/goim/libs/time"
+	log "github.com/thinkboy/log4go"
 )
 
 const (

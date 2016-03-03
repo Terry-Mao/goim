@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
+	log "github.com/thinkboy/log4go"
 )
 
 func InitHTTP() (err error) {

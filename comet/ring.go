@@ -1,8 +1,8 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/proto"
+	log "github.com/thinkboy/log4go"
 )
 
 const (

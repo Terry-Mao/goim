@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	log "code.google.com/p/log4go"
 	"github.com/Shopify/sarama"
+	log "github.com/thinkboy/log4go"
 	"github.com/wvanbergen/kafka/consumergroup"
 )
 

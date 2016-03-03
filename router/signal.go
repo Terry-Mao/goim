@@ -1,10 +1,11 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"os"
 	"os/signal"
 	"syscall"
+
+	log "github.com/thinkboy/log4go"
 )
 
 // InitSignal register signals handler.

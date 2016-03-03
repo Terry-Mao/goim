@@ -4,9 +4,9 @@ import (
 	"net"
 	"net/rpc"
 
-	log "code.google.com/p/log4go"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	"github.com/Terry-Mao/goim/libs/proto"
+	log "github.com/thinkboy/log4go"
 )
 
 func InitRPCPush(addrs []string) (err error) {

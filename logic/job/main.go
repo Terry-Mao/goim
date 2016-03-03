@@ -4,7 +4,7 @@ import (
 	"flag"
 	"runtime"
 
-	log "code.google.com/p/log4go"
+	log "github.com/thinkboy/log4go"
 )
 
 func main() {

@@ -3,10 +3,10 @@ package main
 import (
 	"net"
 
-	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/bufio"
 	"github.com/Terry-Mao/goim/libs/bytes"
 	itime "github.com/Terry-Mao/goim/libs/time"
+	log "github.com/thinkboy/log4go"
 )
 
 const (

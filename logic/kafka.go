@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 
-	log "code.google.com/p/log4go"
 	"github.com/Shopify/sarama"
 	"github.com/Terry-Mao/goim/libs/define"
 	"github.com/Terry-Mao/goim/libs/encoding/binary"
 	"github.com/Terry-Mao/goim/libs/proto"
+	log "github.com/thinkboy/log4go"
 )
 
 const (

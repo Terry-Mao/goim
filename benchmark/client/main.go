@@ -18,7 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	log "code.google.com/p/log4go"
+	log "github.com/thinkboy/log4go"
 )
 
 const (

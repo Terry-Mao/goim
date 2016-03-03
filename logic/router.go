@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/hash/ketama"
 	inet "github.com/Terry-Mao/goim/libs/net"
 	"github.com/Terry-Mao/goim/libs/proto"
+	log "github.com/thinkboy/log4go"
 )
 
 var (

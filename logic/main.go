@@ -4,8 +4,8 @@ import (
 	"flag"
 	"runtime"
 
-	log "code.google.com/p/log4go"
 	"github.com/Terry-Mao/goim/libs/perf"
+	log "github.com/thinkboy/log4go"
 )
 
 func main() {
