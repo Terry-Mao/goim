@@ -1,11 +1,11 @@
 package main
 
 import (
+	inet "goim/libs/net"
+	"goim/libs/proto"
 	"net"
 	"net/rpc"
 
-	inet "github.com/Terry-Mao/goim/libs/net"
-	"github.com/Terry-Mao/goim/libs/proto"
 	log "github.com/thinkboy/log4go"
 )
 

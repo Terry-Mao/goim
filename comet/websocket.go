@@ -2,14 +2,14 @@ package main
 
 import (
 	"crypto/tls"
+	"goim/libs/define"
+	"goim/libs/proto"
+	itime "goim/libs/time"
 	"math/rand"
 	"net"
 	"net/http"
 	"time"
 
-	"github.com/Terry-Mao/goim/libs/define"
-	"github.com/Terry-Mao/goim/libs/proto"
-	itime "github.com/Terry-Mao/goim/libs/time"
 	log "github.com/thinkboy/log4go"
 	"golang.org/x/net/websocket"
 )

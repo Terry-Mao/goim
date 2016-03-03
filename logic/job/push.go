@@ -2,10 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"goim/libs/define"
+	"goim/libs/proto"
 	"math/rand"
 
-	"github.com/Terry-Mao/goim/libs/define"
-	"github.com/Terry-Mao/goim/libs/proto"
 	log "github.com/thinkboy/log4go"
 )
 

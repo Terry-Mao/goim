@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"goim/libs/bufio"
+	"goim/libs/bytes"
+	"goim/libs/define"
+	"goim/libs/encoding/binary"
 
-	"github.com/Terry-Mao/goim/libs/bufio"
-	"github.com/Terry-Mao/goim/libs/bytes"
-	"github.com/Terry-Mao/goim/libs/define"
-	"github.com/Terry-Mao/goim/libs/encoding/binary"
 	"golang.org/x/net/websocket"
 )
 

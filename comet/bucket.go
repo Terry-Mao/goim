@@ -1,11 +1,10 @@
 package main
 
 import (
+	"goim/libs/define"
+	"goim/libs/proto"
+	"goim/libs/time"
 	"sync"
-
-	"github.com/Terry-Mao/goim/libs/define"
-	"github.com/Terry-Mao/goim/libs/proto"
-	"github.com/Terry-Mao/goim/libs/time"
 )
 
 type BucketOptions struct {

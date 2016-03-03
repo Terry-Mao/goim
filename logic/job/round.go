@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Terry-Mao/goim/libs/time"
+	"goim/libs/time"
 )
 
 type RoundOptions struct {

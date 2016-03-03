@@ -1,10 +1,9 @@
 package main
 
 import (
+	"goim/libs/proto"
+	itime "goim/libs/time"
 	"sync"
-
-	"github.com/Terry-Mao/goim/libs/proto"
-	itime "github.com/Terry-Mao/goim/libs/time"
 )
 
 type RoomOptions struct {

@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/Terry-Mao/goim/libs/proto"
+	"goim/libs/proto"
+
 	log "github.com/thinkboy/log4go"
 )
 

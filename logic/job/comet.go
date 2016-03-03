@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"goim/libs/define"
+	inet "goim/libs/net"
+	"goim/libs/proto"
 	"net/rpc"
 	"time"
 
-	"github.com/Terry-Mao/goim/libs/define"
-	inet "github.com/Terry-Mao/goim/libs/net"
-	"github.com/Terry-Mao/goim/libs/proto"
 	log "github.com/thinkboy/log4go"
 )
 

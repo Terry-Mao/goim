@@ -1,13 +1,13 @@
 package main
 
 import (
+	"goim/libs/hash/ketama"
+	inet "goim/libs/net"
+	"goim/libs/proto"
 	"net/rpc"
 	"strconv"
 	"time"
 
-	"github.com/Terry-Mao/goim/libs/hash/ketama"
-	inet "github.com/Terry-Mao/goim/libs/net"
-	"github.com/Terry-Mao/goim/libs/proto"
 	log "github.com/thinkboy/log4go"
 )
 

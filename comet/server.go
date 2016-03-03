@@ -1,9 +1,9 @@
 package main
 
 import (
+	"goim/libs/hash/cityhash"
 	"time"
 
-	"github.com/Terry-Mao/goim/libs/hash/cityhash"
 	log "github.com/thinkboy/log4go"
 )
 

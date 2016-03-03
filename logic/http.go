@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	inet "goim/libs/net"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"strconv"
 	"time"
 
-	inet "github.com/Terry-Mao/goim/libs/net"
 	log "github.com/thinkboy/log4go"
 )
 

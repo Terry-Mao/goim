@@ -1,9 +1,8 @@
 package main
 
 import (
+	"goim/libs/define"
 	"strconv"
-
-	"github.com/Terry-Mao/goim/libs/define"
 )
 
 // developer could implement "Auth" interface for decide how get userId, or roomId
