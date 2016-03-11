@@ -181,6 +181,10 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 	}
 	for {
 		p = ch.Ready()
+		if Debug {
+			log.Debug("key:%s dispatch msg:%v", key, *p)
+		}
+
 		switch p {
 		case ProtoFinish:
 			if Debug {
@@ -205,7 +209,6 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 			if err = p.WriteTCP(wr); err != nil {
 				goto failed
 			}
-			p.Body = nil // avoid memory leak
 		}
 		// only hungry flush response
 		if err = wr.Flush(); err != nil {
