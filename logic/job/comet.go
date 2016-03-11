@@ -128,10 +128,10 @@ func broadcastComet(c *rpc.Client, args *proto.BoardcastArg) (err error) {
 	return
 }
 
-func broadcastRoomBytes(roomId int32, body []byte) {
+func broadcastRoomBytes(roomId int32, body []byte, randId int) {
 	var (
 		p        = &proto.Proto{Ver: 0, Operation: define.OP_RAW, Body: body}
-		args     = proto.BoardcastRoomArg{P: p, RoomId: roomId}
+		args     = proto.BoardcastRoomArg{P: p, RoomId: roomId, RandId: randId}
 		reply    = proto.NoReply{}
 		c        *rpc.Client
 		serverId int32
@@ -140,6 +140,7 @@ func broadcastRoomBytes(roomId int32, body []byte) {
 		ok       bool
 	)
 
+	//TODO concurrent push to per server?
 	if servers, ok = RoomServersMap[roomId]; ok {
 		for serverId, _ = range servers {
 			if c, err = getCometByServerId(serverId); err != nil {

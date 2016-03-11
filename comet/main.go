@@ -32,8 +32,10 @@ func main() {
 	buckets := make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
 		buckets[i] = NewBucket(BucketOptions{
-			ChannelSize: Conf.BucketChannel,
-			RoomSize:    Conf.BucketRoom,
+			ChannelSize:   Conf.BucketChannel,
+			RoomSize:      Conf.BucketRoom,
+			RoutineAmount: Conf.RoutineAmount,
+			RoutineSize:   Conf.RoutineSize,
 		}, RoomOptions{
 			ChannelSize: Conf.RoomChannel,
 		})

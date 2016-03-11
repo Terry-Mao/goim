@@ -67,24 +67,6 @@ func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *proto.NoReply) (err e
 	return
 }
 
-// Pushs push multiple messages to a specified sub key
-func (this *PushRPC) PushMsgs(arg *proto.PushMsgsArg, reply *proto.PushMsgsReply) (err error) {
-	var (
-		bucket  *Bucket
-		channel *Channel
-	)
-	reply.Index = -1
-	if arg == nil || len(arg.Vers) != len(arg.Operations) || len(arg.Operations) != len(arg.Msgs) {
-		err = ErrPushMsgsArg
-		return
-	}
-	bucket = DefaultServer.Bucket(arg.Key)
-	if channel = bucket.Channel(arg.Key); channel != nil {
-		reply.Index, err = channel.Pushs(arg.Vers, arg.Operations, arg.Msgs)
-	}
-	return
-}
-
 // Push push a message to a specified sub key
 func (this *PushRPC) MPushMsg(arg *proto.MPushMsgArg, reply *proto.MPushMsgReply) (err error) {
 	var (
@@ -136,6 +118,7 @@ func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsRe
 	return
 }
 
+// Broadcast broadcast msg to all user.
 func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *proto.NoReply) (err error) {
 	var bucket *Bucket
 	for _, bucket = range DefaultServer.Buckets {
@@ -144,15 +127,11 @@ func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *proto.NoReply) (e
 	return
 }
 
+// Broadcast broadcast msg to specified room.
 func (this *PushRPC) BroadcastRoom(arg *proto.BoardcastRoomArg, reply *proto.NoReply) (err error) {
-	var (
-		bucket *Bucket
-		room   *Room
-	)
+	var bucket *Bucket
 	for _, bucket = range DefaultServer.Buckets {
-		if room = bucket.Room(arg.RoomId); room != nil {
-			go room.Push(arg.P)
-		}
+		bucket.BroadcastRoom(arg)
 	}
 	return
 }

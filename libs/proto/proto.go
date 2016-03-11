@@ -38,6 +38,8 @@ var (
 	emptyProto    = Proto{}
 	emptyJSONBody = []byte("{}")
 
+	roomReadyProto = &Proto{Operation: define.OP_ROOM_READY}
+
 	ErrProtoPackLen   = errors.New("default server codec pack length error")
 	ErrProtoHeaderLen = errors.New("default server codec header length error")
 )

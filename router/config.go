@@ -25,7 +25,6 @@ type Config struct {
 	Log        string   `goconf:"base:log"`
 	MaxProc    int      `goconf:"base:maxproc"`
 	PprofAddrs []string `goconf:"base:pprof.addrs:,"`
-	StatAddrs  []string `goconf:"base:stat.addrs:,"`
 	// rpc
 	RPCAddrs []string `goconf:"rpc:addrs:,"`
 	// bucket
@@ -46,7 +45,6 @@ func NewConfig() *Config {
 		Log:        "./router-log.xml",
 		MaxProc:    runtime.NumCPU(),
 		PprofAddrs: []string{"localhost:6971"},
-		StatAddrs:  []string{"localhost:6972"},
 		// rpc
 		RPCAddrs: []string{"localhost:9090"},
 		// bucket

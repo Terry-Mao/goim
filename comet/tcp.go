@@ -180,35 +180,32 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 		log.Debug("key: %s start dispatch tcp goroutine", key)
 	}
 	for {
-		if !ch.Ready() {
+		p = ch.Ready()
+		switch p {
+		case ProtoFinish:
 			if Debug {
 				log.Debug("key: %s wakeup exit dispatch goroutine", key)
 			}
-			break
-		}
-		// fetch message from svrbox(client send)
-		for {
-			if p, err = ch.CliProto.Get(); err != nil {
-				err = nil // must be empty error
-				break
+			goto failed
+		case ProtoReady:
+			// fetch message from svrbox(client send)
+			for {
+				if p, err = ch.CliProto.Get(); err != nil {
+					err = nil // must be empty error
+					break
+				}
+				if err = p.WriteTCP(wr); err != nil {
+					goto failed
+				}
+				p.Body = nil // avoid memory leak
+				ch.CliProto.GetAdv()
 			}
+		default:
+			// server send
 			if err = p.WriteTCP(wr); err != nil {
 				goto failed
 			}
 			p.Body = nil // avoid memory leak
-			ch.CliProto.GetAdv()
-		}
-		// fetch message from svrbox(server send)
-		for {
-			if p, err = ch.SvrProto.Get(); err != nil {
-				err = nil // must be empty error
-				break
-			}
-			if err = p.WriteTCP(wr); err != nil {
-				goto failed
-			}
-			p.Body = nil // avoid memory leak
-			ch.SvrProto.GetAdv()
 		}
 		// only hungry flush response
 		if err = wr.Flush(); err != nil {

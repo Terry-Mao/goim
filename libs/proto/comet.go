@@ -12,10 +12,8 @@ type PushMsgArg struct {
 }
 
 type PushMsgsArg struct {
-	Key        string
-	Vers       []int32
-	Operations []int32
-	Msgs       [][]byte
+	Key    string
+	PMArgs []*PushMsgArg
 }
 
 type PushMsgsReply struct {
@@ -46,6 +44,7 @@ type BoardcastArg struct {
 type BoardcastRoomArg struct {
 	RoomId int32
 	P      *Proto
+	RandId int
 }
 
 type RoomsReply struct {

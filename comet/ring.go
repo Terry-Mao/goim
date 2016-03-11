@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	// signal command
-	SignalNum   = 1
-	ProtoFinish = 0
-	ProtoReady  = 1
+// signal command
+//SignalNum   = 1
+//ProtoFinish = 0
+//ProtoReady  = 1
 )
 
 type Ring struct {

@@ -166,33 +166,37 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 		log.Debug("key: %s start dispatch websocket goroutine", key)
 	}
 	for {
-		if !ch.Ready() {
+		p = ch.Ready()
+		switch p {
+		case ProtoFinish:
 			if Debug {
 				log.Debug("key: %s wakeup exit dispatch goroutine", key)
 			}
-			break
-		}
-		// fetch message from svrbox(server send)
-		for {
-			if p, err = ch.SvrProto.Get(); err != nil {
-				log.Warn("ch.SvrProto.Get() error(%v)", err)
-				err = nil
+			goto failed
+		case ProtoReady:
+			if p, err = ch.CliProto.Get(); err != nil {
+				err = nil // must be empty error
 				break
 			}
-			// just forward the message
 			if err = p.WriteWebsocket(conn); err != nil {
-				log.Error("server.sendTCPResponse() error(%v)", err)
 				goto failed
 			}
 			p.Body = nil // avoid memory leak
-			ch.SvrProto.GetAdv()
+			ch.CliProto.GetAdv()
+		default:
+			//TODO room-push support
+			// just forward the message
+			if err = p.WriteWebsocket(conn); err != nil {
+				goto failed
+			}
+			p.Body = nil // avoid memory leak
 		}
 	}
 failed:
-	log.Error("key: %s dispatch websocket error(%v)", key, err)
-	if err = conn.Close(); err != nil {
-		log.Warn("conn.Close() error(%v)", err)
+	if err != nil {
+		log.Error("key: %s dispatch websocket error(%v)", key, err)
 	}
+	conn.Close()
 	if Debug {
 		log.Debug("key: %s dispatch goroutine exit", key)
 	}
