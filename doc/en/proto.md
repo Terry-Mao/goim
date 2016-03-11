@@ -1,53 +1,5 @@
 # comet and clients protocols
-comet supports three protocols to communicate with client: HTTP long polling, WebSocket, TCP
-
-## http long polling      
-   
-**Request URL**
-
-http://DOMAIN/sub?param=value
-
-**Request Method**
-
-GET
-
-**Request Parameters**
-
-| parameter     | is required  | type | comment|
-| :-----     | :---  | :--- | :---       |
-| ver        | true  | int | Protocol version |
-| op         | true  | int    | Operation |
-| seq        | true  | int    | Sequence number (Server returned number maps to client sent) |
-| t          | true | string | Authentication ticket. User to verify and get user's real ID |
-| cb         | false | string | jsonp callback |
-
-**Response Result**
-
-```json
-{
-    "ver": 102,
-    "op": 10,
-    "seq": 10,
-    "body": {"data": "xxx"}
-}
-```
-
-**Response Fields**
-
-| response key  | type     |  comment|
-| :----:      | :---:        | :-----:|
-| ver        | int          | Protocol version|
-| op        | int          | Operation |
-| seq        | int          | Sequence number|
-| body        | json          | The JSON message pushed |
-
-**HTTP response code**
-
-| response code | comment         |
-| :----       | :---         |
-| 200           | Success |
-| 403           |  Authenticate failed |
-| 500           |  Internal Server Error|
+comet supports two protocols to communicate with client: WebSocket, TCP
 
 ## websocket                                                                   
 **Request URL**

@@ -1,8 +1,9 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"encoding/json"
+
+	log "github.com/thinkboy/log4go"
 )
 
 const (

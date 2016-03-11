@@ -2,10 +2,11 @@ package main
 
 import (
 	"bufio"
-	log "code.google.com/p/log4go"
 	"encoding/binary"
 	"net"
 	"time"
+
+	log "github.com/thinkboy/log4go"
 )
 
 func initTCP() {

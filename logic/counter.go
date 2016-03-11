@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Terry-Mao/protorpc"
+	"net/rpc"
 	"time"
 )
 
@@ -16,7 +16,7 @@ var (
 
 func MergeCount() {
 	var (
-		c                     **protorpc.Client
+		c                     **rpc.Client
 		err                   error
 		roomId, server, count int32
 		counter               map[int32]int32
