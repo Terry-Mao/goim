@@ -8,9 +8,6 @@ var (
 	// server
 	ErrHandshake = errors.New("handshake failed")
 	ErrOperation = errors.New("request operation not valid")
-	// codec
-	ErrProtoPackLen   = errors.New("default server codec pack length error")
-	ErrProtoHeaderLen = errors.New("default server codec header length error")
 	// ring
 	ErrRingEmpty = errors.New("ring buffer empty")
 	ErrRingFull  = errors.New("ring buffer full")
@@ -25,6 +22,4 @@ var (
 	ErrMPushMsgsArg = errors.New("rpc mpushmsgs arg error")
 	// rpc
 	ErrLogic = errors.New("logic rpc is not available")
-	// room
-	ErrRoomFull = errors.New("room proto chan full")
 )

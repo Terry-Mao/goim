@@ -1,6 +1,10 @@
 package main
 
-// Start Command eg : ./push 0 20000 localhost:7172 60
+// Start Command eg : ./push_rooms 0 20000 localhost:7172 40
+// param 1 : the start of room number
+// param 2 : the end of room number
+// param 3 : comet server tcp address
+// param 4 : push amount each goroutines per second
 
 import (
 	"bytes"
@@ -20,7 +24,6 @@ import (
 var (
 	lg         *log.Logger
 	httpClient *http.Client
-	t          int
 )
 
 const TestContent = "{\"test\":1}"
@@ -51,7 +54,7 @@ func init() {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	infoLogfi, err := os.OpenFile("./push.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	infoLogfi, err := os.OpenFile("./push_rooms.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -66,24 +69,24 @@ func main() {
 		panic(err)
 	}
 
-	t, err = strconv.Atoi(os.Args[4])
+	num, err := strconv.Atoi(os.Args[4])
 	if err != nil {
 		panic(err)
 	}
+	delay := (1000 * time.Millisecond) / time.Duration(num)
 
-	num := runtime.NumCPU() * 2
-	lg.Printf("start routine num:%d", num)
+	routines := runtime.NumCPU() * 2
+	lg.Printf("start routine num:%d", routines)
 
-	l := length / num
+	l := length / routines
 	b, e := begin, begin+l
-	time.AfterFunc(time.Duration(t)*time.Second, stop)
-	for i := 0; i < num; i++ {
-		go startPush(b, e)
+	for i := 0; i < routines; i++ {
+		go startPush(b, e, delay)
 		b += l
 		e += l
 	}
 	if b < begin+length {
-		go startPush(b, begin+length)
+		go startPush(b, begin+length, delay)
 	}
 
 	time.Sleep(9999 * time.Hour)
@@ -93,21 +96,12 @@ func stop() {
 	os.Exit(-1)
 }
 
-func startPush(b, e int) {
+func startPush(b, e int, delay time.Duration) {
 	lg.Printf("start Push from %d to %d", b, e)
-	bodys := make([][]byte, e-b)
-	for i := 0; i < e-b; i++ {
-		msg := &pushBodyMsg{Msg: json.RawMessage(TestContent), UserId: int64(b)}
-		body, err := json.Marshal(msg)
-		if err != nil {
-			panic(err)
-		}
-		bodys[i] = body
-	}
 
 	for {
-		for i := 0; i < len(bodys); i++ {
-			resp, err := httpPost(fmt.Sprintf("http://%s/1/push", os.Args[3]), "application/x-www-form-urlencoded", bytes.NewBuffer(bodys[i]))
+		for i := b; i < e; i++ {
+			resp, err := http.Post(fmt.Sprintf("http://%s/1/push/room?rid=%d", os.Args[3], i), "application/json", bytes.NewBufferString(TestContent))
 			if err != nil {
 				lg.Printf("post error (%v)", err)
 				continue
@@ -120,8 +114,8 @@ func startPush(b, e int) {
 			}
 			resp.Body.Close()
 
-			lg.Printf("response %s", string(body))
-			//time.Sleep(50 * time.Millisecond)
+			lg.Printf("push room:%d response %s", i, string(body))
+			time.Sleep(delay)
 		}
 	}
 }

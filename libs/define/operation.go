@@ -22,6 +22,9 @@ const (
 	OP_RAW = int32(11)
 	// room
 	OP_ROOM_READY = int32(12)
+	// proto
+	OP_PROTO_READY  = int32(13)
+	OP_PROTO_FINISH = int32(14)
 
 	// for test
 	OP_TEST       = int32(254)

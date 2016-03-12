@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"github.com/Terry-Mao/goconf"
 	"runtime"
 	"time"
+
+	"github.com/Terry-Mao/goconf"
 )
 
 var (
@@ -24,7 +25,6 @@ type Config struct {
 	Log        string   `goconf:"base:log"`
 	MaxProc    int      `goconf:"base:maxproc"`
 	PprofAddrs []string `goconf:"base:pprof.addrs:,"`
-	StatAddrs  []string `goconf:"base:stat.addrs:,"`
 	// rpc
 	RPCAddrs []string `goconf:"rpc:addrs:,"`
 	// bucket
@@ -40,12 +40,11 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		// base section
-		PidFile:    "/tmp/gopush-cluster-comet.pid",
+		PidFile:    "/tmp/goim-router.pid",
 		Dir:        "./",
-		Log:        "./log/xml",
+		Log:        "./router-log.xml",
 		MaxProc:    runtime.NumCPU(),
 		PprofAddrs: []string{"localhost:6971"},
-		StatAddrs:  []string{"localhost:6972"},
 		// rpc
 		RPCAddrs: []string{"localhost:9090"},
 		// bucket

@@ -1,14 +1,16 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
+	"goim/libs/proto"
+
+	log "github.com/thinkboy/log4go"
 )
 
 const (
-	// signal command
-	SignalNum   = 1
-	ProtoFinish = 0
-	ProtoReady  = 1
+// signal command
+//SignalNum   = 1
+//ProtoFinish = 0
+//ProtoReady  = 1
 )
 
 type Ring struct {
@@ -20,7 +22,7 @@ type Ring struct {
 	// pad [40]byte
 	// write
 	wp   uint64
-	data []Proto
+	data []proto.Proto
 }
 
 func NewRing(num int) *Ring {
@@ -41,12 +43,12 @@ func (r *Ring) init(num uint64) {
 		}
 		num = num << 1
 	}
-	r.data = make([]Proto, num)
+	r.data = make([]proto.Proto, num)
 	r.num = num
 	r.mask = r.num - 1
 }
 
-func (r *Ring) Get() (proto *Proto, err error) {
+func (r *Ring) Get() (proto *proto.Proto, err error) {
 	if r.rp == r.wp {
 		return nil, ErrRingEmpty
 	}
@@ -61,7 +63,7 @@ func (r *Ring) GetAdv() {
 	}
 }
 
-func (r *Ring) Set() (proto *Proto, err error) {
+func (r *Ring) Set() (proto *proto.Proto, err error) {
 	if r.wp-r.rp >= r.num {
 		return nil, ErrRingFull
 	}
