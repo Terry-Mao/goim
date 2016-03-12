@@ -18,9 +18,10 @@ package main
 
 import (
 	"flag"
-	"github.com/Terry-Mao/goconf"
 	"runtime"
 	"time"
+
+	"github.com/Terry-Mao/goconf"
 )
 
 var (
@@ -60,8 +61,9 @@ type Config struct {
 	WebsocketTLSBind     []string `goconf:"websocket:tls.bind:,"`
 	WebsocketCertFile    string   `goconf:"websocket:cert.file"`
 	WebsocketPrivateFile string   `goconf:"websocket:private.file"`
-	// http
-	HTTPBind []string `goconf:"http:bind:,"`
+	// flash safe policy
+	FlashPolicyOpen bool     `goconf:"flash:policy.open"`
+	FlashPolicyBind []string `goconf:"flash:policy.bind:,"`
 	// proto section
 	HandshakeTimeout time.Duration `goconf:"proto:handshake.timeout:time"`
 	WriteTimeout     time.Duration `goconf:"proto:write.timeout:time"`
@@ -71,18 +73,15 @@ type Config struct {
 	Timer     int `goconf:"timer:num"`
 	TimerSize int `goconf:"timer:size"`
 	// bucket
-	Bucket        int `goconf:"bucket:num"`
-	BucketChannel int `goconf:"bucket:channel"`
-	BucketRoom    int `goconf:"bucket:room"`
+	Bucket        int   `goconf:"bucket:num"`
+	BucketChannel int   `goconf:"bucket:channel"`
+	BucketRoom    int   `goconf:"bucket:room"`
+	RoutineAmount int64 `goconf:"bucket:routine.amount"`
+	RoutineSize   int   `goconf:"bucket:routine.size"`
 	// room
-	RoomChannel int           `goconf:"room:channel"`
-	RoomBatch   int           `goconf:"room:batch"`
-	RoomSignal  time.Duration `goconf:"room:signal:time"`
+	RoomChannel int `goconf:"room:channel"`
 	// push
-	HTTPPushAddrs    []string      `goconf:"push:http.addrs:,"`
-	HTTPReadTimeout  time.Duration `goconf:"push:http.read.timeout:time"`
-	HTTPWriteTimeout time.Duration `goconf:"push:http.write.timeout:time"`
-	RPCPushAddrs     []string      `goconf:"push:rpc.addrs:,"`
+	RPCPushAddrs []string `goconf:"push:rpc.addrs:,"`
 	// logic
 	LogicAddr string `goconf:"logic:rpc.addrs"`
 }
@@ -90,22 +89,28 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		// base section
-		PidFile:   "/tmp/gopush-cluster-comet.pid",
+		PidFile:   "/tmp/goim-comet.pid",
 		Dir:       "./",
-		Log:       "./log/xml",
+		Log:       "./comet-log.xml",
 		MaxProc:   runtime.NumCPU(),
 		PprofBind: []string{"localhost:6971"},
 		StatBind:  []string{"localhost:6972"},
 		Debug:     true,
 		// tcp
-		TCPBind:      []string{"localhost:8080"},
+		TCPBind:      []string{"0.0.0.0:8080"},
 		TCPSndbuf:    1024,
 		TCPRcvbuf:    1024,
 		TCPKeepalive: false,
 		// websocket
-		WebsocketBind: []string{"localhost:8090"},
-		// http
-		HTTPBind: []string{"localhost:8070"},
+		WebsocketBind: []string{"0.0.0.0:8090"},
+		// websocket tls
+		WebsocketTLSOpen:     false,
+		WebsocketTLSBind:     []string{"0.0.0.0:8095"},
+		WebsocketCertFile:    "../source/cert.pem",
+		WebsocketPrivateFile: "../source/private.pem",
+		// flash safe policy
+		FlashPolicyOpen: false,
+		FlashPolicyBind: []string{"0.0.0.0:843"},
 		// proto section
 		HandshakeTimeout: 5 * time.Second,
 		WriteTimeout:     5 * time.Second,
@@ -118,8 +123,8 @@ func NewConfig() *Config {
 		TimerSize: 1000,
 		// bucket
 		Bucket:        1024,
-		CliProto:      10,
-		SvrProto:      100,
+		CliProto:      5,
+		SvrProto:      80,
 		BucketChannel: 1024,
 		// push
 		RPCPushAddrs: []string{"localhost:8083"},

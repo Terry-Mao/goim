@@ -1,12 +1,13 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"crypto/tls"
 	"crypto/x509"
-	"golang.org/x/net/websocket"
 	"io/ioutil"
 	"time"
+
+	log "github.com/thinkboy/log4go"
+	"golang.org/x/net/websocket"
 )
 
 func initWebsocketTLS() {

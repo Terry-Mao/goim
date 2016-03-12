@@ -1,9 +1,10 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/libs/hash/cityhash"
+	"goim/libs/hash/cityhash"
 	"time"
+
+	log "github.com/thinkboy/log4go"
 )
 
 var (

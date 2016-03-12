@@ -1,18 +1,17 @@
 package main
 
 import (
-	"github.com/Terry-Mao/goim/libs/bufio"
-	"sync"
-	"time"
+	"goim/libs/bufio"
+	"goim/libs/proto"
+
+	log "github.com/thinkboy/log4go"
 )
 
 // Channel used by message pusher send msg to write goroutine.
 type Channel struct {
 	RoomId   int32
-	signal   chan int
 	CliProto Ring
-	SvrProto Ring
-	cLock    sync.Mutex
+	signal   chan *proto.Proto
 	Writer   bufio.Writer
 	Reader   bufio.Reader
 }
@@ -20,82 +19,33 @@ type Channel struct {
 func NewChannel(cli, svr int, rid int32) *Channel {
 	c := new(Channel)
 	c.RoomId = rid
-	c.signal = make(chan int, SignalNum)
 	c.CliProto.Init(cli)
-	c.SvrProto.Init(svr)
+	c.signal = make(chan *proto.Proto, svr)
 	return c
 }
 
 // Push server push message.
-func (c *Channel) Push(ver int16, operation int32, body []byte) (err error) {
-	var proto *Proto
-	c.cLock.Lock()
-	if proto, err = c.SvrProto.Set(); err == nil {
-		proto.Ver = ver
-		proto.Operation = operation
-		proto.Body = body
-		c.SvrProto.SetAdv()
+func (c *Channel) Push(p *proto.Proto) (err error) {
+	select {
+	case c.signal <- p:
+	default:
+		log.Error("lost a message:%s room:%d", p.Body, c.RoomId)
 	}
-	c.cLock.Unlock()
-	if err == nil {
-		c.Signal()
-	}
-	return
-}
-
-// Pushs server push messages.
-func (c *Channel) Pushs(ver []int32, operations []int32, bodies [][]byte) (idx int32, err error) {
-	var (
-		proto *Proto
-		n     int32
-	)
-	c.cLock.Lock()
-	for n = 0; n < int32(len(ver)); n++ {
-		// fetch a proto from channel free list
-		if proto, err = c.SvrProto.Set(); err == nil {
-			proto.Ver = int16(ver[n])
-			proto.Operation = operations[n]
-			proto.Body = bodies[n]
-			c.SvrProto.SetAdv()
-			idx = n
-		} else {
-			break
-		}
-	}
-	c.cLock.Unlock()
-	c.Signal()
 	return
 }
 
 // Ready check the channel ready or close?
-func (c *Channel) Ready() bool {
-	return (<-c.signal) == ProtoReady
-}
-
-// ReadyWithTimeout check the channel ready or close?
-func (c *Channel) ReadyWithTimeout(timeout time.Duration) bool {
-	var s int
-	select {
-	case s = <-c.signal:
-		return s == ProtoReady
-	case <-time.After(timeout):
-		return false
-	}
+func (c *Channel) Ready() (p *proto.Proto) {
+	p = <-c.signal
+	return
 }
 
 // Signal send signal to the channel, protocol ready.
 func (c *Channel) Signal() {
-	// just ignore duplication signal
-	select {
-	case c.signal <- ProtoReady:
-	default:
-	}
+	c.signal <- proto.ProtoReady
 }
 
 // Close close the channel.
 func (c *Channel) Close() {
-	select {
-	case c.signal <- ProtoFinish:
-	default:
-	}
+	c.signal <- proto.ProtoFinish
 }

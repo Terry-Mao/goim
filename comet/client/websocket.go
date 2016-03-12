@@ -1,10 +1,11 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"encoding/json"
-	"golang.org/x/net/websocket"
 	"time"
+
+	log "github.com/thinkboy/log4go"
+	"golang.org/x/net/websocket"
 )
 
 func initWebsocket() {

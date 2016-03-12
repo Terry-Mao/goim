@@ -1,9 +1,10 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"flag"
 	"runtime"
+
+	log "github.com/thinkboy/log4go"
 )
 
 func main() {

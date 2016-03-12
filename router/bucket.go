@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Terry-Mao/goim/libs/define"
+	"goim/libs/define"
 	"sync"
 	"time"
 )

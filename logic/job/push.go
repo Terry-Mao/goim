@@ -1,17 +1,19 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/libs/define"
-	"github.com/Terry-Mao/protorpc"
+	"encoding/json"
+	"goim/libs/define"
+	"goim/libs/proto"
 	"math/rand"
+
+	log "github.com/thinkboy/log4go"
 )
 
 type pushArg struct {
-	C       *protorpc.Client
-	SubKeys []string
-	Msg     []byte
-	RoomId  int32
+	ServerId int32
+	SubKeys  []string
+	Msg      []byte
+	RoomId   int32
 }
 
 var (
@@ -26,54 +28,38 @@ func InitPush() {
 	}
 }
 
+// push routine
 func processPush(ch chan *pushArg) {
 	var arg *pushArg
 	for {
 		arg = <-ch
-		if arg.RoomId == define.NoRoom {
-			mpushComet(arg.C, arg.SubKeys, arg.Msg)
-		} else {
-			broadcastRoomComet(arg.C, arg.RoomId, arg.Msg)
-		}
+		mPushComet(arg.ServerId, arg.SubKeys, arg.Msg)
 	}
 }
 
-// multi-userids push
-func mpush(server int32, subkeys []string, msg []byte) {
-	c, err := getCometByServerId(server)
-	if err != nil {
-		log.Error("getCometByServerId(\"%d\") error(%v)", server, err)
+func push(msg []byte) (err error) {
+	m := &proto.KafkaMsg{}
+	if err = json.Unmarshal(msg, m); err != nil {
+		log.Error("json.Unmarshal(%s) error(%s)", msg, err)
 		return
 	}
-	pushChs[rand.Int()%Conf.PushChan] <- &pushArg{C: c, SubKeys: subkeys, Msg: msg, RoomId: define.NoRoom}
-}
-
-// mssage broadcast room
-func broadcastRoom(roomId int32, msg []byte) {
-	var (
-		c        *protorpc.Client
-		ok       bool
-		err      error
-		serverId int32
-		servers  map[int32]struct{}
-	)
-	if servers, ok = RoomServersMap[roomId]; ok {
-		for serverId, _ = range servers {
-			if c, err = getCometByServerId(serverId); err == nil {
-				pushChs[rand.Int()%Conf.PushChan] <- &pushArg{C: c, Msg: msg, RoomId: roomId}
+	switch m.OP {
+	case define.KAFKA_MESSAGE_MULTI:
+		pushChs[rand.Int()%Conf.PushChan] <- &pushArg{ServerId: m.ServerId, SubKeys: m.SubKeys, Msg: m.Msg, RoomId: define.NoRoom}
+	case define.KAFKA_MESSAGE_BROADCAST:
+		broadcast(m.Msg)
+	case define.KAFKA_MESSAGE_BROADCAST_ROOM:
+		room := roomBucket.Get(int32(m.RoomId))
+		if m.Ensure {
+			go room.EPush(0, define.OP_SEND_SMS_REPLY, m.Msg)
+		} else {
+			err = room.Push(0, define.OP_SEND_SMS_REPLY, m.Msg)
+			if err != nil {
+				log.Error("room.Push(%s) roomId:%d error(%v)", m.Msg, err)
 			}
 		}
+	default:
+		log.Error("unknown operation:%s", m.OP)
 	}
-}
-
-// mssage broadcast
-func broadcast(msg []byte) {
-	for _, c := range cometServiceMap {
-		if *c == nil {
-			log.Error("broadcast error(%v)", ErrComet)
-			return
-		}
-		// WARN: broadcast called less than mpush, no need a ch for queue
-		go broadcastComet(*c, msg)
-	}
+	return
 }
