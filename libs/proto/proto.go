@@ -38,10 +38,13 @@ var (
 	emptyProto    = Proto{}
 	emptyJSONBody = []byte("{}")
 
-	roomReadyProto = &Proto{Operation: define.OP_ROOM_READY}
-
 	ErrProtoPackLen   = errors.New("default server codec pack length error")
 	ErrProtoHeaderLen = errors.New("default server codec header length error")
+)
+
+var (
+	ProtoReady  = &Proto{Operation: define.OP_PROTO_READY}
+	ProtoFinish = &Proto{Operation: define.OP_PROTO_FINISH}
 )
 
 // Proto is a request&response written before every goim connect.  It is used internally

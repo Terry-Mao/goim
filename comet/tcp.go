@@ -186,12 +186,12 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 		}
 
 		switch p {
-		case ProtoFinish:
+		case proto.ProtoFinish:
 			if Debug {
 				log.Debug("key: %s wakeup exit dispatch goroutine", key)
 			}
 			goto failed
-		case ProtoReady:
+		case proto.ProtoReady:
 			// fetch message from svrbox(client send)
 			for {
 				if p, err = ch.CliProto.Get(); err != nil {

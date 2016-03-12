@@ -5,12 +5,13 @@ import (
 	"goim/libs/proto"
 	"goim/libs/time"
 	"sync"
+	"sync/atomic"
 )
 
 type BucketOptions struct {
 	ChannelSize   int
 	RoomSize      int
-	RoutineAmount int
+	RoutineAmount int64
 	RoutineSize   int
 }
 
@@ -23,7 +24,7 @@ type Bucket struct {
 	//TODO make a Rooms struct
 	rooms       map[int32]*Room // bucket room channels
 	routines    []chan *proto.BoardcastRoomArg
-	routinesNum int
+	routinesNum int64
 	roptions    RoomOptions
 }
 
@@ -36,9 +37,9 @@ func NewBucket(boptions BucketOptions, roptions RoomOptions) (b *Bucket) {
 	//room
 	b.rooms = make(map[int32]*Room, boptions.RoomSize)
 	b.routines = make([]chan *proto.BoardcastRoomArg, boptions.RoutineAmount)
-	b.routinesNum = 0
+	b.routinesNum = int64(0)
 	b.roptions = roptions
-	for i := 0; i < boptions.RoutineAmount; i++ {
+	for i := int64(0); i < boptions.RoutineAmount; i++ {
 		c := make(chan *proto.BoardcastRoomArg, boptions.RoutineSize)
 		b.routines[i] = c
 		go b.roomPushProcess(c)
@@ -130,7 +131,10 @@ func (b *Bucket) DelRoom(rid int32) {
 
 // BroadcastRoom broadcast a message to specified room
 func (b *Bucket) BroadcastRoom(arg *proto.BoardcastRoomArg) {
-	num := arg.RandId % b.boptions.RoutineAmount
+	num := atomic.AddInt64(&b.routinesNum, 1) % b.boptions.RoutineAmount
+	if b.routinesNum >= int64(maxInt) {
+		atomic.SwapInt64(&b.routinesNum, 0)
+	}
 	b.routines[num] <- arg
 }
 

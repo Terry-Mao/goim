@@ -168,12 +168,12 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 	for {
 		p = ch.Ready()
 		switch p {
-		case ProtoFinish:
+		case proto.ProtoFinish:
 			if Debug {
 				log.Debug("key: %s wakeup exit dispatch goroutine", key)
 			}
 			goto failed
-		case ProtoReady:
+		case proto.ProtoReady:
 			if p, err = ch.CliProto.Get(); err != nil {
 				err = nil // must be empty error
 				break

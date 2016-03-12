@@ -2,16 +2,9 @@ package main
 
 import (
 	"goim/libs/bufio"
-	"goim/libs/define"
 	"goim/libs/proto"
-	"time"
 
 	log "github.com/thinkboy/log4go"
-)
-
-var (
-	ProtoReady  = &proto.Proto{Operation: define.OP_PROTO_READY}
-	ProtoFinish = &proto.Proto{Operation: define.OP_PROTO_FINISH}
 )
 
 // Channel used by message pusher send msg to write goroutine.
@@ -47,24 +40,12 @@ func (c *Channel) Ready() (p *proto.Proto) {
 	return
 }
 
-// ReadyWithTimeout check the channel ready or close?
-func (c *Channel) ReadyWithTimeout(timeout time.Duration) (bool, *proto.Proto) {
-	var p *proto.Proto
-	select {
-	case p = <-c.signal:
-		return true, p
-	case <-time.After(timeout):
-		return false, nil
-	}
-	return false, nil
-}
-
 // Signal send signal to the channel, protocol ready.
 func (c *Channel) Signal() {
-	c.signal <- ProtoReady
+	c.signal <- proto.ProtoReady
 }
 
 // Close close the channel.
 func (c *Channel) Close() {
-	c.signal <- ProtoFinish
+	c.signal <- proto.ProtoFinish
 }
