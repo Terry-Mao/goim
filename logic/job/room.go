@@ -5,7 +5,6 @@ import (
 	"goim/libs/define"
 	"goim/libs/proto"
 	itime "goim/libs/time"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -127,7 +126,7 @@ func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
 				continue
 			}
 		}
-		broadcastRoomBytes(r.id, buf.Buffer(), rand.Int())
+		broadcastRoomBytes(r.id, buf.Buffer())
 		n = 0
 		// after push to room channel, renew a buffer, let old buffer gc
 		buf = bytes.NewWriterSize(buf.Size())

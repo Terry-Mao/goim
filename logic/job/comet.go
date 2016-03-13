@@ -128,10 +128,10 @@ func broadcastComet(c *rpc.Client, args *proto.BoardcastArg) (err error) {
 	return
 }
 
-func broadcastRoomBytes(roomId int32, body []byte, randId int) {
+func broadcastRoomBytes(roomId int32, body []byte) {
 	var (
 		p        = &proto.Proto{Ver: 0, Operation: define.OP_RAW, Body: body}
-		args     = proto.BoardcastRoomArg{P: p, RoomId: roomId, RandId: randId}
+		args     = proto.BoardcastRoomArg{P: p, RoomId: roomId}
 		reply    = proto.NoReply{}
 		c        *rpc.Client
 		serverId int32

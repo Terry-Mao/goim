@@ -6,13 +6,6 @@ import (
 	log "github.com/thinkboy/log4go"
 )
 
-const (
-// signal command
-//SignalNum   = 1
-//ProtoFinish = 0
-//ProtoReady  = 1
-)
-
 type Ring struct {
 	// read
 	rp   uint64
