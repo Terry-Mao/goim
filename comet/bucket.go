@@ -20,8 +20,7 @@ type Bucket struct {
 	cLock    sync.RWMutex        // protect the channels for chs
 	chs      map[string]*Channel // map sub key to a channel
 	boptions BucketOptions
-
-	//TODO make a Rooms struct
+	// room
 	rooms       map[int32]*Room // bucket room channels
 	routines    []chan *proto.BoardcastRoomArg
 	routinesNum int64
@@ -42,7 +41,7 @@ func NewBucket(boptions BucketOptions, roptions RoomOptions) (b *Bucket) {
 	for i := int64(0); i < boptions.RoutineAmount; i++ {
 		c := make(chan *proto.BoardcastRoomArg, boptions.RoutineSize)
 		b.routines[i] = c
-		go b.roomPushProcess(c)
+		go b.roomproc(c)
 	}
 	return
 }
@@ -132,9 +131,6 @@ func (b *Bucket) DelRoom(rid int32) {
 // BroadcastRoom broadcast a message to specified room
 func (b *Bucket) BroadcastRoom(arg *proto.BoardcastRoomArg) {
 	num := atomic.AddInt64(&b.routinesNum, 1) % b.boptions.RoutineAmount
-	if b.routinesNum >= int64(maxInt) {
-		atomic.SwapInt64(&b.routinesNum, 0)
-	}
 	b.routines[num] <- arg
 }
 
@@ -155,8 +151,8 @@ func (b *Bucket) Rooms() (res map[int32]struct{}) {
 	return
 }
 
-// RoomPush handle room-push routine
-func (b *Bucket) roomPushProcess(c chan *proto.BoardcastRoomArg) {
+// roomproc
+func (b *Bucket) roomproc(c chan *proto.BoardcastRoomArg) {
 	var (
 		arg  *proto.BoardcastRoomArg
 		room *Room

@@ -174,17 +174,19 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 			}
 			goto failed
 		case proto.ProtoReady:
-			if p, err = ch.CliProto.Get(); err != nil {
-				err = nil // must be empty error
-				break
+			for {
+				if p, err = ch.CliProto.Get(); err != nil {
+					err = nil // must be empty error
+					break
+				}
+				if err = p.WriteWebsocket(conn); err != nil {
+					goto failed
+				}
+				p.Body = nil // avoid memory leak
+				ch.CliProto.GetAdv()
 			}
-			if err = p.WriteWebsocket(conn); err != nil {
-				goto failed
-			}
-			p.Body = nil // avoid memory leak
-			ch.CliProto.GetAdv()
 		default:
-			//TODO room-push support
+			// TODO room-push support
 			// just forward the message
 			if err = p.WriteWebsocket(conn); err != nil {
 				goto failed
