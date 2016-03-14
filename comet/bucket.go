@@ -82,8 +82,14 @@ func (b *Bucket) Del(key string) {
 	}
 	b.cLock.Unlock()
 	if room != nil {
-		room.Del(ch)
-		// TODO clean empty room
+		online := room.Del(ch)
+		// clean empty room
+		if online == 0 {
+			//NOTE Room object is possible what doesn`t release newest channel when the channel room.Put() after b.DelRoom(),
+			//and the newest channel won`t ever receive messages.
+			//but Room object will released after the newest channel release.
+			b.delRoom(ch.RoomId)
+		}
 	}
 }
 
@@ -115,7 +121,7 @@ func (b *Bucket) Room(rid int32) (room *Room) {
 }
 
 // DelRoom delete a room by roomid.
-func (b *Bucket) DelRoom(rid int32) {
+func (b *Bucket) delRoom(rid int32) {
 	var room *Room
 	b.cLock.Lock()
 	if room, _ = b.rooms[rid]; room != nil {

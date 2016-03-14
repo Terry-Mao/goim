@@ -35,10 +35,12 @@ func (r *Room) Put(ch *Channel) {
 }
 
 // Del delete channel from the room.
-func (r *Room) Del(ch *Channel) {
+func (r *Room) Del(ch *Channel) (o int) {
 	r.rLock.Lock()
 	delete(r.chs, ch)
+	o = len(r.chs)
 	r.rLock.Unlock()
+	return
 }
 
 // Push push msg to the room, if chan full discard it.
