@@ -15,7 +15,8 @@ type Room struct {
 	rLock sync.RWMutex
 	// map room id with channels
 	// TODO use double-linked list
-	chs map[*Channel]struct{}
+	chs  map[*Channel]struct{}
+	drop bool
 }
 
 // NewRoom new a room struct, store channel room info.
@@ -23,24 +24,29 @@ func NewRoom(id int32, t *itime.Timer, options RoomOptions) (r *Room) {
 	r = new(Room)
 	r.id = id
 	r.chs = make(map[*Channel]struct{}, options.ChannelSize)
+	r.drop = false
 	return
 }
 
 // Put put channel into the room.
-func (r *Room) Put(ch *Channel) {
+func (r *Room) Put(ch *Channel) (err error) {
 	r.rLock.Lock()
-	r.chs[ch] = struct{}{}
+	if !r.drop {
+		r.chs[ch] = struct{}{}
+	} else {
+		err = ErrRoomDroped
+	}
 	r.rLock.Unlock()
 	return
 }
 
 // Del delete channel from the room.
-func (r *Room) Del(ch *Channel) (o int) {
+func (r *Room) Del(ch *Channel) bool {
 	r.rLock.Lock()
 	delete(r.chs, ch)
-	o = len(r.chs)
+	r.drop = (len(r.chs) == 0)
 	r.rLock.Unlock()
-	return
+	return r.drop
 }
 
 // Push push msg to the room, if chan full discard it.
