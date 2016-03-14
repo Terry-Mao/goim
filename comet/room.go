@@ -27,7 +27,7 @@ func NewRoom(id int32, t *itime.Timer, options RoomOptions) (r *Room) {
 }
 
 // Put put channel into the room.
-func (r *Room) Put(ch *Channel) {
+func (r *Room) Put(ch *Channel) (err error) {
 	r.rLock.Lock()
 	r.chs[ch] = struct{}{}
 	r.rLock.Unlock()
@@ -35,10 +35,12 @@ func (r *Room) Put(ch *Channel) {
 }
 
 // Del delete channel from the room.
-func (r *Room) Del(ch *Channel) {
+func (r *Room) Del(ch *Channel) (o int) {
 	r.rLock.Lock()
 	delete(r.chs, ch)
+	o = len(r.chs)
 	r.rLock.Unlock()
+	return
 }
 
 // Push push msg to the room, if chan full discard it.
