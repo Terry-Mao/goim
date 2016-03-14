@@ -20,6 +20,8 @@ var (
 	ErrPushMsgsArg  = errors.New("rpc pushmsgs arg error")
 	ErrMPushMsgArg  = errors.New("rpc mpushmsg arg error")
 	ErrMPushMsgsArg = errors.New("rpc mpushmsgs arg error")
+	// room
+	ErrRoomDroped = errors.New("room droped")
 	// rpc
 	ErrLogic = errors.New("logic rpc is not available")
 )

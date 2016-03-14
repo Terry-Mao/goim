@@ -113,7 +113,10 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	})
 	// must not setadv, only used in auth
 	if p, err = ch.CliProto.Set(); err == nil {
-		key, ch.RoomId, hb, err = server.authTCP(rr, wr, p)
+		if key, ch.RoomId, hb, err = server.authTCP(rr, wr, p); err == nil {
+			b = server.Bucket(key)
+			err = b.Put(key, ch, tr)
+		}
 	}
 	if err != nil {
 		conn.Close()
@@ -125,8 +128,6 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	}
 	trd.Key = key
 	tr.Set(trd, hb)
-	b = server.Bucket(key)
-	b.Put(key, ch, tr)
 	// hanshake ok start dispatch goroutine
 	go server.dispatchTCP(key, conn, wr, wp, wb, ch)
 	for {
