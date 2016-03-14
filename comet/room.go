@@ -27,7 +27,7 @@ func NewRoom(id int32, t *itime.Timer, options RoomOptions) (r *Room) {
 }
 
 // Put put channel into the room.
-func (r *Room) Put(ch *Channel) (err error) {
+func (r *Room) Put(ch *Channel) {
 	r.rLock.Lock()
 	r.chs[ch] = struct{}{}
 	r.rLock.Unlock()
