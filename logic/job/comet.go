@@ -88,10 +88,11 @@ func getCometByServerId(serverId int32) (*rpc.Client, error) {
 	}
 }
 
+// mPushComet push a message to a batch of subkeys
 func mPushComet(serverId int32, subkeys []string, body json.RawMessage) {
 	var (
-		p     = &proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: body}
-		args  = &proto.MPushMsgArg{Keys: subkeys, P: p}
+		args = &proto.MPushMsgArg{Keys: subkeys,
+			P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: body}}
 		reply = &proto.MPushMsgReply{}
 		c     *rpc.Client
 		err   error
@@ -106,10 +107,10 @@ func mPushComet(serverId int32, subkeys []string, body json.RawMessage) {
 	}
 }
 
+// broadcast broadcast a message to all
 func broadcast(msg []byte) {
 	var (
-		p    = &proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: msg}
-		args = &proto.BoardcastArg{P: p}
+		args = &proto.BoardcastArg{P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: msg}}
 	)
 	for serverId, c := range cometServiceMap {
 		if *c != nil {
@@ -120,6 +121,7 @@ func broadcast(msg []byte) {
 	}
 }
 
+// broadcastComet a message to specified comet
 func broadcastComet(c *rpc.Client, args *proto.BoardcastArg) (err error) {
 	var reply = proto.NoReply{}
 	if err = c.Call(CometServiceBroadcast, args, &reply); err != nil {
@@ -128,10 +130,10 @@ func broadcastComet(c *rpc.Client, args *proto.BoardcastArg) (err error) {
 	return
 }
 
+// broadcastRoomBytes broadcast aggregation messages to room
 func broadcastRoomBytes(roomId int32, body []byte) {
 	var (
-		p        = &proto.Proto{Ver: 0, Operation: define.OP_RAW, Body: body}
-		args     = proto.BoardcastRoomArg{P: p, RoomId: roomId}
+		args     = proto.BoardcastRoomArg{P: proto.Proto{Ver: 0, Operation: define.OP_RAW, Body: body}, RoomId: roomId}
 		reply    = proto.NoReply{}
 		c        *rpc.Client
 		serverId int32
@@ -140,7 +142,7 @@ func broadcastRoomBytes(roomId int32, body []byte) {
 		ok       bool
 	)
 
-	//TODO concurrent push to per server?
+	//TODO concurrent push to each server?
 	if servers, ok = RoomServersMap[roomId]; ok {
 		for serverId, _ = range servers {
 			if c, err = getCometByServerId(serverId); err != nil {
