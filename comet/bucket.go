@@ -164,7 +164,7 @@ func (b *Bucket) roomproc(c chan *proto.BoardcastRoomArg) {
 	for {
 		arg = <-c
 		if room = b.Room(arg.RoomId); room != nil {
-			room.Push(arg.P)
+			room.Push(&arg.P)
 		}
 		arg = nil
 		room = nil
