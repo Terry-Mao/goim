@@ -62,7 +62,7 @@ func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *proto.NoReply) (err e
 	}
 	bucket = DefaultServer.Bucket(arg.Key)
 	if channel = bucket.Channel(arg.Key); channel != nil {
-		err = channel.Push(arg.P)
+		err = channel.Push(&arg.P)
 	}
 	return
 }
@@ -83,7 +83,7 @@ func (this *PushRPC) MPushMsg(arg *proto.MPushMsgArg, reply *proto.MPushMsgReply
 	for n, key = range arg.Keys {
 		bucket = DefaultServer.Bucket(key)
 		if channel = bucket.Channel(key); channel != nil {
-			if err = channel.Push(arg.P); err != nil {
+			if err = channel.Push(&arg.P); err != nil {
 				return
 			}
 			reply.Index = int32(n)
@@ -108,7 +108,7 @@ func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsRe
 	for _, PMArg = range arg.PMArgs {
 		bucket = DefaultServer.Bucket(PMArg.Key)
 		if channel = bucket.Channel(PMArg.Key); channel != nil {
-			if err = channel.Push(PMArg.P); err != nil {
+			if err = channel.Push(&PMArg.P); err != nil {
 				return
 			}
 			n++
@@ -122,7 +122,7 @@ func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsRe
 func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *proto.NoReply) (err error) {
 	var bucket *Bucket
 	for _, bucket = range DefaultServer.Buckets {
-		go bucket.Broadcast(arg.P)
+		go bucket.Broadcast(&arg.P)
 	}
 	return
 }

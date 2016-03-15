@@ -8,7 +8,7 @@ type NoReply struct {
 
 type PushMsgArg struct {
 	Key string
-	P   *Proto
+	P   Proto
 }
 
 type PushMsgsArg struct {
@@ -22,7 +22,7 @@ type PushMsgsReply struct {
 
 type MPushMsgArg struct {
 	Keys []string
-	P    *Proto
+	P    Proto
 }
 
 type MPushMsgReply struct {
@@ -38,12 +38,12 @@ type MPushMsgsReply struct {
 }
 
 type BoardcastArg struct {
-	P *Proto
+	P Proto
 }
 
 type BoardcastRoomArg struct {
 	RoomId int32
-	P      *Proto
+	P      Proto
 }
 
 type RoomsReply struct {
