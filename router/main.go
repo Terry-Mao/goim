@@ -1,10 +1,11 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"flag"
-	"github.com/Terry-Mao/goim/libs/perf"
+	"goim/libs/perf"
 	"runtime"
+
+	log "github.com/thinkboy/log4go"
 )
 
 const (

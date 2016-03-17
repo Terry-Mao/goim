@@ -18,9 +18,10 @@ package main
 
 import (
 	"flag"
-	"github.com/Terry-Mao/goconf"
 	"runtime"
 	"time"
+
+	"github.com/Terry-Mao/goconf"
 )
 
 var (
@@ -53,11 +54,12 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		// base section
-		PidFile:        "/tmp/gopush-cluster-logic.pid",
+		PidFile:        "/tmp/goim-logic.pid",
 		Dir:            "./",
-		Log:            "./log/xml",
+		Log:            "./logic-log.xml",
 		MaxProc:        runtime.NumCPU(),
 		PprofAddrs:     []string{"localhost:6971"},
+		HTTPAddrs:      []string{"7172"},
 		RouterRPCAddrs: make(map[string]string),
 	}
 }

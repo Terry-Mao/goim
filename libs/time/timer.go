@@ -1,9 +1,10 @@
 package time
 
 import (
-	log "code.google.com/p/log4go"
 	"sync"
 	itime "time"
+
+	log "github.com/thinkboy/log4go"
 )
 
 const (

@@ -1,15 +1,17 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"crypto/tls"
-	"github.com/Terry-Mao/goim/libs/define"
-	itime "github.com/Terry-Mao/goim/libs/time"
-	"golang.org/x/net/websocket"
+	"goim/libs/define"
+	"goim/libs/proto"
+	itime "goim/libs/time"
 	"math/rand"
 	"net"
 	"net/http"
 	"time"
+
+	log "github.com/thinkboy/log4go"
+	"golang.org/x/net/websocket"
 )
 
 func InitWebsocket(addrs []string) (err error) {
@@ -93,7 +95,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		err error
 		key string
 		hb  time.Duration // heartbeat
-		p   *Proto
+		p   *proto.Proto
 		b   *Bucket
 		trd *itime.TimerData
 		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
@@ -104,7 +106,10 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	})
 	// must not setadv, only used in auth
 	if p, err = ch.CliProto.Set(); err == nil {
-		key, ch.RoomId, hb, err = server.authWebsocket(conn, p)
+		if key, ch.RoomId, hb, err = server.authWebsocket(conn, p); err == nil {
+			b = server.Bucket(key)
+			err = b.Put(key, ch, tr)
+		}
 	}
 	if err != nil {
 		conn.Close()
@@ -114,8 +119,6 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	}
 	trd.Key = key
 	tr.Set(trd, hb)
-	b = server.Bucket(key)
-	b.Put(key, ch, tr)
 	// hanshake ok start dispatch goroutine
 	go server.dispatchWebsocket(key, conn, ch)
 	for {
@@ -157,47 +160,53 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 // invokes it in a go statement.
 func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Channel) {
 	var (
-		p   *Proto
+		p   *proto.Proto
 		err error
 	)
 	if Debug {
 		log.Debug("key: %s start dispatch websocket goroutine", key)
 	}
 	for {
-		if !ch.Ready() {
+		p = ch.Ready()
+		switch p {
+		case proto.ProtoFinish:
 			if Debug {
 				log.Debug("key: %s wakeup exit dispatch goroutine", key)
 			}
-			break
-		}
-		// fetch message from svrbox(server send)
-		for {
-			if p, err = ch.SvrProto.Get(); err != nil {
-				log.Warn("ch.SvrProto.Get() error(%v)", err)
-				err = nil
-				break
+			goto failed
+		case proto.ProtoReady:
+			for {
+				if p, err = ch.CliProto.Get(); err != nil {
+					err = nil // must be empty error
+					break
+				}
+				if err = p.WriteWebsocket(conn); err != nil {
+					goto failed
+				}
+				p.Body = nil // avoid memory leak
+				ch.CliProto.GetAdv()
 			}
+		default:
+			// TODO room-push support
 			// just forward the message
 			if err = p.WriteWebsocket(conn); err != nil {
-				log.Error("server.sendTCPResponse() error(%v)", err)
 				goto failed
 			}
 			p.Body = nil // avoid memory leak
-			ch.SvrProto.GetAdv()
 		}
 	}
 failed:
-	log.Error("key: %s dispatch websocket error(%v)", key, err)
-	if err = conn.Close(); err != nil {
-		log.Warn("conn.Close() error(%v)", err)
+	if err != nil {
+		log.Error("key: %s dispatch websocket error(%v)", key, err)
 	}
+	conn.Close()
 	if Debug {
 		log.Debug("key: %s dispatch goroutine exit", key)
 	}
 	return
 }
 
-func (server *Server) authWebsocket(conn *websocket.Conn, p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
+func (server *Server) authWebsocket(conn *websocket.Conn, p *proto.Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	if err = p.ReadWebsocket(conn); err != nil {
 		return
 	}

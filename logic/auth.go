@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/Terry-Mao/goim/libs/define"
+	"goim/libs/define"
 	"strconv"
 )
 
-// developer could implement "ThirdAuth" interface for decide how get userId, or roomId
+// developer could implement "Auth" interface for decide how get userId, or roomId
 type Auther interface {
 	Auth(token string) (userId int64, roomId int32)
 }

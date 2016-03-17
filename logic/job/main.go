@@ -1,9 +1,10 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"flag"
 	"runtime"
+
+	log "github.com/thinkboy/log4go"
 )
 
 func main() {
@@ -13,9 +14,22 @@ func main() {
 	}
 	log.LoadConfiguration(Conf.Log)
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	//comet
 	if err := InitComet(Conf.Comets); err != nil {
-		panic(err)
+		log.Warn("comet rpc current can't connect, retry")
 	}
+	//round
+	round := NewRound(RoundOptions{
+		Timer:     Conf.Timer,
+		TimerSize: Conf.TimerSize,
+	})
+	//room
+	InitRoomBucket(round,
+		RoomOptions{
+			BatchNum:   Conf.RoomBatch,
+			SignalTime: Conf.RoomSignal,
+		})
+	//room info
 	MergeRoomServers()
 	go SyncRoomServers()
 	InitPush()

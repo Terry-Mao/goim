@@ -1,13 +1,14 @@
-package main
+package proto
 
 import (
-	log "code.google.com/p/log4go"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/Terry-Mao/goim/libs/bufio"
-	"github.com/Terry-Mao/goim/libs/bytes"
-	"github.com/Terry-Mao/goim/libs/define"
-	"github.com/Terry-Mao/goim/libs/encoding/binary"
+	"goim/libs/bufio"
+	"goim/libs/bytes"
+	"goim/libs/define"
+	"goim/libs/encoding/binary"
+
 	"golang.org/x/net/websocket"
 )
 
@@ -34,7 +35,16 @@ const (
 )
 
 var (
-	emptyProto = Proto{}
+	emptyProto    = Proto{}
+	emptyJSONBody = []byte("{}")
+
+	ErrProtoPackLen   = errors.New("default server codec pack length error")
+	ErrProtoHeaderLen = errors.New("default server codec header length error")
+)
+
+var (
+	ProtoReady  = &Proto{Operation: define.OP_PROTO_READY}
+	ProtoFinish = &Proto{Operation: define.OP_PROTO_FINISH}
 )
 
 // Proto is a request&response written before every goim connect.  It is used internally
@@ -84,9 +94,6 @@ func (p *Proto) ReadTCP(rr *bufio.Reader) (err error) {
 		packLen int32
 		buf     []byte
 	)
-	if Debug {
-		log.Debug("read proto: %v", p)
-	}
 	if buf, err = rr.Pop(RawHeaderSize); err != nil {
 		return
 	}
@@ -114,9 +121,6 @@ func (p *Proto) WriteTCP(wr *bufio.Writer) (err error) {
 		buf     []byte
 		packLen int32
 	)
-	if Debug {
-		log.Debug("write proto: %v", p)
-	}
 	if p.Operation == define.OP_RAW {
 		_, err = wr.Write(p.Body)
 		return

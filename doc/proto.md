@@ -1,52 +1,5 @@
 # comet 客户端通讯协议文档                                                     
-comet支持三种协议和客户端通讯，http long polling, websocket， tcp。
-## http long polling      
-   
-**请求URL**
-
-http://DOMAIN/sub?param=value
-
-**HTTP请求方式**
-
-GET
-
-**请求参数**
-
-| 参数名     | 必选  | 类型 | 说明       |
-| :-----     | :---  | :--- | :---       |
-| ver        | true  | int | 协议版本号 |
-| op         | true  | int    | 指令 |
-| seq        | true  | int    | 序列号（服务端返回和客户端发送一一对应） |
-| t          | true | string | 授权令牌，用于检验获取用户真实用户Id |
-| cb         | false | string | jsonp callback |
-
-**返回结果**
-
-```json
-{
-    "ver": 102,
-    "op": 10,
-    "seq": 10,
-    "body": {"data": "xxx"}
-}
-```
-
-**字段说明**
-
-| 返回值字段  | 字段类型     |  字段说明        |
-| :----:      | :---:        | :-----:          |
-| ver        | int          | 协议版本          |
-| op        | int          | 指令          |
-| seq        | int          | 序列号          |
-| body        | json          | 业务方推送数据（必须是json）          |
-
-**http状态吗说明**
-
-| 返回码      | 说明         |
-| :----       | :---         |
-| 200           | 请求成功     |
-| 403           |  认证失败     |
-| 500           |  内部错误     |
+comet支持两种协议和客户端通讯 websocket， tcp。
 
 ## websocket                                                                   
 **请求URL**

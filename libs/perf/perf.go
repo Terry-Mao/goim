@@ -1,9 +1,10 @@
 package perf
 
 import (
-	log "code.google.com/p/log4go"
 	"net/http"
 	"net/http/pprof"
+
+	log "github.com/thinkboy/log4go"
 )
 
 // StartPprof start http pprof.

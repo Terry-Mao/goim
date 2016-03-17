@@ -1,13 +1,16 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
-	"github.com/Terry-Mao/goim/libs/bufio"
-	"github.com/Terry-Mao/goim/libs/bytes"
-	"github.com/Terry-Mao/goim/libs/define"
-	itime "github.com/Terry-Mao/goim/libs/time"
+	"goim/libs/bufio"
+	"goim/libs/bytes"
+	"goim/libs/define"
+	"goim/libs/proto"
+	itime "goim/libs/time"
+	"io"
 	"net"
 	"time"
+
+	log "github.com/thinkboy/log4go"
 )
 
 // InitTCP listen all tcp.bind and start accept connections.
@@ -93,7 +96,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		err error
 		key string
 		hb  time.Duration // heartbeat
-		p   *Proto
+		p   *proto.Proto
 		b   *Bucket
 		trd *itime.TimerData
 		rb  = rp.Get()
@@ -110,7 +113,10 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	})
 	// must not setadv, only used in auth
 	if p, err = ch.CliProto.Set(); err == nil {
-		key, ch.RoomId, hb, err = server.authTCP(rr, wr, p)
+		if key, ch.RoomId, hb, err = server.authTCP(rr, wr, p); err == nil {
+			b = server.Bucket(key)
+			err = b.Put(key, ch, tr)
+		}
 	}
 	if err != nil {
 		conn.Close()
@@ -122,8 +128,6 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	}
 	trd.Key = key
 	tr.Set(trd, hb)
-	b = server.Bucket(key)
-	b.Put(key, ch, tr)
 	// hanshake ok start dispatch goroutine
 	go server.dispatchTCP(key, conn, wr, wp, wb, ch)
 	for {
@@ -148,7 +152,9 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		ch.CliProto.SetAdv()
 		ch.Signal()
 	}
-	log.Error("key: %s server tcp failed error(%v)", key, err)
+	if err != nil && err != io.EOF {
+		log.Error("key: %s server tcp failed error(%v)", key, err)
+	}
 	conn.Close()
 	ch.Close()
 	rp.Put(rb)
@@ -168,42 +174,42 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 // invokes it in a go statement.
 func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool, wb *bytes.Buffer, ch *Channel) {
 	var (
-		p   *Proto
+		p   *proto.Proto
 		err error
 	)
 	if Debug {
 		log.Debug("key: %s start dispatch tcp goroutine", key)
 	}
 	for {
-		if !ch.Ready() {
+		p = ch.Ready()
+		if Debug {
+			log.Debug("key:%s dispatch msg:%v", key, *p)
+		}
+
+		switch p {
+		case proto.ProtoFinish:
 			if Debug {
 				log.Debug("key: %s wakeup exit dispatch goroutine", key)
 			}
-			break
-		}
-		// fetch message from svrbox(client send)
-		for {
-			if p, err = ch.CliProto.Get(); err != nil {
-				err = nil // must be empty error
-				break
+			goto failed
+		case proto.ProtoReady:
+			// fetch message from svrbox(client send)
+			for {
+				if p, err = ch.CliProto.Get(); err != nil {
+					err = nil // must be empty error
+					break
+				}
+				if err = p.WriteTCP(wr); err != nil {
+					goto failed
+				}
+				p.Body = nil // avoid memory leak
+				ch.CliProto.GetAdv()
 			}
+		default:
+			// server send
 			if err = p.WriteTCP(wr); err != nil {
 				goto failed
 			}
-			p.Body = nil // avoid memory leak
-			ch.CliProto.GetAdv()
-		}
-		// fetch message from svrbox(server send)
-		for {
-			if p, err = ch.SvrProto.Get(); err != nil {
-				err = nil // must be empty error
-				break
-			}
-			if err = p.WriteTCP(wr); err != nil {
-				goto failed
-			}
-			p.Body = nil // avoid memory leak
-			ch.SvrProto.GetAdv()
 		}
 		// only hungry flush response
 		if err = wr.Flush(); err != nil {
@@ -211,7 +217,9 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 		}
 	}
 failed:
-	log.Error("key: %s dispatch tcp error(%v)", key, err)
+	if err != nil {
+		log.Error("key: %s dispatch tcp error(%v)", key, err)
+	}
 	conn.Close()
 	wp.Put(wb)
 	if Debug {
@@ -221,7 +229,7 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *Proto) (key string, rid int32, heartbeat time.Duration, err error) {
+func (server *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *proto.Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	if err = p.ReadTCP(rr); err != nil {
 		return
 	}
