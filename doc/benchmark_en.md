@@ -2,32 +2,32 @@
 ![benchmark](benchmark.jpg)
 
 ### Benchmark Server
-| CPU | Memory | Instance |
-| :---- | :---- | :---- |
-| Intel(R) Xeon(R) CPU E5-2630 v2 @ 2.60GHz  | DDR3 32GB | 2 |
+| CPU | Memory | OS | Instance |
+| :---- | :---- | :---- | :---- |
+| Intel(R) Xeon(R) CPU E5-2630 v2 @ 2.60GHz  | DDR3 32GB | Debian GNU/Linux 8 | 1 |
 
 ### Benchmark Case
-* Online: 500,000(250,000 per server)
+* Online: 1,000,000
 * Duration: 15min
-* Push Speed: 50/s (broadcast room)
+* Push Speed: 40/s (broadcast room)
 * Push Message: {"test":1}
-* Received calc mode: 30s per times, total 30 times
+* Received calc mode: 1s per times, total 30 times
 
 ### Benchmark Resource
 
-* CPU: 1400%~2340%
-* Memory: 4.22GB
-* GC Pause: 77ms
-* Network: Incoming(302MBit/s), Outgoing(3.19GBit/s)
+* CPU: 2000%~2300%
+* Memory: 14GB
+* GC Pause: 504ms
+* Network: Incoming(450MBit/s), Outgoing(4.39GBit/s)
 
 ### Benchmark Result
-* Received: 24,400,000/s, 12,200,000/s per server.
+* Received: 35,900,000/s
 
 ## Comet
-![benchmark-comet](benchmark-comet.png)
+![benchmark-comet](benchmark-comet.jpg)
 
 ## Network traffic
-![benchmark-flow](benchmark-flow.png)
+![benchmark-flow](benchmark-flow.jpg)
 
 ## Heap (include GC)
-![benchmark-flow](benchmark-heap.png)
+![benchmark-flow](benchmark-heap.jpg)
