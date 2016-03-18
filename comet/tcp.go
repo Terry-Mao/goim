@@ -155,11 +155,11 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	if err != nil && err != io.EOF {
 		log.Error("key: %s server tcp failed error(%v)", key, err)
 	}
-	conn.Close()
-	ch.Close()
-	rp.Put(rb)
 	b.Del(key)
 	tr.Del(trd)
+	rp.Put(rb)
+	conn.Close()
+	ch.Close()
 	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
 		log.Error("key: %s operator do disconnect error(%v)", key, err)
 	}
@@ -221,14 +221,14 @@ failed:
 		log.Error("key: %s dispatch tcp error(%v)", key, err)
 	}
 	conn.Close()
-	// clear signal
+	wp.Put(wb)
+	// must ensure all channel message discard, for reader won't blocking Signal
 	for {
 		if p == proto.ProtoFinish {
 			break
 		}
 		p = ch.Ready()
 	}
-	wp.Put(wb)
 	if Debug {
 		log.Debug("key: %s dispatch goroutine exit", key)
 	}
