@@ -200,6 +200,13 @@ failed:
 		log.Error("key: %s dispatch websocket error(%v)", key, err)
 	}
 	conn.Close()
+	// must ensure all channel message discard, for reader won't blocking Signal
+	for {
+		if p == proto.ProtoFinish {
+			break
+		}
+		p = ch.Ready()
+	}
 	if Debug {
 		log.Debug("key: %s dispatch goroutine exit", key)
 	}
