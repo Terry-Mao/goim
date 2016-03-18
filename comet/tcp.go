@@ -221,6 +221,13 @@ failed:
 		log.Error("key: %s dispatch tcp error(%v)", key, err)
 	}
 	conn.Close()
+	// clear signal
+	for {
+		if p == proto.ProtoFinish {
+			break
+		}
+		p = ch.Ready()
+	}
 	wp.Put(wb)
 	if Debug {
 		log.Debug("key: %s dispatch goroutine exit", key)
