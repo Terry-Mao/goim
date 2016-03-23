@@ -37,7 +37,7 @@ func handleSuccess() {
 	for {
 		pm = <-producer.Successes()
 		if pm != nil {
-			log.Info("producer message success, partition:%d offset:%d key:%s valus:%s", pm.Partition, pm.Offset, pm.Key, pm.Value)
+			log.Info("producer message success, partition:%d offset:%d key:%v valus:%s", pm.Partition, pm.Offset, pm.Key, pm.Value)
 		}
 	}
 }
@@ -49,7 +49,7 @@ func handleError() {
 	for {
 		err = <-producer.Errors()
 		if err != nil {
-			log.Error("producer message error, partition:%d offset:%d key:%s valus:%s error(%v)", err.Msg.Partition, err.Msg.Offset, err.Msg.Key, err.Msg.Value, err.Err)
+			log.Error("producer message error, partition:%d offset:%d key:%v valus:%s error(%v)", err.Msg.Partition, err.Msg.Offset, err.Msg.Key, err.Msg.Value, err.Err)
 		}
 	}
 }
