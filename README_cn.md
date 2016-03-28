@@ -56,9 +56,9 @@ $ source /etc/profile
 ### 四、部署goim
 1.下载goim及依赖包
 ```sh
-$ yum install git
-$ cd $GOPATH/src
-$ git clone https://github.com/Terry-Mao/goim.git
+$ yum install hg
+$ go get -u github.com/Terry-Mao/goim
+$ mv $GOPATH/src/github.com/Terry-Mao/goim $GOPATH/src/goim
 $ cd $GOPATH/src/goim
 $ go get ./...
 ```
