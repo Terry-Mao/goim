@@ -58,6 +58,7 @@ $ source /etc/profile
 ```sh
 $ yum install hg
 $ go get -u github.com/Terry-Mao/goim
+$ mv $GOPATH/src/github.com/Terry-Mao/goim $GOPATH/src/goim
 $ cd /data/apps/go/src/github.com/Terry-Mao/goim
 $ go get ./...
 ```
