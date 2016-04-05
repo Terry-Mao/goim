@@ -99,7 +99,6 @@ func (c *Cleaner) Clean() (keys []int64) {
 		if e = c.back(); e != nil {
 			if e.expire() {
 				c.remove(e.Key)
-				delete(c.maps, e.Key)
 				keys = append(keys, e.Key)
 				continue
 			}
