@@ -128,6 +128,7 @@ func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
 		}
 		broadcastRoomBytes(r.id, buf.Buffer())
 		n = 0
+		// TODO use reset buffer
 		// after push to room channel, renew a buffer, let old buffer gc
 		buf = bytes.NewWriterSize(buf.Size())
 	}

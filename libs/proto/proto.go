@@ -8,6 +8,7 @@ import (
 	"goim/libs/bytes"
 	"goim/libs/define"
 	"goim/libs/encoding/binary"
+	"time"
 
 	"golang.org/x/net/websocket"
 )
@@ -60,6 +61,7 @@ type Proto struct {
 	Operation int32           `json:"op"`   // operation for request
 	SeqId     int32           `json:"seq"`  // sequence number chosen by client
 	Body      json.RawMessage `json:"body"` // binary body bytes(json.RawMessage is []byte)
+	Time      time.Time       `json:"-"`    // proto send time
 }
 
 func (p *Proto) Reset() {
@@ -67,7 +69,7 @@ func (p *Proto) Reset() {
 }
 
 func (p *Proto) String() string {
-	return fmt.Sprintf("\n-------- proto --------\nheader: %d\nver: %d\nop: %d\nseq: %d\nbody: %s\n-----------------------", p.HeaderLen, p.Ver, p.Operation, p.SeqId, string(p.Body))
+	return fmt.Sprintf("\n-------- proto --------\nheader: %d\nver: %d\nop: %d\nseq: %d\nbody: %s\ntime: %d\n-----------------------", p.HeaderLen, p.Ver, p.Operation, p.SeqId, string(p.Body), p.Time)
 }
 
 func (p *Proto) WriteTo(b *bytes.Writer) {
