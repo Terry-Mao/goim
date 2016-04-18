@@ -160,8 +160,9 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 // invokes it in a go statement.
 func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Channel) {
 	var (
-		p   *proto.Proto
-		err error
+		p        *proto.Proto
+		err      error
+		userTime float64
 	)
 	if Debug {
 		log.Debug("key: %s start dispatch websocket goroutine", key)
@@ -183,7 +184,11 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 				if err = p.WriteWebsocket(conn); err != nil {
 					goto failed
 				}
-				// TODO slow log here
+				// slow log
+				userTime = globalNowTime.Sub(p.Time).Seconds()
+				if userTime >= Conf.SlowTime.Seconds() {
+					slowLog.Println("key:%s proto:%s", key, p.String())
+				}
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}
