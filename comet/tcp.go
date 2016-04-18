@@ -202,6 +202,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 				if err = p.WriteTCP(wr); err != nil {
 					goto failed
 				}
+				// TODO slow log here
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}

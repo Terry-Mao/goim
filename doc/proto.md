@@ -47,7 +47,7 @@ tcp://DOMAIN
 | header Length         | true  | int16 bigendian    | 包头长度 |
 | ver        | true  | int16 bigendian    | 协议版本 |
 | operation          | true | int32 bigendian | 协议指令 |
-| seq         | true | int32 bigendian | jsonp callback |
+| seq         | true | int32 bigendian | 序列号 |
 | body         | false | binary | $(package lenth) - $(header length) |
 
 ## 指令
