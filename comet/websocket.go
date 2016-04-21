@@ -128,6 +128,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		if err = p.ReadWebsocket(conn); err != nil {
 			break
 		}
+		p.Time = globalNowTime
 		if p.Operation == define.OP_HEARTBEAT {
 			// heartbeat
 			tr.Set(trd, hb)
@@ -160,9 +161,8 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 // invokes it in a go statement.
 func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Channel) {
 	var (
-		p        *proto.Proto
-		err      error
-		userTime float64
+		p   *proto.Proto
+		err error
 	)
 	if Debug {
 		log.Debug("key: %s start dispatch websocket goroutine", key)
@@ -184,6 +184,8 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 				if err = p.WriteWebsocket(conn); err != nil {
 					goto failed
 				}
+				// slow log
+				logSlow(key, p)
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}
@@ -194,10 +196,7 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 				goto failed
 			}
 			// slow log
-			userTime = globalNowTime.Sub(p.Time).Seconds()
-			if userTime >= Conf.SlowTime.Seconds() {
-				slowLog.Printf("key:%s proto:%s userTime:%fs slowTime:%fs\n", key, p.String(), userTime, Conf.SlowTime.Seconds())
-			}
+			logSlow(key, p)
 		}
 	}
 failed:

@@ -137,6 +137,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		if err = p.ReadTCP(rr); err != nil {
 			break
 		}
+		p.Time = globalNowTime
 		if p.Operation == define.OP_HEARTBEAT {
 			tr.Set(trd, hb)
 			p.Body = nil
@@ -174,9 +175,8 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 // invokes it in a go statement.
 func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool, wb *bytes.Buffer, ch *Channel) {
 	var (
-		p        *proto.Proto
-		err      error
-		userTime float64
+		p   *proto.Proto
+		err error
 	)
 	if Debug {
 		log.Debug("key: %s start dispatch tcp goroutine", key)
@@ -203,6 +203,8 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 				if err = p.WriteTCP(wr); err != nil {
 					goto failed
 				}
+				// slow log
+				logSlow(key, p)
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}
@@ -212,10 +214,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 				goto failed
 			}
 			// slow log
-			userTime = globalNowTime.Sub(p.Time).Seconds()
-			if userTime >= Conf.SlowTime.Seconds() {
-				slowLog.Printf("key:%s proto:%s userTime:%fs slowTime:%fs\n", key, p.String(), userTime, Conf.SlowTime.Seconds())
-			}
+			logSlow(key, p)
 		}
 		// only hungry flush response
 		if err = wr.Flush(); err != nil {
