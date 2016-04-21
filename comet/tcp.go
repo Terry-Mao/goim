@@ -203,11 +203,6 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 				if err = p.WriteTCP(wr); err != nil {
 					goto failed
 				}
-				// slow log
-				userTime = globalNowTime.Sub(p.Time).Seconds()
-				if userTime >= Conf.SlowTime.Seconds() {
-					slowLog.Println("key:%s proto:%s", key, p.String())
-				}
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}
@@ -215,6 +210,11 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 			// server send
 			if err = p.WriteTCP(wr); err != nil {
 				goto failed
+			}
+			// slow log
+			userTime = globalNowTime.Sub(p.Time).Seconds()
+			if userTime >= Conf.SlowTime.Seconds() {
+				slowLog.Printf("key:%s proto:%s userTime:%fs slowTime:%fs\n", key, p.String(), userTime, Conf.SlowTime.Seconds())
 			}
 		}
 		// only hungry flush response
