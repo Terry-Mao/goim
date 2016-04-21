@@ -184,11 +184,6 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 				if err = p.WriteWebsocket(conn); err != nil {
 					goto failed
 				}
-				// slow log
-				userTime = globalNowTime.Sub(p.Time).Seconds()
-				if userTime >= Conf.SlowTime.Seconds() {
-					slowLog.Println("key:%s proto:%s", key, p.String())
-				}
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}
@@ -198,7 +193,11 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 			if err = p.WriteWebsocket(conn); err != nil {
 				goto failed
 			}
-			p.Body = nil // avoid memory leak
+			// slow log
+			userTime = globalNowTime.Sub(p.Time).Seconds()
+			if userTime >= Conf.SlowTime.Seconds() {
+				slowLog.Printf("key:%s proto:%s userTime:%fs slowTime:%fs\n", key, p.String(), userTime, Conf.SlowTime.Seconds())
+			}
 		}
 	}
 failed:
