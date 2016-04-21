@@ -1,6 +1,7 @@
 package main
 
 import (
+	"goim/libs/proto"
 	"log"
 	"os"
 	"time"
@@ -30,9 +31,18 @@ func startGlobalTime() {
 	go globalTimeProc()
 }
 
+// globalTimeProc update nowTime per globalTideDelay time.
 func globalTimeProc() {
 	for {
 		globalNowTime = time.Now()
 		time.Sleep(globalTimeDelay)
+	}
+}
+
+func logSlow(key string, p *proto.Proto) {
+	// slow log
+	userTime := globalNowTime.Sub(p.Time).Seconds()
+	if userTime >= Conf.SlowTime.Seconds() {
+		slowLog.Printf("key:%s proto:%s userTime:%fs slowTime:%fs\n", key, p.String(), userTime, Conf.SlowTime.Seconds())
 	}
 }
