@@ -92,7 +92,7 @@ func getCometByServerId(serverId int32) (*rpc.Client, error) {
 func mPushComet(serverId int32, subkeys []string, body json.RawMessage) {
 	var (
 		args = &proto.MPushMsgArg{Keys: subkeys,
-			P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: body}}
+			P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: body, Time: time.Now()}}
 		reply = &proto.MPushMsgReply{}
 		c     *rpc.Client
 		err   error
@@ -110,7 +110,7 @@ func mPushComet(serverId int32, subkeys []string, body json.RawMessage) {
 // broadcast broadcast a message to all
 func broadcast(msg []byte) {
 	var (
-		args = &proto.BoardcastArg{P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: msg}}
+		args = &proto.BoardcastArg{P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: msg, Time: time.Now()}}
 	)
 	for serverId, c := range cometServiceMap {
 		if *c != nil {
@@ -133,7 +133,7 @@ func broadcastComet(c *rpc.Client, args *proto.BoardcastArg) (err error) {
 // broadcastRoomBytes broadcast aggregation messages to room
 func broadcastRoomBytes(roomId int32, body []byte) {
 	var (
-		args     = proto.BoardcastRoomArg{P: proto.Proto{Ver: 0, Operation: define.OP_RAW, Body: body}, RoomId: roomId}
+		args     = proto.BoardcastRoomArg{P: proto.Proto{Ver: 0, Operation: define.OP_RAW, Body: body, Time: time.Now()}, RoomId: roomId}
 		reply    = proto.NoReply{}
 		c        *rpc.Client
 		serverId int32

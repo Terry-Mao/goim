@@ -24,6 +24,10 @@ func main() {
 	defer log.Close()
 	log.Info("comet[%s] start", Ver)
 	perf.Init(Conf.PprofBind)
+	// init slow log
+	if err := initSlowLog(Conf.SlowLog); err != nil {
+		panic(err)
+	}
 	// logic rpc
 	if err := InitLogicRpc(Conf.LogicAddr); err != nil {
 		log.Warn("logic rpc current can't connect, retry")
