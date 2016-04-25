@@ -200,26 +200,25 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 					err = nil // must be empty error
 					break
 				}
+				LogSlow(SlowLogTypeReceive, key, p)
 				if err = p.WriteTCP(wr); err != nil {
 					goto failed
 				}
-				// slow log
-				logSlow(key, p)
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}
 		default:
 			// server send
+			LogSlow(SlowLogTypeReceive, key, p)
 			if err = p.WriteTCP(wr); err != nil {
 				goto failed
 			}
-			// slow log
-			logSlow(key, p)
 		}
 		// only hungry flush response
 		if err = wr.Flush(); err != nil {
 			break
 		}
+		LogSlow(SlowLogTypeFinish, key, p)
 	}
 failed:
 	if err != nil {

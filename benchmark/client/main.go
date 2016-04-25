@@ -71,9 +71,7 @@ func main() {
 	go result()
 
 	for i := begin; i < begin+num; i++ {
-		key := fmt.Sprintf("%d", i)
-		quit := make(chan bool, 1)
-		go startClient(key, quit)
+		go client(fmt.Sprintf("%d", i))
 	}
 
 	var exit chan bool
@@ -94,6 +92,12 @@ func result() {
 		lastTimes = nowCount
 		fmt.Println(fmt.Sprintf("%s down:%d down/s:%d", time.Now().Format("2006-01-02 15:04:05"), nowCount, diff/timer))
 		time.Sleep(time.Duration(timer) * time.Second)
+	}
+}
+
+func client(key string) {
+	for {
+		startClient(key)
 	}
 }
 
@@ -147,16 +151,6 @@ func startClient(key string, quit chan bool) {
 				return
 			default:
 			}
-
-			// op_test
-			/*proto1.Operation = OP_TEST
-			proto1.SeqId = seqId
-			if err = tcpWriteProto(wr, proto1); err != nil {
-				log.Error("tcpWriteProto() error(%v)", err)
-				return
-			}
-			seqId++
-			time.Sleep(10000 * time.Millisecond)*/
 		}
 	}()
 	// reader
