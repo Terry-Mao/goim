@@ -9,6 +9,12 @@ import (
 
 const globalTimeDelay = 100 * time.Millisecond
 
+const (
+	SlowLogTypeSend    = "send"
+	SlowLogTypeReceive = "receive"
+	SlowLogTypeFinish  = "finish"
+)
+
 var (
 	globalNowTime time.Time
 	slowLog       *log.Logger
@@ -39,10 +45,10 @@ func globalTimeProc() {
 	}
 }
 
-func logSlow(key string, p *proto.Proto) {
+func LogSlow(logType string, key string, p *proto.Proto) {
 	// slow log
 	userTime := globalNowTime.Sub(p.Time).Seconds()
 	if userTime >= Conf.SlowTime.Seconds() {
-		slowLog.Printf("key:%s proto:%s userTime:%fs slowTime:%fs\n", key, p.String(), userTime, Conf.SlowTime.Seconds())
+		slowLog.Printf("logType:%s key:%s userTime:%fs slowtime:%fs msg:%s\n", logType, key, userTime, Conf.SlowTime.Seconds(), string(p.Body))
 	}
 }
