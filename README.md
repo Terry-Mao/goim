@@ -62,4 +62,4 @@ iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 [English](./doc/benchmark_en.md)
 
 ## LICENSE
-goim is is distributed under the terms of the GNU General Public License, version 3.0 [GPLv3](http://www.gnu.org/licenses/gpl.txt)
+goim is is distributed under the terms of the MIT License.
