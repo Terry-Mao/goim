@@ -137,7 +137,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		if err = p.ReadTCP(rr); err != nil {
 			break
 		}
-		p.Time = globalNowTime
+		p.Time = *globalNowTime
 		if p.Operation == define.OP_HEARTBEAT {
 			tr.Set(trd, hb)
 			p.Body = nil

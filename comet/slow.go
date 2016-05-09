@@ -16,7 +16,7 @@ const (
 )
 
 var (
-	globalNowTime time.Time
+	globalNowTime *time.Time
 	slowLog       *log.Logger
 )
 
@@ -33,14 +33,16 @@ func initSlowLog(file string) (err error) {
 }
 
 func startGlobalTime() {
-	globalNowTime = time.Now()
+	now := time.Now()
+	globalNowTime = &now
 	go globalTimeProc()
 }
 
 // globalTimeProc update nowTime per globalTideDelay time.
 func globalTimeProc() {
 	for {
-		globalNowTime = time.Now()
+		now := time.Now()
+		globalNowTime = &now
 		time.Sleep(globalTimeDelay)
 	}
 }
