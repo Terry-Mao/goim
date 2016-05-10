@@ -46,6 +46,9 @@ func globalNow() time.Time {
 }
 
 func LogSlow(logType string, key string, p *proto.Proto) {
+	if p == nil || p.Time.IsZero() {
+		return
+	}
 	// slow log
 	userTime := atomic.LoadInt64(&globalNowTime) - p.Time.UnixNano()
 	if userTime >= int64(Conf.SlowTime) {
