@@ -1,5 +1,7 @@
 package main
 
+// TODO need to performance optimizition, so stop to use slow log
+/*
 import (
 	"goim/libs/proto"
 	"log"
@@ -12,11 +14,10 @@ const globalTimeDelay = 100 * time.Millisecond
 const (
 	SlowLogTypeSend    = "send"
 	SlowLogTypeReceive = "receive"
-	SlowLogTypeFinish  = "finish"
 )
 
 var (
-	globalNowTime time.Time
+	globalNowTime *time.Time
 	slowLog       *log.Logger
 )
 
@@ -33,17 +34,20 @@ func initSlowLog(file string) (err error) {
 }
 
 func startGlobalTime() {
-	globalNowTime = time.Now()
+	now := time.Now()
+	globalNowTime = &now
 	go globalTimeProc()
 }
 
 // globalTimeProc update nowTime per globalTideDelay time.
 func globalTimeProc() {
 	for {
-		globalNowTime = time.Now()
+		now := time.Now()
+		globalNowTime = &now
 		time.Sleep(globalTimeDelay)
 	}
 }
+
 
 func LogSlow(logType string, key string, p *proto.Proto) {
 	// slow log
@@ -52,3 +56,4 @@ func LogSlow(logType string, key string, p *proto.Proto) {
 		slowLog.Printf("logType:%s key:%s userTime:%fs slowtime:%fs msg:%s\n", logType, key, userTime, Conf.SlowTime.Seconds(), string(p.Body))
 	}
 }
+*/
