@@ -1,9 +1,9 @@
 package main
 
-// Start Commond eg: ./push_room 20 localhost:7172
-// first parameter: post
-// second parameter: amount of clients
-// third parameter: comet server ip
+// Start Commond eg: ./push_room 1 20 localhost:7172
+// first parameter: room id
+// second parameter: num per seconds
+// third parameter: logic server ip
 
 import (
 	"bytes"
@@ -16,11 +16,11 @@ import (
 )
 
 func main() {
-	rountineNum, err := strconv.Atoi(os.Args[1])
+	rountineNum, err := strconv.Atoi(os.Args[2])
 	if err != nil {
 		panic(err)
 	}
-	addr := os.Args[2]
+	addr := os.Args[3]
 
 	gap := time.Second / time.Duration(rountineNum)
 	delay := time.Duration(0)
@@ -45,7 +45,7 @@ func run(addr string, delay time.Duration) {
 }
 
 func post(addr string, i int64) {
-	resp, err := http.Post("http://"+addr+"/1/push/room?rid=1", "application/json", bytes.NewBufferString(fmt.Sprintf("{\"test\":%d}", i)))
+	resp, err := http.Post("http://"+addr+"/1/push/room?rid="+os.Args[1], "application/json", bytes.NewBufferString(fmt.Sprintf("{\"test\":%d}", i)))
 	if err != nil {
 		fmt.Println("Error: http.post() error(%s)", err)
 		return

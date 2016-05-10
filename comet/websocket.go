@@ -128,7 +128,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		if err = p.ReadWebsocket(conn); err != nil {
 			break
 		}
-		p.Time = globalNowTime
+		//p.Time = *globalNowTime
 		if p.Operation == define.OP_HEARTBEAT {
 			// heartbeat
 			tr.Set(trd, hb)
@@ -181,22 +181,22 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 					err = nil // must be empty error
 					break
 				}
-				LogSlow(SlowLogTypeReceive, key, p)
+				//LogSlow(SlowLogTypeReceive, key, p)
 				if err = p.WriteWebsocket(conn); err != nil {
 					goto failed
 				}
-				LogSlow(SlowLogTypeFinish, key, p)
+				//LogSlow(SlowLogTypeFinish, key, p)
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}
 		default:
 			// TODO room-push support
 			// just forward the message
-			LogSlow(SlowLogTypeReceive, key, p)
+			//LogSlow(SlowLogTypeReceive, key, p)
 			if err = p.WriteWebsocket(conn); err != nil {
 				goto failed
 			}
-			LogSlow(SlowLogTypeFinish, key, p)
+			//LogSlow(SlowLogTypeFinish, key, p)
 		}
 	}
 failed:

@@ -137,7 +137,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		if err = p.ReadTCP(rr); err != nil {
 			break
 		}
-		p.Time = globalNowTime
+		//p.Time = *globalNowTime
 		if p.Operation == define.OP_HEARTBEAT {
 			tr.Set(trd, hb)
 			p.Body = nil
@@ -200,7 +200,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 					err = nil // must be empty error
 					break
 				}
-				LogSlow(SlowLogTypeReceive, key, p)
+				//LogSlow(SlowLogTypeReceive, key, p)
 				if err = p.WriteTCP(wr); err != nil {
 					goto failed
 				}
@@ -209,7 +209,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 			}
 		default:
 			// server send
-			LogSlow(SlowLogTypeReceive, key, p)
+			//LogSlow(SlowLogTypeReceive, key, p)
 			if err = p.WriteTCP(wr); err != nil {
 				goto failed
 			}
@@ -218,7 +218,6 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 		if err = wr.Flush(); err != nil {
 			break
 		}
-		LogSlow(SlowLogTypeFinish, key, p)
 	}
 failed:
 	if err != nil {
