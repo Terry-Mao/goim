@@ -4,6 +4,7 @@ import (
 	"goim/libs/proto"
 	"log"
 	"os"
+	"sync/atomic"
 	"time"
 )
 
@@ -16,7 +17,7 @@ const (
 )
 
 var (
-	globalNowTime time.Time
+	globalNowTime int64
 	slowLog       *log.Logger
 )
 
@@ -24,31 +25,30 @@ func initSlowLog(file string) (err error) {
 	var fd *os.File
 	fd, err = os.Open(file)
 	if err != nil {
-		return
+		return err
 	}
 	slowLog = log.New(fd, "", log.LstdFlags)
-
-	startGlobalTime()
+	go globalTimeProcess()
 	return
 }
 
-func startGlobalTime() {
-	globalNowTime = time.Now()
-	go globalTimeProc()
-}
-
-// globalTimeProc update nowTime per globalTideDelay time.
-func globalTimeProc() {
+// globalTimeProcess update nowTime per globalTimeDelay time.
+func globalTimeProcess() {
+	atomic.StoreInt64(&globalNowTime, time.Now().UnixNano())
 	for {
-		globalNowTime = time.Now()
+		atomic.StoreInt64(&globalNowTime, time.Now().UnixNano())
 		time.Sleep(globalTimeDelay)
 	}
 }
 
+func globalNow() time.Time {
+	return time.Unix(0, atomic.LoadInt64(&globalNowTime))
+}
+
 func LogSlow(logType string, key string, p *proto.Proto) {
 	// slow log
-	userTime := globalNowTime.Sub(p.Time).Seconds()
-	if userTime >= Conf.SlowTime.Seconds() {
-		slowLog.Printf("logType:%s key:%s userTime:%fs slowtime:%fs msg:%s\n", logType, key, userTime, Conf.SlowTime.Seconds(), string(p.Body))
+	userTime := atomic.LoadInt64(&globalNowTime) - p.Time.UnixNano()
+	if userTime >= int64(Conf.SlowTime) {
+		slowLog.Printf("logType:%s key:%s userTime:%fs slowtime:%fs msg:%s\n", logType, key, time.Duration(userTime).Seconds(), Conf.SlowTime.Seconds(), string(p.Body))
 	}
 }
