@@ -98,11 +98,14 @@ func result() {
 func client(key string) {
 	for {
 		startClient(key)
+		time.Sleep(3 * time.Second)
 	}
 }
 
-func startClient(key string, quit chan bool) {
+func startClient(key string) {
 	//time.Sleep(time.Duration(mrand.Intn(30)) * time.Second)
+	quit := make(chan bool, 1)
+	defer close(quit)
 
 	conn, err := net.Dial("tcp", os.Args[3])
 	if err != nil {
