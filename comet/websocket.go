@@ -128,7 +128,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		if err = p.ReadWebsocket(conn); err != nil {
 			break
 		}
-		p.Time = globalNowTime
+		p.Time = globalNow()
 		if p.Operation == define.OP_HEARTBEAT {
 			// heartbeat
 			tr.Set(trd, hb)
