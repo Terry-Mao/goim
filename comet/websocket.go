@@ -144,6 +144,8 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		ch.Signal()
 	}
 	log.Error("key: %s server websocket failed error(%v)", key, err)
+	trd.ResetFn()
+	tr.Del(trd)
 	conn.Close()
 	ch.Close()
 	b.Del(key)
