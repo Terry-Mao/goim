@@ -148,7 +148,7 @@ func (p *Proto) ReadWebsocket(wr *websocket.Conn) (err error) {
 	return
 }
 
-func (p *Proto) buildBatch() (msgList []json.RawMessage) {
+func (p *Proto) WriteBodyTo(b []json.RawMessage) {
 	offset := int32(PackOffset)
 	buf := p.Body[:]
 	for {
@@ -158,21 +158,21 @@ func (p *Proto) buildBatch() (msgList []json.RawMessage) {
 		}
 		packLen := binary.BigEndian.Int32(buf[offset:offset + HeaderOffset])
 		packBuf := buf[offset:offset + packLen]
-		msgList = append(msgList, packBuf[RawHeaderSize:])
+        b = append(b, packBuf[:])
 		offset += packLen
 	}
-	return
 }
 
 func (p *Proto) WriteWebsocket(wr *websocket.Conn) (err error) {
-    // TODO
-	//if p.Operation == define.OP_RAW && enableBatch {
-    //    err = wr.WriteJSON(p.buildBatch())
-    //    return
-	//}
-
 	if p.Body == nil {
 		p.Body = emptyJSONBody
+	}
+	if p.Operation == define.OP_RAW {
+        // batch mod
+        var msgs []json.RawMessage
+        p.WriteBodyTo(msgs)
+        err = wr.WriteJSON(msgs)
+        return
 	}
 	err = wr.WriteJSON(p)
 	return
