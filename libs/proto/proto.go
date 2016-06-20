@@ -10,7 +10,7 @@ import (
 	"goim/libs/encoding/binary"
 	"time"
 
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 )
 
 // for tcp
@@ -144,15 +144,36 @@ func (p *Proto) WriteTCP(wr *bufio.Writer) (err error) {
 }
 
 func (p *Proto) ReadWebsocket(wr *websocket.Conn) (err error) {
-	err = websocket.JSON.Receive(wr, p)
+	err = wr.ReadJSON(p)
 	return
+}
+
+func (p *Proto) WriteBodyTo(b []json.RawMessage) {
+	offset := int32(PackOffset)
+	buf := p.Body[:]
+	for {
+		if (len(buf[offset:])) < RawHeaderSize {
+            // should not be here
+			break
+		}
+		packLen := binary.BigEndian.Int32(buf[offset:offset + HeaderOffset])
+		packBuf := buf[offset:offset + packLen]
+        b = append(b, packBuf[:])
+		offset += packLen
+	}
 }
 
 func (p *Proto) WriteWebsocket(wr *websocket.Conn) (err error) {
 	if p.Body == nil {
 		p.Body = emptyJSONBody
 	}
-	// TODO
-	err = websocket.JSON.Send(wr, p)
+	if p.Operation == define.OP_RAW {
+        // batch mod
+        var msgs []json.RawMessage
+        p.WriteBodyTo(msgs)
+        err = wr.WriteJSON(msgs)
+        return
+	}
+	err = wr.WriteJSON(p)
 	return
 }

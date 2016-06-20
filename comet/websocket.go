@@ -11,8 +11,17 @@ import (
 	"time"
 
 	log "github.com/thinkboy/log4go"
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 )
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  4096,
+	WriteBufferSize: 4096,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
 
 func InitWebsocket(addrs []string) (err error) {
 	var (
@@ -22,7 +31,8 @@ func InitWebsocket(addrs []string) (err error) {
 		httpServeMux = http.NewServeMux()
 		server       *http.Server
 	)
-	httpServeMux.Handle("/sub", websocket.Handler(serveWebsocket))
+	httpServeMux.HandleFunc("/sub", ServeWebSocket)
+
 	for _, bind = range addrs {
 		if addr, err = net.ResolveTCPAddr("tcp4", bind); err != nil {
 			log.Error("net.ResolveTCPAddr(\"tcp4\", \"%s\") error(%v)", bind, err)
@@ -46,11 +56,12 @@ func InitWebsocket(addrs []string) (err error) {
 	return
 }
 
+
 func InitWebsocketWithTLS(addrs []string, cert, priv string) (err error) {
 	var (
 		httpServeMux = http.NewServeMux()
 	)
-	httpServeMux.Handle("/sub", websocket.Handler(serveWebsocket))
+	httpServeMux.HandleFunc("/sub", ServeWebSocket)
 	config := &tls.Config{}
 	config.Certificates = make([]tls.Certificate, 1)
 	if config.Certificates[0], err = tls.LoadX509KeyPair(cert, priv); err != nil {
@@ -59,7 +70,7 @@ func InitWebsocketWithTLS(addrs []string, cert, priv string) (err error) {
 	for _, bind := range addrs {
 		server := &http.Server{Addr: bind, Handler: httpServeMux}
 		server.SetKeepAlivesEnabled(true)
-		if Debug {
+			if Debug {
 			log.Debug("start websocket wss listen: \"%s\"", bind)
 		}
 		go func() {
@@ -78,16 +89,24 @@ func InitWebsocketWithTLS(addrs []string, cert, priv string) (err error) {
 	return
 }
 
-func serveWebsocket(conn *websocket.Conn) {
+func ServeWebSocket (w http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		http.Error(w, "Method Not Allowed", 405)
+		return
+	}
+	ws, err := upgrader.Upgrade(w, req, nil)
+	if err != nil {
+		log.Error("Websocket Upgrade error(%v), userAgent(%s)", err, req.UserAgent())
+		return
+	}
+	defer ws.Close()
 	var (
-		// ip addr
-		lAddr = conn.LocalAddr()
-		rAddr = conn.RemoteAddr()
-		// timer
-		tr = DefaultServer.round.Timer(rand.Int())
+		lAddr           = ws.LocalAddr()
+		rAddr           = ws.RemoteAddr()
+		tr              = DefaultServer.round.Timer(rand.Int())
 	)
 	log.Debug("start websocket serve \"%s\" with \"%s\"", lAddr, rAddr)
-	DefaultServer.serveWebsocket(conn, tr)
+	DefaultServer.serveWebsocket(ws, tr)
 }
 
 func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
