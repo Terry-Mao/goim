@@ -23,9 +23,6 @@ type TimerData struct {
 	index  int
 	next   *TimerData
 }
-func (td *TimerData) ResetFn() {
-	td.fn = nil
-}
 
 func (td *TimerData) Delay() itime.Duration {
 	return td.expire.Sub(itime.Now())
