@@ -10,7 +10,7 @@ import (
 	"goim/libs/encoding/binary"
 	"time"
 
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 )
 
 // for tcp
@@ -144,7 +144,33 @@ func (p *Proto) WriteTCP(wr *bufio.Writer) (err error) {
 }
 
 func (p *Proto) ReadWebsocket(wr *websocket.Conn) (err error) {
-	err = websocket.JSON.Receive(wr, p)
+	err = wr.ReadJSON(p)
+	return
+}
+
+func (p *Proto) WriteBodyTo(b *bytes.Writer) (err error) {
+	var (
+		js []*json.RawMessage
+		j json.RawMessage
+		bts []byte
+	)
+	offset := int32(PackOffset)
+	buf := p.Body[:]
+	for {
+		if (len(buf[offset:])) < RawHeaderSize {
+            // should not be here
+			break
+		}
+		packLen := binary.BigEndian.Int32(buf[offset:offset + HeaderOffset])
+		packBuf := buf[offset:offset + packLen]
+		j = json.RawMessage(packBuf[RawHeaderSize:])
+		js = append(js, &j)
+		offset += packLen
+	}
+	if bts ,err = json.Marshal(&js); err != nil {
+		return
+	}
+	b.Write(bts)
 	return
 }
 
@@ -152,7 +178,16 @@ func (p *Proto) WriteWebsocket(wr *websocket.Conn) (err error) {
 	if p.Body == nil {
 		p.Body = emptyJSONBody
 	}
-	// TODO
-	err = websocket.JSON.Send(wr, p)
+	if p.Operation == define.OP_RAW {
+        // batch mod
+        var b = bytes.NewWriterSize(len(p.Body))
+		if err = p.WriteBodyTo(b); err != nil {
+			return
+		}
+		err = wr.WriteMessage(websocket.TextMessage,  b.Buffer())
+		//err = wr.WriteJSON(b.Buffer())
+        return
+	}
+	err = wr.WriteJSON(p)
 	return
 }
