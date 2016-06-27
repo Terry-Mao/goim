@@ -51,7 +51,7 @@ func init() {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	infoLogfi, err := os.OpenFile("./push.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	infoLogfi, err := os.OpenFile("./pushs.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +107,7 @@ func startPush(b, e int) {
 
 	for {
 		for i := 0; i < len(bodys); i++ {
-			resp, err := httpPost(fmt.Sprintf("http://%s/1/push", os.Args[3]), "application/x-www-form-urlencoded", bytes.NewBuffer(bodys[i]))
+			resp, err := httpPost(fmt.Sprintf("http://%s/1/pushs", os.Args[3]), "application/x-www-form-urlencoded", bytes.NewBuffer(bodys[i]))
 			if err != nil {
 				lg.Printf("post error (%v)", err)
 				continue
