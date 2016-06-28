@@ -178,7 +178,7 @@ func (p *Proto) WriteWebsocket(wr *websocket.Conn) (err error) {
 	if p.Body == nil {
 		p.Body = emptyJSONBody
 	}
-	if p.Operation == define.OP_RAW {
+	if p.Operation == define.OP_RAW || p.Operation == define.OP_SEND_SMS_REPLY {
         // batch mod
         var b = bytes.NewWriterSize(len(p.Body))
 		if err = p.WriteBodyTo(b); err != nil {
