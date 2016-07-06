@@ -150,24 +150,34 @@ func (p *Proto) ReadWebsocket(wr *websocket.Conn) (err error) {
 
 func (p *Proto) WriteBodyTo(b *bytes.Writer) (err error) {
 	var (
-		js []*json.RawMessage
-		j json.RawMessage
+		ph  Proto
+		js  []*json.RawMessage
+		j   json.RawMessage
+		jb  []byte
 		bts []byte
 	)
 	offset := int32(PackOffset)
 	buf := p.Body[:]
 	for {
 		if (len(buf[offset:])) < RawHeaderSize {
-            // should not be here
+			// should not be here
 			break
 		}
-		packLen := binary.BigEndian.Int32(buf[offset:offset + HeaderOffset])
-		packBuf := buf[offset:offset + packLen]
-		j = json.RawMessage(packBuf[RawHeaderSize:])
+		packLen := binary.BigEndian.Int32(buf[offset : offset+HeaderOffset])
+		packBuf := buf[offset : offset+packLen]
+		// packet
+		ph.Ver = binary.BigEndian.Int16(buf[VerOffset:OperationOffset])
+		ph.Operation = binary.BigEndian.Int32(buf[OperationOffset:SeqIdOffset])
+		ph.SeqId = binary.BigEndian.Int32(buf[SeqIdOffset:])
+		ph.Body = packBuf[RawHeaderSize:]
+		if jb, err = json.Marshal(&ph); err != nil {
+			return
+		}
+		j = json.RawMessage(jb)
 		js = append(js, &j)
 		offset += packLen
 	}
-	if bts ,err = json.Marshal(&js); err != nil {
+	if bts, err = json.Marshal(&js); err != nil {
 		return
 	}
 	b.Write(bts)
@@ -178,16 +188,16 @@ func (p *Proto) WriteWebsocket(wr *websocket.Conn) (err error) {
 	if p.Body == nil {
 		p.Body = emptyJSONBody
 	}
-	if p.Operation == define.OP_RAW || p.Operation == define.OP_SEND_SMS_REPLY {
-        // batch mod
-        var b = bytes.NewWriterSize(len(p.Body))
+	// [{"ver":1,"op":8,"seq":1,"body":{}}, {"ver":1,"op":3,"seq":2,"body":{}}]
+	if p.Operation == define.OP_RAW {
+		// batch mod
+		var b = bytes.NewWriterSize(len(p.Body) + 40*RawHeaderSize)
 		if err = p.WriteBodyTo(b); err != nil {
 			return
 		}
-		err = wr.WriteMessage(websocket.TextMessage,  b.Buffer())
-		//err = wr.WriteJSON(b.Buffer())
-        return
+		err = wr.WriteMessage(websocket.TextMessage, b.Buffer())
+		return
 	}
-	err = wr.WriteJSON(p)
+	err = wr.WriteJSON([]*Proto{p})
 	return
 }

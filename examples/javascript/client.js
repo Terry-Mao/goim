@@ -24,18 +24,21 @@
             }
 
             ws.onmessage = function(evt) {
-                var data = JSON.parse(evt.data);
-                if (data.op == 8) {
-                    auth = true;
-                    heartbeat();
-                    heartbeatInterval = setInterval(heartbeat, 4 * 60 * 1000);
-                }
-                if (!auth) {
-                    setTimeout(getAuth, delay);
-                }
-                if (auth && data.op == 5) {
-                    var notify = self.options.notify;
-                    if(notify) notify(data.body);
+                var receives = JSON.parse(evt.data)
+                for(var i=0; i<receives.length; i++) {
+                    var data = receives[i]
+                    if (data.op == 8) {
+                        auth = true;
+                        heartbeat();
+                        heartbeatInterval = setInterval(heartbeat, 4 * 60 * 1000);
+                    }
+                    if (!auth) {
+                        setTimeout(getAuth, delay);
+                    }
+                    if (auth && data.op == 5) {
+                        var notify = self.options.notify;
+                        if(notify) notify(data.body);
+                    }
                 }
             }
 
@@ -63,6 +66,7 @@
                     }
                 }));
             }
+
         }
 
         function reConnect() {
