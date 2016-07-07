@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/thinkboy/log4go"
 	"github.com/gorilla/websocket"
+	log "github.com/thinkboy/log4go"
 )
 
 var upgrader = websocket.Upgrader{
@@ -21,7 +21,6 @@ var upgrader = websocket.Upgrader{
 		return true
 	},
 }
-
 
 func InitWebsocket(addrs []string) (err error) {
 	var (
@@ -56,7 +55,6 @@ func InitWebsocket(addrs []string) (err error) {
 	return
 }
 
-
 func InitWebsocketWithTLS(addrs []string, cert, priv string) (err error) {
 	var (
 		httpServeMux = http.NewServeMux()
@@ -70,7 +68,7 @@ func InitWebsocketWithTLS(addrs []string, cert, priv string) (err error) {
 	for _, bind := range addrs {
 		server := &http.Server{Addr: bind, Handler: httpServeMux}
 		server.SetKeepAlivesEnabled(true)
-			if Debug {
+		if Debug {
 			log.Debug("start websocket wss listen: \"%s\"", bind)
 		}
 		go func() {
@@ -89,7 +87,7 @@ func InitWebsocketWithTLS(addrs []string, cert, priv string) (err error) {
 	return
 }
 
-func ServeWebSocket (w http.ResponseWriter, req *http.Request) {
+func ServeWebSocket(w http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
@@ -101,9 +99,9 @@ func ServeWebSocket (w http.ResponseWriter, req *http.Request) {
 	}
 	defer ws.Close()
 	var (
-		lAddr           = ws.LocalAddr()
-		rAddr           = ws.RemoteAddr()
-		tr              = DefaultServer.round.Timer(rand.Int())
+		lAddr = ws.LocalAddr()
+		rAddr = ws.RemoteAddr()
+		tr    = DefaultServer.round.Timer(rand.Int())
 	)
 	log.Debug("start websocket serve \"%s\" with \"%s\"", lAddr, rAddr)
 	DefaultServer.serveWebsocket(ws, tr)
@@ -248,7 +246,7 @@ func (server *Server) authWebsocket(conn *websocket.Conn, p *proto.Proto) (key s
 	if key, rid, heartbeat, err = server.operator.Connect(p); err != nil {
 		return
 	}
-	p.Body = nil
+	p.Body = emptyJSONBody
 	p.Operation = define.OP_AUTH_REPLY
 	err = p.WriteWebsocket(conn)
 	return
