@@ -151,7 +151,7 @@ func (p *Proto) ReadWebsocket(wr *websocket.Conn) (err error) {
 func (p *Proto) WriteBodyTo(b *bytes.Writer) (err error) {
 	var (
 		ph  Proto
-		js  []*json.RawMessage
+		js  []json.RawMessage
 		j   json.RawMessage
 		jb  []byte
 		bts []byte
@@ -166,15 +166,15 @@ func (p *Proto) WriteBodyTo(b *bytes.Writer) (err error) {
 		packLen := binary.BigEndian.Int32(buf[offset : offset+HeaderOffset])
 		packBuf := buf[offset : offset+packLen]
 		// packet
-		ph.Ver = binary.BigEndian.Int16(buf[VerOffset:OperationOffset])
-		ph.Operation = binary.BigEndian.Int32(buf[OperationOffset:SeqIdOffset])
-		ph.SeqId = binary.BigEndian.Int32(buf[SeqIdOffset:])
+		ph.Ver = binary.BigEndian.Int16(packBuf[VerOffset:OperationOffset])
+		ph.Operation = binary.BigEndian.Int32(packBuf[OperationOffset:SeqIdOffset])
+		ph.SeqId = binary.BigEndian.Int32(packBuf[SeqIdOffset:RawHeaderSize])
 		ph.Body = packBuf[RawHeaderSize:]
 		if jb, err = json.Marshal(&ph); err != nil {
 			return
 		}
 		j = json.RawMessage(jb)
-		js = append(js, &j)
+		js = append(js, j)
 		offset += packLen
 	}
 	if bts, err = json.Marshal(&js); err != nil {
