@@ -177,7 +177,7 @@ func (p *Proto) WriteBodyTo(b *bytes.Writer) (err error) {
 		js = append(js, j)
 		offset += packLen
 	}
-	if bts, err = json.Marshal(&js); err != nil {
+	if bts, err = json.Marshal(js); err != nil {
 		return
 	}
 	b.Write(bts)
