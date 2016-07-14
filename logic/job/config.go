@@ -20,15 +20,18 @@ func init() {
 }
 
 type Config struct {
-	Log           string           `goconf:"base:log"`
-	ZKAddrs       []string         `goconf:"kafka:zookeeper.list:,"`
-	ZKRoot        string           `goconf:"kafka:zkroot"`
-	KafkaTopic    string           `goconf:"kafka:topic"`
+	Log        string   `goconf:"base:log"`
+	ZKAddrs    []string `goconf:"kafka:zookeeper.list:,"`
+	ZKRoot     string   `goconf:"kafka:zkroot"`
+	KafkaTopic string   `goconf:"kafka:topic"`
+	// comet
 	Comets        map[int32]string `goconf:"-"`
 	RoutineAmount int64            `goconf:"comet:routine.amount"`
 	RoutineSize   int              `goconf:"comet:routine.size"`
-	PushChan      int              `goconf:"push:chan"`
-	PushChanSize  int              `goconf:"push:chan.size"`
+	CallSize      int              `goconf:"comet:call.size"`
+	// push
+	PushChan     int `goconf:"push:chan"`
+	PushChanSize int `goconf:"push:chan.size"`
 	// timer
 	Timer     int `goconf:"timer:num"`
 	TimerSize int `goconf:"timer:size"`
