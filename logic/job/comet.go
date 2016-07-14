@@ -9,10 +9,11 @@ import (
 	"time"
 
 	log "github.com/thinkboy/log4go"
+	"sync/atomic"
 )
 
 var (
-	cometServiceMap = make(map[int32]**rpc.Client)
+	cometServiceMap = make(map[int32]*Comet)
 )
 
 const (
@@ -25,9 +26,52 @@ const (
 	CometServiceBroadcastRoom = "PushRPC.BroadcastRoom"
 )
 
-func InitComet(addrs map[int32]string) (err error) {
+type Comet struct {
+	serverId      int32
+	rpcClient     **rpc.Client
+	routines      []chan *proto.BoardcastRoomArg
+	routinesNum   int64
+	routineAmount int64
+	routineSize   int
+}
+
+func (cm *Comet) BroadcastRoom(arg *proto.BoardcastRoomArg) (err error) {
+	num := atomic.AddInt64(&cm.routinesNum, 1) % cm.routineAmount
+	select {
+	case cm.routines[num] <- arg:
+	default:
+		err = ErrCometFull
+	}
+	return
+}
+
+// room process
+func (cm *Comet) roomproc(c chan *proto.BoardcastRoomArg) {
+	var (
+		arg       *proto.BoardcastRoomArg
+		reply     = &proto.NoReply{}
+		rpcClient *rpc.Client
+		err       error
+	)
+	for {
+		arg = <-c
+		// room push
+		if rpcClient, err = getCometByServerId(cm.serverId); err != nil {
+			log.Error("getCometByServerId(\"%d\") error(%v)", cm.serverId, err)
+			continue
+		}
+		if err = rpcClient.Call(CometServiceBroadcastRoom, arg, reply); err != nil {
+			log.Error("c.Call(\"%s\", %v, reply) serverId:%d error(%v)", CometServiceBroadcastRoom, arg, cm.serverId, err)
+		}
+		arg = nil
+		err = nil
+	}
+}
+
+func InitComet(addrs map[int32]string, routineAmount int64, routineSize int) (err error) {
 	for serverID, addrsTmp := range addrs {
 		var (
+			cm            *Comet
 			rpcClient     *rpc.Client
 			quit          chan struct{}
 			network, addr string
@@ -41,7 +85,20 @@ func InitComet(addrs map[int32]string) (err error) {
 		}
 		go Reconnect(&rpcClient, quit, network, addr)
 		log.Info("init comet rpc addr:%s connection", addr)
-		cometServiceMap[serverID] = &rpcClient
+		// comet
+		cm = new(Comet)
+		cm.serverId = serverID
+		cm.routines = make([]chan *proto.BoardcastRoomArg, routineAmount)
+		cm.routineAmount = routineAmount
+		cm.routineSize = routineSize
+		cm.rpcClient = &rpcClient
+		cometServiceMap[serverID] = cm
+		// process
+		for i := int64(0); i < routineAmount; i++ {
+			c := make(chan *proto.BoardcastRoomArg, routineSize)
+			cm.routines[i] = c
+			go cm.roomproc(c)
+		}
 	}
 	return
 }
@@ -81,10 +138,18 @@ func Reconnect(dst **rpc.Client, quit chan struct{}, network, address string) {
 
 // get comet server client by server id
 func getCometByServerId(serverId int32) (*rpc.Client, error) {
-	if client, ok := cometServiceMap[serverId]; !ok || *client == nil {
+	if cm, ok := cometServiceMap[serverId]; !ok || cm.routines == nil {
 		return nil, ErrComet
 	} else {
-		return *client, nil
+		return *cm.rpcClient, nil
+	}
+}
+
+func getClientByComet(cm *Comet) (*rpc.Client, error) {
+	if cm.rpcClient != nil && *cm.rpcClient != nil {
+		return *cm.rpcClient, nil
+	} else {
+		return nil, ErrComet
 	}
 }
 
@@ -110,14 +175,16 @@ func mPushComet(serverId int32, subkeys []string, body json.RawMessage) {
 // broadcast broadcast a message to all
 func broadcast(msg []byte) {
 	var (
-		args = &proto.BoardcastArg{P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: msg, Time: time.Now()}}
+		args      = &proto.BoardcastArg{P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: msg, Time: time.Now()}}
+		rpcClient *rpc.Client
+		err       error
 	)
-	for serverId, c := range cometServiceMap {
-		if *c != nil {
-			go broadcastComet(*c, args)
-		} else {
-			log.Error("doesn`t push message to serverId:%d", serverId)
+	for serverId, cm := range cometServiceMap {
+		if rpcClient, err = getClientByComet(cm); err != nil {
+			log.Error("getClientByComet(\"%d\") error(%v)", serverId, err)
+			continue
 		}
+		go broadcastComet(rpcClient, args)
 	}
 }
 
@@ -134,23 +201,19 @@ func broadcastComet(c *rpc.Client, args *proto.BoardcastArg) (err error) {
 func broadcastRoomBytes(roomId int32, body []byte) {
 	var (
 		args     = proto.BoardcastRoomArg{P: proto.Proto{Ver: 0, Operation: define.OP_RAW, Body: body, Time: time.Now()}, RoomId: roomId}
-		reply    = proto.NoReply{}
-		c        *rpc.Client
+		cm       *Comet
 		serverId int32
 		servers  map[int32]struct{}
-		err      error
 		ok       bool
+		err      error
 	)
-
-	//TODO concurrent push to each server?
 	if servers, ok = RoomServersMap[roomId]; ok {
 		for serverId, _ = range servers {
-			if c, err = getCometByServerId(serverId); err != nil {
-				log.Error("getCometByServerId(%d) error(%v)", serverId, err)
-				continue
-			}
-			if err = c.Call(CometServiceBroadcastRoom, &args, &reply); err != nil {
-				log.Error("c.Call(\"%s\", %v, reply) serverId:%d error(%v)", CometServiceBroadcastRoom, args, serverId, err)
+			if cm, ok = cometServiceMap[serverId]; ok {
+				// push routines
+				if err = cm.BroadcastRoom(&args); err != nil {
+					log.Error("broadcastRoomBytes roomId:%d error(%v)", roomId, err)
+				}
 			}
 		}
 	}
