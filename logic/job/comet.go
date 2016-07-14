@@ -45,23 +45,23 @@ type Comet struct {
 }
 
 // user push
-func (cm *Comet) Push(arg *proto.MPushMsgArg) (err error) {
-	num := atomic.AddInt64(&cm.pushRoutinesNum, 1) % cm.options.RoutineAmount
-	cm.pushRoutines[num] <- arg
+func (c *Comet) Push(arg *proto.MPushMsgArg) (err error) {
+	num := atomic.AddInt64(&c.pushRoutinesNum, 1) % c.options.RoutineAmount
+	c.pushRoutines[num] <- arg
 	return
 }
 
 // room push
-func (cm *Comet) BroadcastRoom(arg *proto.BoardcastRoomArg) (err error) {
-	num := atomic.AddInt64(&cm.roomRoutinesNum, 1) % cm.options.RoutineAmount
-	cm.roomRoutines[num] <- arg
+func (c *Comet) BroadcastRoom(arg *proto.BoardcastRoomArg) (err error) {
+	num := atomic.AddInt64(&c.roomRoutinesNum, 1) % c.options.RoutineAmount
+	c.roomRoutines[num] <- arg
 	return
 }
 
 // broadcast
-func (cm *Comet) Broadcast(arg *proto.BoardcastArg) (err error) {
-	num := atomic.AddInt64(&cm.broadcastRoutinesNum, 1) % cm.options.RoutineAmount
-	cm.broadcastRoutines[num] <- arg
+func (c *Comet) Broadcast(arg *proto.BoardcastArg) (err error) {
+	num := atomic.AddInt64(&c.broadcastRoutinesNum, 1) % c.options.RoutineAmount
+	c.broadcastRoutines[num] <- arg
 	return
 }
 
