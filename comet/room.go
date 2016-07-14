@@ -57,7 +57,6 @@ func (r *Room) Push(p *proto.Proto) {
 		ch.Push(p)
 	}
 	r.rLock.RUnlock()
-	//LogSlow(SlowLogTypeSend, "", p)
 	return
 }
 

@@ -29,7 +29,6 @@ func (c *Channel) Push(p *proto.Proto) (err error) {
 	select {
 	case c.signal <- p:
 	default:
-		log.Error("lost a message:%s room:%d", p.Body, c.RoomId)
 	}
 	return
 }

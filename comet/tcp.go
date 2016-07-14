@@ -200,7 +200,6 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 					err = nil // must be empty error
 					break
 				}
-				//LogSlow(SlowLogTypeReceive, key, p)
 				if err = p.WriteTCP(wr); err != nil {
 					goto failed
 				}
@@ -209,7 +208,6 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 			}
 		default:
 			// server send
-			//LogSlow(SlowLogTypeReceive, key, p)
 			if err = p.WriteTCP(wr); err != nil {
 				goto failed
 			}

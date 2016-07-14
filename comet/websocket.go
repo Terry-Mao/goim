@@ -199,22 +199,18 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 					err = nil // must be empty error
 					break
 				}
-				//LogSlow(SlowLogTypeReceive, key, p)
 				if err = p.WriteWebsocket(conn); err != nil {
 					goto failed
 				}
-				//LogSlow(SlowLogTypeFinish, key, p)
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}
 		default:
 			// TODO room-push support
 			// just forward the message
-			//LogSlow(SlowLogTypeReceive, key, p)
 			if err = p.WriteWebsocket(conn); err != nil {
 				goto failed
 			}
-			//LogSlow(SlowLogTypeFinish, key, p)
 		}
 	}
 failed:
