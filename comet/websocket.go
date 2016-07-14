@@ -45,12 +45,12 @@ func InitWebsocket(addrs []string) (err error) {
 		if Debug {
 			log.Debug("start websocket listen: \"%s\"", bind)
 		}
-		go func() {
+		go func(host string) {
 			if err = server.Serve(listener); err != nil {
-				log.Error("server.Serve(\"%s\") error(%v)", bind, err)
+				log.Error("server.Serve(\"%s\") error(%v)", host, err)
 				panic(err)
 			}
-		}()
+		}(bind)
 	}
 	return
 }
@@ -71,18 +71,18 @@ func InitWebsocketWithTLS(addrs []string, cert, priv string) (err error) {
 		if Debug {
 			log.Debug("start websocket wss listen: \"%s\"", bind)
 		}
-		go func() {
-			ln, err := net.Listen("tcp", bind)
+		go func(host string) {
+			ln, err := net.Listen("tcp", host)
 			if err != nil {
 				return
 			}
 
 			tlsListener := tls.NewListener(ln, config)
 			if err = server.Serve(tlsListener); err != nil {
-				log.Error("server.Serve(\"%s\") error(%v)", bind, err)
+				log.Error("server.Serve(\"%s\") error(%v)", host, err)
 				return
 			}
-		}()
+		}(bind)
 	}
 	return
 }
