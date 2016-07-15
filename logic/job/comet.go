@@ -28,9 +28,9 @@ const (
 )
 
 type CometOptions struct {
-	RoutineAmount int64
-	RoutineSize   int
-	CallSize      int
+	RoutineSize int64
+	RoutineChan int
+	CallSize    int
 }
 
 type Comet struct {
@@ -47,21 +47,21 @@ type Comet struct {
 
 // user push
 func (c *Comet) Push(arg *proto.MPushMsgArg) (err error) {
-	num := atomic.AddInt64(&c.pushRoutinesNum, 1) % c.options.RoutineAmount
+	num := atomic.AddInt64(&c.pushRoutinesNum, 1) % c.options.RoutineSize
 	c.pushRoutines[num] <- arg
 	return
 }
 
 // room push
 func (c *Comet) BroadcastRoom(arg *proto.BoardcastRoomArg) (err error) {
-	num := atomic.AddInt64(&c.roomRoutinesNum, 1) % c.options.RoutineAmount
+	num := atomic.AddInt64(&c.roomRoutinesNum, 1) % c.options.RoutineSize
 	c.roomRoutines[num] <- arg
 	return
 }
 
 // broadcast
 func (c *Comet) Broadcast(arg *proto.BoardcastArg) (err error) {
-	num := atomic.AddInt64(&c.broadcastRoutinesNum, 1) % c.options.RoutineAmount
+	num := atomic.AddInt64(&c.broadcastRoutinesNum, 1) % c.options.RoutineSize
 	c.broadcastRoutines[num] <- arg
 	return
 }
@@ -158,17 +158,17 @@ func InitComet(addrs map[int32]string, options CometOptions) (err error) {
 		// comet
 		c = new(Comet)
 		c.serverId = serverID
-		c.pushRoutines = make([]chan *proto.MPushMsgArg, options.RoutineAmount)
-		c.roomRoutines = make([]chan *proto.BoardcastRoomArg, options.RoutineAmount)
-		c.broadcastRoutines = make([]chan *proto.BoardcastArg, options.RoutineAmount)
+		c.pushRoutines = make([]chan *proto.MPushMsgArg, options.RoutineSize)
+		c.roomRoutines = make([]chan *proto.BoardcastRoomArg, options.RoutineSize)
+		c.broadcastRoutines = make([]chan *proto.BoardcastArg, options.RoutineSize)
 		c.options = options
 		c.rpcClient = rpcClient
 		cometServiceMap[serverID] = c
 		// process
-		for i := int64(0); i < options.RoutineAmount; i++ {
-			pushChan := make(chan *proto.MPushMsgArg, options.RoutineSize)
-			roomChan := make(chan *proto.BoardcastRoomArg, options.RoutineSize)
-			broadcastChan := make(chan *proto.BoardcastArg, options.RoutineSize)
+		for i := int64(0); i < options.RoutineSize; i++ {
+			pushChan := make(chan *proto.MPushMsgArg, options.RoutineChan)
+			roomChan := make(chan *proto.BoardcastRoomArg, options.RoutineChan)
+			broadcastChan := make(chan *proto.BoardcastArg, options.RoutineChan)
 			c.pushRoutines[i] = pushChan
 			c.roomRoutines[i] = roomChan
 			c.broadcastRoutines[i] = broadcastChan

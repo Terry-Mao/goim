@@ -17,9 +17,9 @@ func main() {
 	//comet
 	err := InitComet(Conf.Comets,
 		CometOptions{
-			RoutineAmount: Conf.RoutineAmount,
-			RoutineSize:   Conf.RoutineSize,
-			CallSize:      Conf.CallSize,
+			RoutineSize: Conf.RoutineSize,
+			RoutineChan: Conf.RoutineChan,
+			CallSize:    Conf.CallSize,
 		})
 	if err != nil {
 		log.Warn("comet rpc current can't connect, retry")

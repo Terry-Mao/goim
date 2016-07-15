@@ -25,10 +25,10 @@ type Config struct {
 	ZKRoot     string   `goconf:"kafka:zkroot"`
 	KafkaTopic string   `goconf:"kafka:topic"`
 	// comet
-	Comets        map[int32]string `goconf:"-"`
-	RoutineAmount int64            `goconf:"comet:routine.amount"`
-	RoutineSize   int              `goconf:"comet:routine.size"`
-	CallSize      int              `goconf:"comet:call.size"`
+	Comets      map[int32]string `goconf:"-"`
+	RoutineSize int64            `goconf:"comet:routine.size"`
+	RoutineChan int              `goconf:"comet:routine.chan"`
+	CallSize    int              `goconf:"comet:call.size"`
 	// push
 	PushChan     int `goconf:"push:chan"`
 	PushChanSize int `goconf:"push:chan.size"`
@@ -42,14 +42,14 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		Comets:        make(map[int32]string),
-		ZKRoot:        "",
-		KafkaTopic:    "kafka_topic_push",
-		RoutineAmount: 64,
-		RoutineSize:   20,
-		CallSize:      100,
-		PushChan:      4,
-		PushChanSize:  100,
+		Comets:       make(map[int32]string),
+		ZKRoot:       "",
+		KafkaTopic:   "kafka_topic_push",
+		RoutineSize:  16,
+		RoutineChan:  64,
+		CallSize:     100,
+		PushChan:     4,
+		PushChanSize: 100,
 		//timer
 		// timer
 		Timer:     runtime.NumCPU(),
