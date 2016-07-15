@@ -42,11 +42,14 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		Comets:       make(map[int32]string),
-		ZKRoot:       "",
-		KafkaTopic:   "kafka_topic_push",
-		PushChan:     4,
-		PushChanSize: 100,
+		Comets:        make(map[int32]string),
+		ZKRoot:        "",
+		KafkaTopic:    "kafka_topic_push",
+		RoutineAmount: 64,
+		RoutineSize:   20,
+		CallSize:      100,
+		PushChan:      4,
+		PushChanSize:  100,
 		//timer
 		// timer
 		Timer:     runtime.NumCPU(),

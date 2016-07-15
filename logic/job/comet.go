@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	cometRpcQuit    = make(chan struct{}, 1)
 	cometServiceMap = make(map[int32]*Comet)
 )
 
@@ -112,7 +113,7 @@ func (c *Comet) process(pushChan chan *proto.MPushMsgArg, roomChan chan *proto.B
 }
 
 // Reconnect for ping rpc server and reconnect with it when it's crash.
-func (c *Comet) ping(network, address string) {
+func (c *Comet) ping(quit chan struct{}, network, address string) {
 	var (
 		call  *rpc.Call
 		ch    = make(chan *rpc.Call, 1)
@@ -120,15 +121,20 @@ func (c *Comet) ping(network, address string) {
 		reply = proto.NoReply{}
 	)
 	for {
-		if c.rpcClient != nil {
-			call = <-c.rpcClient.Go(CometServicePing, &args, &reply, ch).Done
-			if call.Error != nil {
-				log.Error("rpc ping %s error(%v)", address, call.Error)
+		select {
+		case <-quit:
+			return
+		default:
+			if c.rpcClient != nil {
+				call = <-c.rpcClient.Go(CometServicePing, &args, &reply, ch).Done
+				if call.Error != nil {
+					log.Error("rpc ping %s error(%v)", address, call.Error)
+				}
 			}
-		}
-		if c.rpcClient == nil || call.Error != nil {
-			if newCli, err := rpc.Dial(network, address); err == nil {
-				c.rpcClient = newCli
+			if c.rpcClient == nil || call.Error != nil {
+				if newCli, err := rpc.Dial(network, address); err == nil {
+					c.rpcClient = newCli
+				}
 			}
 		}
 		time.Sleep(1 * time.Second)
@@ -169,7 +175,7 @@ func InitComet(addrs map[int32]string, options CometOptions) (err error) {
 			go c.process(pushChan, roomChan, broadcastChan)
 		}
 		// ping & reconnect
-		go c.ping(network, addr)
+		go c.ping(cometRpcQuit, network, addr)
 		log.Info("init comet rpc addr:%s connection", addr)
 	}
 	return
@@ -177,11 +183,11 @@ func InitComet(addrs map[int32]string, options CometOptions) (err error) {
 
 // mPushComet push a message to a batch of subkeys
 func mPushComet(serverId int32, subKeys []string, body json.RawMessage) {
-	var args = &proto.MPushMsgArg{
+	var args = proto.MPushMsgArg{
 		Keys: subKeys, P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: body, Time: time.Now()},
 	}
 	if c, ok := cometServiceMap[serverId]; ok {
-		if err := c.Push(args); err != nil {
+		if err := c.Push(&args); err != nil {
 			log.Error("c.Push(%v) serverId:%d error(%v)", args, serverId, err)
 		}
 	}
@@ -189,11 +195,11 @@ func mPushComet(serverId int32, subKeys []string, body json.RawMessage) {
 
 // broadcast broadcast a message to all
 func broadcast(msg []byte) {
-	var args = &proto.BoardcastArg{
+	var args = proto.BoardcastArg{
 		P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: msg, Time: time.Now()},
 	}
 	for serverId, c := range cometServiceMap {
-		if err := c.Broadcast(args); err != nil {
+		if err := c.Broadcast(&args); err != nil {
 			log.Error("c.Broadcast(%v) serverId:%d error(%v)", args, serverId, err)
 		}
 	}
