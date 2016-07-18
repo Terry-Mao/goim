@@ -101,9 +101,8 @@ func (c *Client) Ping(serviceMethod string, pingDuration time.Duration) {
 			}
 		} else {
 			// reconnect
-			if err = c.dial(); err != nil {
-				log.Error("rpc.Dial(%s, %s) error(%v)", c.options.Proto, c.options.Addr, err)
-			} else {
+			if err = c.dial(); err == nil {
+				// reconnect ok
 				c.err = nil
 				log.Info("client reconnect %s ok", c.options.Addr)
 			}

@@ -82,21 +82,21 @@ func (c *Comet) process(pushChan chan *proto.MPushMsgArg, roomChan chan *proto.B
 			// push
 			err = c.rpcClient.Call(CometServiceMPushMsg, pushArg, reply)
 			if err != nil {
-				log.Error("rpcClient.Go(%s, %v, reply, done) serverId:%d error(%v)", CometServiceMPushMsg, pushArg, c.serverId, ErrComet)
+				log.Error("rpcClient.Call(%s, %v, reply) serverId:%d error(%v)", CometServiceMPushMsg, pushArg, c.serverId, ErrComet)
 			}
 			pushArg = nil
 		case roomArg = <-roomChan:
 			// room
 			err = c.rpcClient.Call(CometServiceBroadcastRoom, roomArg, reply)
 			if err != nil {
-				log.Error("rpcClient.Go(%s, %v, reply, done) serverId:%d error(%v)", CometServiceBroadcastRoom, roomArg, c.serverId, ErrComet)
+				log.Error("rpcClient.Call(%s, %v, reply) serverId:%d error(%v)", CometServiceBroadcastRoom, roomArg, c.serverId, ErrComet)
 			}
 			roomArg = nil
 		case broadcastArg = <-broadcastChan:
 			// broadcast
 			err = c.rpcClient.Call(CometServiceBroadcast, broadcastArg, reply)
 			if err != nil {
-				log.Error("rpcClient.Go(%s, %v, reply, done) serverId:%d error(%v)", CometServiceBroadcast, broadcastArg, c.serverId, ErrComet)
+				log.Error("rpcClient.Call(%s, %v, reply) serverId:%d error(%v)", CometServiceBroadcast, broadcastArg, c.serverId, ErrComet)
 			}
 			broadcastArg = nil
 		}
@@ -200,7 +200,7 @@ func roomsComet(c *xrpc.Client) []int32 {
 		err   error
 	)
 	if err = c.Call(CometServiceRooms, &args, &reply); err != nil {
-		log.Error("c.Call(%s, 0, reply) error(%v)", CometServiceRooms, err)
+		log.Error("c.Call(%s, args, reply) error(%v)", CometServiceRooms, err)
 		return nil
 	}
 	return reply.RoomIds
