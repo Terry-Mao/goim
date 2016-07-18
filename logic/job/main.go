@@ -19,7 +19,8 @@ func main() {
 		CometOptions{
 			RoutineSize: Conf.RoutineSize,
 			RoutineChan: Conf.RoutineChan,
-			CallSize:    Conf.CallSize,
+			DialTimeout: Conf.DialTimeout,
+			CallTimeout: Conf.CallTimeout,
 		})
 	if err != nil {
 		log.Warn("comet rpc current can't connect, retry")

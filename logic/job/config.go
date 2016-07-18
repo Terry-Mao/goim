@@ -26,9 +26,10 @@ type Config struct {
 	KafkaTopic string   `goconf:"kafka:topic"`
 	// comet
 	Comets      map[int32]string `goconf:"-"`
+	DialTimeout time.Duration    `goconf:"comet:dial.timeout:time"`
+	CallTimeout time.Duration    `goconf:"comet:call.timeout:time"`
 	RoutineSize int64            `goconf:"comet:routine.size"`
 	RoutineChan int              `goconf:"comet:routine.chan"`
-	CallSize    int              `goconf:"comet:call.size"`
 	// push
 	PushChan     int `goconf:"push:chan"`
 	PushChanSize int `goconf:"push:chan.size"`
@@ -47,7 +48,8 @@ func NewConfig() *Config {
 		KafkaTopic:   "kafka_topic_push",
 		RoutineSize:  16,
 		RoutineChan:  64,
-		CallSize:     100,
+		DialTimeout:  5 * time.Second,
+		CallTimeout:  3 * time.Second,
 		PushChan:     4,
 		PushChanSize: 100,
 		//timer
