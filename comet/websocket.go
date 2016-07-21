@@ -125,7 +125,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	if p, err = ch.CliProto.Set(); err == nil {
 		if key, ch.RoomId, hb, err = server.authWebsocket(conn, p); err == nil {
 			b = server.Bucket(key)
-			err = b.Put(key, ch, tr)
+			err = b.Put(key, ch)
 		}
 	}
 	if err != nil {

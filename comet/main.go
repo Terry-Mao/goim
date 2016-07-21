@@ -41,8 +41,6 @@ func main() {
 			RoomSize:      Conf.BucketRoom,
 			RoutineAmount: Conf.RoutineAmount,
 			RoutineSize:   Conf.RoutineSize,
-		}, RoomOptions{
-			ChannelSize: Conf.RoomChannel,
 		})
 	}
 	round := NewRound(RoundOptions{

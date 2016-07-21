@@ -115,7 +115,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	if p, err = ch.CliProto.Set(); err == nil {
 		if key, ch.RoomId, hb, err = server.authTCP(rr, wr, p); err == nil {
 			b = server.Bucket(key)
-			err = b.Put(key, ch, tr)
+			err = b.Put(key, ch)
 		}
 	}
 	if err != nil {

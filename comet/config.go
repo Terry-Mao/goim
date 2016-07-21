@@ -81,8 +81,6 @@ type Config struct {
 	BucketRoom    int   `goconf:"bucket:room"`
 	RoutineAmount int64 `goconf:"bucket:routine.amount"`
 	RoutineSize   int   `goconf:"bucket:routine.size"`
-	// room
-	RoomChannel int `goconf:"room:channel"`
 	// push
 	RPCPushAddrs []string `goconf:"push:rpc.addrs:,"`
 	// logic

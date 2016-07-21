@@ -3,8 +3,6 @@ package main
 import (
 	"goim/libs/bufio"
 	"goim/libs/proto"
-
-	log "github.com/thinkboy/log4go"
 )
 
 // Channel used by message pusher send msg to write goroutine.
@@ -14,6 +12,8 @@ type Channel struct {
 	signal   chan *proto.Proto
 	Writer   bufio.Writer
 	Reader   bufio.Reader
+	Next     *Channel
+	Prev     *Channel
 }
 
 func NewChannel(cli, svr int, rid int32) *Channel {
