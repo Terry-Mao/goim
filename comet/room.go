@@ -44,17 +44,14 @@ func (r *Room) Put(ch *Channel) (err error) {
 // Del delete channel from the room.
 func (r *Room) Del(ch *Channel) bool {
 	r.rLock.Lock()
-	// if header
-	if r.next == ch {
+	if ch.Next != nil {
+		// if not footer
+		ch.Next.Prev = ch.Prev
+	}
+	if ch.Prev == nil {
+		// if header
 		r.next = ch.Next
-		if r.next != nil {
-			r.next.Prev = nil // avoid memory leak
-		}
 	} else {
-		if ch.Next != nil {
-			// not footer node
-			ch.Next.Prev = ch.Prev
-		}
 		ch.Prev.Next = ch.Next
 	}
 	r.online--
