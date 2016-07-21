@@ -48,11 +48,11 @@ func (r *Room) Del(ch *Channel) bool {
 		// if not footer
 		ch.Next.Prev = ch.Prev
 	}
-	if ch.Prev == nil {
-		// if header
-		r.next = ch.Next
-	} else {
+	if ch.Prev != nil {
+		// if not header
 		ch.Prev.Next = ch.Next
+	} else {
+		r.next = ch.Next
 	}
 	r.online--
 	r.drop = (r.online == 0)
