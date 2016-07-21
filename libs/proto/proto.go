@@ -124,7 +124,8 @@ func (p *Proto) WriteTCP(wr *bufio.Writer) (err error) {
 		packLen int32
 	)
 	if p.Operation == define.OP_RAW {
-		_, err = wr.Write(p.Body)
+		// write without buffer, job concact proto into raw buffer
+		_, err = wr.WriteRaw(p.Body)
 		return
 	}
 	packLen = RawHeaderSize + int32(len(p.Body))
