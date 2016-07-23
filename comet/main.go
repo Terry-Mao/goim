@@ -23,12 +23,11 @@ func main() {
 	log.LoadConfiguration(Conf.Log)
 	defer log.Close()
 	log.Info("comet[%s] start", Ver)
-	perf.Init(Conf.PprofBind)
-	// init slow log
-	// TODO need to performance optimizition, so stop to use slow log
-	/*if err := initSlowLog(Conf.SlowLog); err != nil {
+	// white list log
+	if err := InitWhiteList(Conf.WhiteLog); err != nil {
 		panic(err)
-	}*/
+	}
+	perf.Init(Conf.PprofBind)
 	// logic rpc
 	if err := InitLogicRpc(Conf.LogicAddr); err != nil {
 		log.Warn("logic rpc current can't connect, retry")
@@ -62,6 +61,11 @@ func main() {
 		TCPRcvbuf:        Conf.TCPRcvbuf,
 		TCPSndbuf:        Conf.TCPSndbuf,
 	})
+	// white list
+	DefaultServer.Whitelist = make(map[string]struct{})
+	for _, key := range Conf.Whitelist {
+		DefaultServer.Whitelist[key] = struct{}{}
+	}
 	// tcp comet
 	if err := InitTCP(Conf.TCPBind, Conf.MaxProc); err != nil {
 		panic(err)

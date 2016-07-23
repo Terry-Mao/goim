@@ -44,9 +44,8 @@ type Config struct {
 	StatBind  []string `goconf:"base:stat.bind:,"`
 	ServerId  int32    `goconf:"base:server.id"`
 	Debug     bool     `goconf:"base:debug"`
-	// slow log
-	SlowLog  string        `goconf:"slow:log"`
-	SlowTime time.Duration `goconf:"slow:time,time"`
+	Whitelist []string `goconf:"base:white.list:,"`
+	WhiteLog  string   `goconf:"base:white.log"`
 	// tcp
 	TCPBind         []string `goconf:"tcp:bind:,"`
 	TCPSndbuf       int      `goconf:"tcp:sndbuf:memory"`
