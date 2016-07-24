@@ -129,9 +129,9 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	}
 	trd.Key = key
 	tr.Set(trd, hb)
-	white = server.IsWhite(key)
+	white = DefaultWhitelist.Contains(key)
 	if white {
-		WhiteLog.Printf("key: %s[%d] auth\n", key, ch.RoomId)
+		DefaultWhitelist.Log.Printf("key: %s[%d] auth\n", key, ch.RoomId)
 	}
 	// hanshake ok start dispatch goroutine
 	go server.dispatchTCP(key, conn, wr, wp, wb, ch)
@@ -140,13 +140,13 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 			break
 		}
 		if white {
-			WhiteLog.Printf("key: %s start read proto\n", key)
+			DefaultWhitelist.Log.Printf("key: %s start read proto\n", key)
 		}
 		if err = p.ReadTCP(rr); err != nil {
 			break
 		}
 		if white {
-			WhiteLog.Printf("key: %s read proto:%v\n", key, p)
+			DefaultWhitelist.Log.Printf("key: %s read proto:%v\n", key, p)
 		}
 		if p.Operation == define.OP_HEARTBEAT {
 			tr.Set(trd, hb)
@@ -161,16 +161,16 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 			}
 		}
 		if white {
-			WhiteLog.Printf("key: %s process proto:%v\n", key, p)
+			DefaultWhitelist.Log.Printf("key: %s process proto:%v\n", key, p)
 		}
 		ch.CliProto.SetAdv()
 		ch.Signal()
 		if white {
-			WhiteLog.Printf("key: %s signal\n", key)
+			DefaultWhitelist.Log.Printf("key: %s signal\n", key)
 		}
 	}
 	if white {
-		WhiteLog.Printf("key: %s server tcp error(%v)\n", key, err)
+		DefaultWhitelist.Log.Printf("key: %s server tcp error(%v)\n", key, err)
 	}
 	if err != nil && err != io.EOF {
 		log.Error("key: %s server tcp failed error(%v)", key, err)
@@ -184,7 +184,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		log.Error("key: %s operator do disconnect error(%v)", key, err)
 	}
 	if white {
-		WhiteLog.Printf("key: %s disconnect error(%v)\n", key, err)
+		DefaultWhitelist.Log.Printf("key: %s disconnect error(%v)\n", key, err)
 	}
 	if Debug {
 		log.Debug("key: %s server tcp goroutine exit", key)
@@ -199,18 +199,18 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 	var (
 		err    error
 		finish bool
-		white  = server.IsWhite(key)
+		white  = DefaultWhitelist.Contains(key)
 	)
 	if Debug {
 		log.Debug("key: %s start dispatch tcp goroutine", key)
 	}
 	for {
 		if white {
-			WhiteLog.Printf("key: %s wait proto ready\n", key)
+			DefaultWhitelist.Log.Printf("key: %s wait proto ready\n", key)
 		}
 		var p = ch.Ready()
 		if white {
-			WhiteLog.Printf("key: %s proto ready\n", key)
+			DefaultWhitelist.Log.Printf("key: %s proto ready\n", key)
 		}
 		if Debug {
 			log.Debug("key:%s dispatch msg:%v", key, *p)
@@ -218,7 +218,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 		switch p {
 		case proto.ProtoFinish:
 			if white {
-				WhiteLog.Printf("key: %s receive proto finish\n", key)
+				DefaultWhitelist.Log.Printf("key: %s receive proto finish\n", key)
 			}
 			if Debug {
 				log.Debug("key: %s wakeup exit dispatch goroutine", key)
@@ -233,43 +233,43 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 					break
 				}
 				if white {
-					WhiteLog.Printf("key: %s start write client proto%v\n", key, p)
+					DefaultWhitelist.Log.Printf("key: %s start write client proto%v\n", key, p)
 				}
 				if err = p.WriteTCP(wr); err != nil {
 					goto failed
 				}
 				if white {
-					WhiteLog.Printf("key: %s write client proto%v\n", key, p)
+					DefaultWhitelist.Log.Printf("key: %s write client proto%v\n", key, p)
 				}
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}
 		default:
 			if white {
-				WhiteLog.Printf("key: %s start write server proto%v\n", key, p)
+				DefaultWhitelist.Log.Printf("key: %s start write server proto%v\n", key, p)
 			}
 			// server send
 			if err = p.WriteTCP(wr); err != nil {
 				goto failed
 			}
 			if white {
-				WhiteLog.Printf("key: %s write server proto%v\n", key, p)
+				DefaultWhitelist.Log.Printf("key: %s write server proto%v\n", key, p)
 			}
 		}
 		if white {
-			WhiteLog.Printf("key: %s start flush \n", key)
+			DefaultWhitelist.Log.Printf("key: %s start flush \n", key)
 		}
 		// only hungry flush response
 		if err = wr.Flush(); err != nil {
 			break
 		}
 		if white {
-			WhiteLog.Printf("key: %s flush\n", key)
+			DefaultWhitelist.Log.Printf("key: %s flush\n", key)
 		}
 	}
 failed:
 	if white {
-		WhiteLog.Printf("key: dispatch tcp error(%v)\n", key, err)
+		DefaultWhitelist.Log.Printf("key: dispatch tcp error(%v)\n", key, err)
 	}
 	if err != nil {
 		log.Error("key: %s dispatch tcp error(%v)", key, err)

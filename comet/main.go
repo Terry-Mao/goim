@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	DefaultServer *Server
-	Debug         bool
+	DefaultServer    *Server
+	DefaultWhitelist *Whitelist
+	Debug            bool
 )
 
 func main() {
@@ -24,8 +25,10 @@ func main() {
 	defer log.Close()
 	log.Info("comet[%s] start", Ver)
 	// white list log
-	if err := InitWhiteList(Conf.WhiteLog); err != nil {
+	if wl, err := NewWhitelist(Conf.WhiteLog, Conf.Whitelist); err != nil {
 		panic(err)
+	} else {
+		DefaultWhitelist = wl
 	}
 	perf.Init(Conf.PprofBind)
 	// logic rpc
@@ -62,10 +65,6 @@ func main() {
 		TCPSndbuf:        Conf.TCPSndbuf,
 	})
 	// white list
-	DefaultServer.Whitelist = make(map[string]struct{})
-	for _, key := range Conf.Whitelist {
-		DefaultServer.Whitelist[key] = struct{}{}
-	}
 	// tcp comet
 	if err := InitTCP(Conf.TCPBind, Conf.MaxProc); err != nil {
 		panic(err)

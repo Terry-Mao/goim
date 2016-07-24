@@ -2,7 +2,6 @@ package main
 
 import (
 	"goim/libs/hash/cityhash"
-	"strings"
 	"time"
 
 	log "github.com/thinkboy/log4go"
@@ -28,8 +27,6 @@ type Server struct {
 	round     *Round // accept round store
 	operator  Operator
 	Options   ServerOptions
-
-	Whitelist map[string]struct{} // whitelist for debug
 }
 
 // NewServer returns a new Server.
@@ -49,11 +46,4 @@ func (server *Server) Bucket(subKey string) *Bucket {
 		log.Debug("\"%s\" hit channel bucket index: %d use cityhash", subKey, idx)
 	}
 	return server.Buckets[idx]
-}
-
-func (server *Server) IsWhite(key string) (white bool) {
-	if ix := strings.Index(key, "_"); ix > -1 {
-		_, white = server.Whitelist[key[:ix]]
-	}
-	return
 }
