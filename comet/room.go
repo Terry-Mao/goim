@@ -9,8 +9,8 @@ type Room struct {
 	id     int32
 	rLock  sync.RWMutex
 	next   *Channel
-	online int
 	drop   bool
+	Online int // dirty read is ok
 }
 
 // NewRoom new a room struct, store channel room info.
@@ -19,7 +19,7 @@ func NewRoom(id int32) (r *Room) {
 	r.id = id
 	r.drop = false
 	r.next = nil
-	r.online = 0
+	r.Online = 0
 	return
 }
 
@@ -33,7 +33,7 @@ func (r *Room) Put(ch *Channel) (err error) {
 		ch.Next = r.next
 		ch.Prev = nil
 		r.next = ch // insert to header
-		r.online++
+		r.Online++
 	} else {
 		err = ErrRoomDroped
 	}
@@ -54,8 +54,8 @@ func (r *Room) Del(ch *Channel) bool {
 	} else {
 		r.next = ch.Next
 	}
-	r.online--
-	r.drop = (r.online == 0)
+	r.Online--
+	r.drop = (r.Online == 0)
 	r.rLock.Unlock()
 	return r.drop
 }
@@ -66,14 +66,6 @@ func (r *Room) Push(p *proto.Proto) {
 	for ch := r.next; ch != nil; ch = ch.Next {
 		ch.Push(p)
 	}
-	r.rLock.RUnlock()
-	return
-}
-
-// Online get online number.
-func (r *Room) Online() (o int) {
-	r.rLock.RLock()
-	o = r.online
 	r.rLock.RUnlock()
 	return
 }

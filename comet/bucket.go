@@ -141,7 +141,7 @@ func (b *Bucket) Rooms() (res map[int32]struct{}) {
 	res = make(map[int32]struct{})
 	b.cLock.RLock()
 	for roomId, room = range b.rooms {
-		if room.Online() > 0 {
+		if room.Online > 0 {
 			res[roomId] = struct{}{}
 		}
 	}
@@ -151,16 +151,14 @@ func (b *Bucket) Rooms() (res map[int32]struct{}) {
 
 // roomproc
 func (b *Bucket) roomproc(c chan *proto.BoardcastRoomArg) {
-	var (
-		arg  *proto.BoardcastRoomArg
-		room *Room
-	)
 	for {
+		var (
+			arg  *proto.BoardcastRoomArg
+			room *Room
+		)
 		arg = <-c
 		if room = b.Room(arg.RoomId); room != nil {
 			room.Push(&arg.P)
 		}
-		arg = nil
-		room = nil
 	}
 }

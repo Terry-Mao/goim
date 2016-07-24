@@ -146,7 +146,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 			break
 		}
 		if white {
-			WhiteLog.Printf("key: %s read proto:\n%v\n", key, p)
+			WhiteLog.Printf("key: %s read proto:%v\n", key, p)
 		}
 		if p.Operation == define.OP_HEARTBEAT {
 			tr.Set(trd, hb)
@@ -161,7 +161,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 			}
 		}
 		if white {
-			WhiteLog.Printf("key: %s process proto:\n%v\n", key, p)
+			WhiteLog.Printf("key: %s process proto:%v\n", key, p)
 		}
 		ch.CliProto.SetAdv()
 		ch.Signal()
@@ -197,9 +197,9 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 // invokes it in a go statement.
 func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool, wb *bytes.Buffer, ch *Channel) {
 	var (
-		p     *proto.Proto
-		err   error
-		white = server.IsWhite(key)
+		err    error
+		finish bool
+		white  = server.IsWhite(key)
 	)
 	if Debug {
 		log.Debug("key: %s start dispatch tcp goroutine", key)
@@ -208,14 +208,13 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 		if white {
 			WhiteLog.Printf("key: %s wait proto ready\n", key)
 		}
-		p = ch.Ready()
+		var p = ch.Ready()
 		if white {
 			WhiteLog.Printf("key: %s proto ready\n", key)
 		}
 		if Debug {
 			log.Debug("key:%s dispatch msg:%v", key, *p)
 		}
-
 		switch p {
 		case proto.ProtoFinish:
 			if white {
@@ -224,6 +223,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 			if Debug {
 				log.Debug("key: %s wakeup exit dispatch goroutine", key)
 			}
+			finish = true
 			goto failed
 		case proto.ProtoReady:
 			// fetch message from svrbox(client send)
@@ -233,27 +233,27 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 					break
 				}
 				if white {
-					WhiteLog.Printf("key: %s start write client proto\n%v\n", key, p)
+					WhiteLog.Printf("key: %s start write client proto%v\n", key, p)
 				}
 				if err = p.WriteTCP(wr); err != nil {
 					goto failed
 				}
 				if white {
-					WhiteLog.Printf("key: %s write client proto\n%v\n", key, p)
+					WhiteLog.Printf("key: %s write client proto%v\n", key, p)
 				}
 				p.Body = nil // avoid memory leak
 				ch.CliProto.GetAdv()
 			}
 		default:
 			if white {
-				WhiteLog.Printf("key: %s start write server proto\n%v\n", key, p)
+				WhiteLog.Printf("key: %s start write server proto%v\n", key, p)
 			}
 			// server send
 			if err = p.WriteTCP(wr); err != nil {
 				goto failed
 			}
 			if white {
-				WhiteLog.Printf("key: %s write server proto\n%v\n", key, p)
+				WhiteLog.Printf("key: %s write server proto%v\n", key, p)
 			}
 		}
 		if white {
@@ -277,11 +277,8 @@ failed:
 	conn.Close()
 	wp.Put(wb)
 	// must ensure all channel message discard, for reader won't blocking Signal
-	for {
-		if p == proto.ProtoFinish {
-			break
-		}
-		p = ch.Ready()
+	for !finish {
+		finish = (ch.Ready() == proto.ProtoFinish)
 	}
 	if Debug {
 		log.Debug("key: %s dispatch goroutine exit", key)

@@ -34,9 +34,8 @@ func (c *Channel) Push(p *proto.Proto) (err error) {
 }
 
 // Ready check the channel ready or close?
-func (c *Channel) Ready() (p *proto.Proto) {
-	p = <-c.signal
-	return
+func (c *Channel) Ready() *proto.Proto {
+	return <-c.signal
 }
 
 // Signal send signal to the channel, protocol ready.
