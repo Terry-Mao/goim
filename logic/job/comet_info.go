@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net/rpc"
 	"time"
 )
 
@@ -15,7 +14,7 @@ var (
 
 func MergeRoomServers() {
 	var (
-		c           **rpc.Client
+		c           *Comet
 		ok          bool
 		roomId      int32
 		serverId    int32
@@ -25,8 +24,8 @@ func MergeRoomServers() {
 	)
 	// all comet nodes
 	for serverId, c = range cometServiceMap {
-		if *c != nil {
-			if roomIds = roomsComet(*c); roomIds != nil {
+		if c.rpcClient != nil {
+			if roomIds = roomsComet(c.rpcClient); roomIds != nil {
 				// merge room's servers
 				for _, roomId = range roomIds {
 					if servers, ok = roomServers[roomId]; !ok {
