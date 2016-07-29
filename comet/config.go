@@ -83,7 +83,7 @@ type Config struct {
 	// push
 	RPCPushAddrs []string `goconf:"push:rpc.addrs:,"`
 	// logic
-	LogicAddr string `goconf:"logic:rpc.addrs"`
+	LogicAddrs []string `goconf:"logic:rpc.addrs:,"`
 }
 
 func NewConfig() *Config {

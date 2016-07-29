@@ -6,7 +6,6 @@ import (
 	inet "goim/libs/net"
 	"goim/libs/net/xrpc"
 	"goim/libs/proto"
-	"time"
 
 	log "github.com/thinkboy/log4go"
 	"sync/atomic"
@@ -27,8 +26,6 @@ const (
 )
 
 type CometOptions struct {
-	DialTimeout time.Duration
-	CallTimeout time.Duration
 	RoutineSize int64
 	RoutineChan int
 }
@@ -114,14 +111,12 @@ func InitComet(addrs map[int32]string, options CometOptions) (err error) {
 			return
 		}
 		rpcOptions := xrpc.ClientOptions{
-			Proto:       network,
-			Addr:        addr,
-			DialTimeout: options.DialTimeout,
-			CallTimeout: options.CallTimeout,
+			Proto: network,
+			Addr:  addr,
 		}
 		rpcClient = xrpc.Dial(rpcOptions)
 		// ping & reconnect
-		go rpcClient.Ping(CometServicePing, 1*time.Second)
+		go rpcClient.Ping(CometServicePing)
 		// comet
 		c = new(Comet)
 		c.serverId = serverID
@@ -149,7 +144,7 @@ func InitComet(addrs map[int32]string, options CometOptions) (err error) {
 // mPushComet push a message to a batch of subkeys
 func mPushComet(serverId int32, subKeys []string, body json.RawMessage) {
 	var args = proto.MPushMsgArg{
-		Keys: subKeys, P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: body, Time: time.Now()},
+		Keys: subKeys, P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: body},
 	}
 	if c, ok := cometServiceMap[serverId]; ok {
 		if err := c.Push(&args); err != nil {
@@ -161,7 +156,7 @@ func mPushComet(serverId int32, subKeys []string, body json.RawMessage) {
 // broadcast broadcast a message to all
 func broadcast(msg []byte) {
 	var args = proto.BoardcastArg{
-		P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: msg, Time: time.Now()},
+		P: proto.Proto{Ver: 0, Operation: define.OP_SEND_SMS_REPLY, Body: msg},
 	}
 	for serverId, c := range cometServiceMap {
 		if err := c.Broadcast(&args); err != nil {
@@ -173,7 +168,7 @@ func broadcast(msg []byte) {
 // broadcastRoomBytes broadcast aggregation messages to room
 func broadcastRoomBytes(roomId int32, body []byte) {
 	var (
-		args     = proto.BoardcastRoomArg{P: proto.Proto{Ver: 0, Operation: define.OP_RAW, Body: body, Time: time.Now()}, RoomId: roomId}
+		args     = proto.BoardcastRoomArg{P: proto.Proto{Ver: 0, Operation: define.OP_RAW, Body: body}, RoomId: roomId}
 		c        *Comet
 		serverId int32
 		servers  map[int32]struct{}

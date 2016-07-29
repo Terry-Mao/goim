@@ -10,6 +10,12 @@ import (
 	log "github.com/thinkboy/log4go"
 )
 
+const (
+	dialTimeout  = 5 * time.Second
+	callTimeout  = 3 * time.Second
+	pingDuration = 1 * time.Second
+)
+
 var (
 	ErrRpc        = errors.New("rpc is not available")
 	ErrRpcTimeout = errors.New("rpc call timeout")
@@ -17,10 +23,8 @@ var (
 
 // Rpc client options.
 type ClientOptions struct {
-	Proto       string
-	Addr        string
-	DialTimeout time.Duration
-	CallTimeout time.Duration
+	Proto string
+	Addr  string
 }
 
 // Client is rpc client.
@@ -42,7 +46,7 @@ func Dial(options ClientOptions) (c *Client) {
 // Dial connects to an RPC server at the specified network address.
 func (c *Client) dial() (err error) {
 	var conn net.Conn
-	conn, err = net.DialTimeout(c.options.Proto, c.options.Addr, c.options.DialTimeout)
+	conn, err = net.DialTimeout(c.options.Proto, c.options.Addr, dialTimeout)
 	if err != nil {
 		log.Error("net.Dial(%s, %s), error(%v)", c.options.Proto, c.options.Addr, err)
 	} else {
@@ -60,7 +64,7 @@ func (c *Client) Call(serviceMethod string, args interface{}, reply interface{})
 	select {
 	case call := <-c.Client.Go(serviceMethod, args, reply, make(chan *rpc.Call, 1)).Done:
 		err = call.Error
-	case <-time.After(c.options.CallTimeout):
+	case <-time.After(callTimeout):
 		err = ErrRpcTimeout
 	}
 	return
@@ -77,7 +81,7 @@ func (c *Client) Close() {
 }
 
 // ping ping the rpc connect and reconnect when has an error.
-func (c *Client) Ping(serviceMethod string, pingDuration time.Duration) {
+func (c *Client) Ping(serviceMethod string) {
 	var (
 		arg   = proto.NoArg{}
 		reply = proto.NoReply{}
@@ -93,11 +97,11 @@ func (c *Client) Ping(serviceMethod string, pingDuration time.Duration) {
 		if c.Client != nil && c.err == nil {
 			// ping
 			if err = c.Call(serviceMethod, &arg, &reply); err != nil {
+				c.err = err
 				if err != rpc.ErrShutdown {
 					c.Client.Close()
 				}
 				log.Error("client.Call(%s, arg, reply) error(%v)", serviceMethod, err)
-				c.err = err
 			}
 		} else {
 			// reconnect
