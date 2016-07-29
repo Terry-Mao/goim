@@ -32,7 +32,7 @@ func main() {
 	}
 	perf.Init(Conf.PprofBind)
 	// logic rpc
-	if err := InitLogicRpc(Conf.LogicAddr); err != nil {
+	if err := InitLogicRpc(Conf.LogicAddrs); err != nil {
 		log.Warn("logic rpc current can't connect, retry")
 	}
 	// new server

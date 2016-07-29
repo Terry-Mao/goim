@@ -1,7 +1,7 @@
 package main
 
 import (
-	"net/rpc"
+	"goim/libs/net/xrpc"
 	"time"
 )
 
@@ -16,7 +16,7 @@ var (
 
 func MergeCount() {
 	var (
-		c                     **rpc.Client
+		c                     *xrpc.Clients
 		err                   error
 		roomId, server, count int32
 		counter               map[int32]int32
@@ -25,14 +25,14 @@ func MergeCount() {
 	)
 	// all comet nodes
 	for _, c = range routerServiceMap {
-		if *c != nil {
-			if counter, err = allRoomCount(*c); err != nil {
+		if c != nil {
+			if counter, err = allRoomCount(c); err != nil {
 				continue
 			}
 			for roomId, count = range counter {
 				roomCount[roomId] += count
 			}
-			if counter, err = allServerCount(*c); err != nil {
+			if counter, err = allServerCount(c); err != nil {
 				continue
 			}
 			for server, count = range counter {
