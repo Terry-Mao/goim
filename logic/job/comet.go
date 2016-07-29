@@ -8,6 +8,7 @@ import (
 	"goim/libs/proto"
 
 	log "github.com/thinkboy/log4go"
+	"strings"
 	"sync/atomic"
 )
 
@@ -32,7 +33,7 @@ type CometOptions struct {
 
 type Comet struct {
 	serverId             int32
-	rpcClient            *xrpc.Client
+	rpcClient            *xrpc.Clients
 	pushRoutines         []chan *proto.MPushMsgArg
 	broadcastRoutines    []chan *proto.BoardcastArg
 	roomRoutines         []chan *proto.BoardcastRoomArg
@@ -100,32 +101,37 @@ func (c *Comet) process(pushChan chan *proto.MPushMsgArg, roomChan chan *proto.B
 }
 
 func InitComet(addrs map[int32]string, options CometOptions) (err error) {
-	for serverID, addrsTmp := range addrs {
-		var (
-			c             *Comet
-			rpcClient     *xrpc.Client
-			network, addr string
-		)
-		if network, addr, err = inet.ParseNetwork(addrsTmp); err != nil {
-			log.Error("inet.ParseNetwork() error(%v)", err)
-			return
+	var (
+		serverId      int32
+		bind          string
+		network, addr string
+	)
+	for serverId, bind = range addrs {
+		var rpcOptions []xrpc.ClientOptions
+		for _, bind = range strings.Split(bind, ",") {
+			if network, addr, err = inet.ParseNetwork(bind); err != nil {
+				log.Error("inet.ParseNetwork() error(%v)", err)
+				return
+			}
+			options := xrpc.ClientOptions{
+				Proto: network,
+				Addr:  addr,
+			}
+			rpcOptions = append(rpcOptions, options)
 		}
-		rpcOptions := xrpc.ClientOptions{
-			Proto: network,
-			Addr:  addr,
-		}
-		rpcClient = xrpc.Dial(rpcOptions)
+		// rpc clients
+		rpcClient := xrpc.Dials(rpcOptions)
 		// ping & reconnect
-		go rpcClient.Ping(CometServicePing)
+		rpcClient.Ping(CometServicePing)
 		// comet
-		c = new(Comet)
-		c.serverId = serverID
+		c := new(Comet)
+		c.serverId = serverId
 		c.rpcClient = rpcClient
 		c.pushRoutines = make([]chan *proto.MPushMsgArg, options.RoutineSize)
 		c.roomRoutines = make([]chan *proto.BoardcastRoomArg, options.RoutineSize)
 		c.broadcastRoutines = make([]chan *proto.BoardcastArg, options.RoutineSize)
 		c.options = options
-		cometServiceMap[serverID] = c
+		cometServiceMap[serverId] = c
 		// process
 		for i := int64(0); i < options.RoutineSize; i++ {
 			pushChan := make(chan *proto.MPushMsgArg, options.RoutineChan)
@@ -136,7 +142,7 @@ func InitComet(addrs map[int32]string, options CometOptions) (err error) {
 			c.broadcastRoutines[i] = broadcastChan
 			go c.process(pushChan, roomChan, broadcastChan)
 		}
-		log.Info("init comet rpc addr:%s connection", addr)
+		log.Info("init comet rpc: %v", rpcOptions)
 	}
 	return
 }
@@ -187,7 +193,7 @@ func broadcastRoomBytes(roomId int32, body []byte) {
 	}
 }
 
-func roomsComet(c *xrpc.Client) []int32 {
+func roomsComet(c *xrpc.Clients) []int32 {
 	var (
 		args  = proto.NoArg{}
 		reply = proto.RoomsReply{}
