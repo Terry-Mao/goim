@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	DefaultServer *Server
-	Debug         bool
+	DefaultServer    *Server
+	DefaultWhitelist *Whitelist
+	Debug            bool
 )
 
 func main() {
@@ -23,14 +24,15 @@ func main() {
 	log.LoadConfiguration(Conf.Log)
 	defer log.Close()
 	log.Info("comet[%s] start", Ver)
-	perf.Init(Conf.PprofBind)
-	// init slow log
-	// TODO need to performance optimizition, so stop to use slow log
-	/*if err := initSlowLog(Conf.SlowLog); err != nil {
+	// white list log
+	if wl, err := NewWhitelist(Conf.WhiteLog, Conf.Whitelist); err != nil {
 		panic(err)
-	}*/
+	} else {
+		DefaultWhitelist = wl
+	}
+	perf.Init(Conf.PprofBind)
 	// logic rpc
-	if err := InitLogicRpc(Conf.LogicAddr); err != nil {
+	if err := InitLogicRpc(Conf.LogicAddrs); err != nil {
 		log.Warn("logic rpc current can't connect, retry")
 	}
 	// new server
@@ -41,8 +43,6 @@ func main() {
 			RoomSize:      Conf.BucketRoom,
 			RoutineAmount: Conf.RoutineAmount,
 			RoutineSize:   Conf.RoutineSize,
-		}, RoomOptions{
-			ChannelSize: Conf.RoomChannel,
 		})
 	}
 	round := NewRound(RoundOptions{
@@ -64,6 +64,7 @@ func main() {
 		TCPRcvbuf:        Conf.TCPRcvbuf,
 		TCPSndbuf:        Conf.TCPSndbuf,
 	})
+	// white list
 	// tcp comet
 	if err := InitTCP(Conf.TCPBind, Conf.MaxProc); err != nil {
 		panic(err)

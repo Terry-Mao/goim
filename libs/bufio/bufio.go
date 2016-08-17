@@ -346,6 +346,24 @@ func (b *Writer) Write(p []byte) (nn int, err error) {
 	return nn, nil
 }
 
+// Write writes the contents of p into the raw io.Writer without buffer.
+// It returns the number of bytes written.
+// If nn < len(p), it also returns an error explaining
+// why the write is short.
+func (b *Writer) WriteRaw(p []byte) (nn int, err error) {
+	if b.err != nil {
+		return 0, b.err
+	}
+	if b.Buffered() == 0 {
+		// if no buffer data, write raw writer
+		nn, err = b.wr.Write(p)
+		b.err = err
+	} else {
+		nn, err = b.Write(p)
+	}
+	return
+}
+
 // Peek returns the next n bytes with advancing the writer. The bytes stop
 // being used at the next write call. If Peek returns fewer than n bytes, it
 // also returns an error explaining why the read is short. The error is

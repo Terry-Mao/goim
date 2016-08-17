@@ -3,16 +3,16 @@ package main
 import (
 	"goim/libs/hash/ketama"
 	inet "goim/libs/net"
+	"goim/libs/net/xrpc"
 	"goim/libs/proto"
-	"net/rpc"
 	"strconv"
-	"time"
 
 	log "github.com/thinkboy/log4go"
+	"strings"
 )
 
 var (
-	routerServiceMap = map[string]**rpc.Client{}
+	routerServiceMap = map[string]*xrpc.Clients{}
 	routerRing       *ketama.HashRing
 )
 
@@ -29,80 +29,45 @@ const (
 	routerServiceGetAll         = "RouterRPC.GetAll"
 )
 
-func InitRouter() (err error) {
+func InitRouter(addrs map[string]string) (err error) {
 	var (
 		network, addr string
 	)
 	routerRing = ketama.NewRing(ketama.Base)
-	for serverId, addrs := range Conf.RouterRPCAddrs {
-		// WARN r must every recycle changed for reconnect
-		var (
-			r          *rpc.Client
-			routerQuit = make(chan struct{}, 1)
-		)
-		if network, addr, err = inet.ParseNetwork(addrs); err != nil {
-			log.Error("inet.ParseNetwork() error(%v)", err)
-			return
+	for serverId, bind := range addrs {
+		var rpcOptions []xrpc.ClientOptions
+		for _, bind = range strings.Split(bind, ",") {
+			if network, addr, err = inet.ParseNetwork(bind); err != nil {
+				log.Error("inet.ParseNetwork() error(%v)", err)
+				return
+			}
+			options := xrpc.ClientOptions{
+				Proto: network,
+				Addr:  addr,
+			}
+			rpcOptions = append(rpcOptions, options)
 		}
-		r, err = rpc.Dial(network, addr)
-		if err != nil {
-			log.Error("rpc.Dial(\"%s\", \"%s\") error(%v)", network, addr, err)
-		}
-		go Reconnect(&r, routerQuit, network, addr)
-		log.Debug("router rpc addr:%s connect", addr)
-		routerServiceMap[serverId] = &r
+		// rpc clients
+		rpcClient := xrpc.Dials(rpcOptions)
+		// ping & reconnect
+		rpcClient.Ping(routerServicePing)
 		routerRing.AddNode(serverId, 1)
+		routerServiceMap[serverId] = rpcClient
+		log.Info("router rpc connect: %v ", rpcOptions)
 	}
 	routerRing.Bake()
 	return
 }
 
-// Reconnect for ping rpc server and reconnect with it when it's crash.
-func Reconnect(dst **rpc.Client, quit chan struct{}, network, address string) {
-	var (
-		tmp    *rpc.Client
-		err    error
-		call   *rpc.Call
-		ch     = make(chan *rpc.Call, 1)
-		client = *dst
-		args   proto.NoArg
-		reply  proto.NoReply
-	)
-	for {
-		select {
-		case <-quit:
-			return
-		default:
-			if client != nil {
-				call = <-client.Go(routerServicePing, &args, &reply, ch).Done
-				if call.Error != nil {
-					log.Error("rpc ping %s error(%v)", address, call.Error)
-				}
-			}
-			if client == nil || call.Error != nil {
-				if tmp, err = rpc.Dial(network, address); err == nil {
-					*dst = tmp
-					client = tmp
-				}
-			}
-		}
-		time.Sleep(1 * time.Second)
-	}
-}
-
-func getRouters() map[string]**rpc.Client {
-	return routerServiceMap
-}
-
-func getRouterByServer(server string) (*rpc.Client, error) {
-	if client, ok := routerServiceMap[server]; !ok || *client == nil {
-		return nil, ErrRouter
+func getRouterByServer(server string) (*xrpc.Clients, error) {
+	if client, ok := routerServiceMap[server]; ok {
+		return client, nil
 	} else {
-		return *client, nil
+		return nil, ErrRouter
 	}
 }
 
-func getRouterByUID(userID int64) (*rpc.Client, error) {
+func getRouterByUID(userID int64) (*xrpc.Clients, error) {
 	return getRouterByServer(routerRing.Hash(strconv.FormatInt(userID, 10)))
 }
 
@@ -113,13 +78,12 @@ func getRouterNode(userID int64) string {
 func connect(userID int64, server, roomId int32) (seq int32, err error) {
 	var (
 		args   = proto.PutArg{UserId: userID, Server: server, RoomId: roomId}
-		reply  proto.PutReply
-		client *rpc.Client
+		reply  = proto.PutReply{}
+		client *xrpc.Clients
 	)
 	if client, err = getRouterByUID(userID); err != nil {
 		return
 	}
-
 	if err = client.Call(routerServicePut, &args, &reply); err != nil {
 		log.Error("c.Call(\"%s\",\"%v\") error(%v)", routerServicePut, args, err)
 	} else {
@@ -130,9 +94,9 @@ func connect(userID int64, server, roomId int32) (seq int32, err error) {
 
 func disconnect(userID int64, seq, roomId int32) (has bool, err error) {
 	var (
-		client *rpc.Client
 		args   = proto.DelArg{UserId: userID, Seq: seq, RoomId: roomId}
-		reply  proto.DelReply
+		reply  = proto.DelReply{}
+		client *xrpc.Clients
 	)
 	if client, err = getRouterByUID(userID); err != nil {
 		return
@@ -147,22 +111,22 @@ func disconnect(userID int64, seq, roomId int32) (has bool, err error) {
 
 func delServer(server int32) (err error) {
 	var (
-		client **rpc.Client
 		args   = proto.DelServerArg{Server: server}
-		reply  proto.NoReply
+		reply  = proto.NoReply{}
+		client *xrpc.Clients
 	)
 	for _, client = range routerServiceMap {
-		if err = (*client).Call(routerServiceDelServer, &args, &reply); err != nil {
+		if err = client.Call(routerServiceDelServer, &args, &reply); err != nil {
 			log.Error("c.Call(\"%s\",\"%v\") error(%v)", routerServiceDelServer, args, err)
 		}
 	}
 	return
 }
 
-func allRoomCount(client *rpc.Client) (counter map[int32]int32, err error) {
+func allRoomCount(client *xrpc.Clients) (counter map[int32]int32, err error) {
 	var (
-		args  proto.NoArg
-		reply proto.AllRoomCountReply
+		args  = proto.NoArg{}
+		reply = proto.AllRoomCountReply{}
 	)
 	if err = client.Call(routerServiceAllRoomCount, &args, &reply); err != nil {
 		log.Error("c.Call(\"%s\", nil) error(%v)", routerServiceAllRoomCount, err)
@@ -172,10 +136,10 @@ func allRoomCount(client *rpc.Client) (counter map[int32]int32, err error) {
 	return
 }
 
-func allServerCount(client *rpc.Client) (counter map[int32]int32, err error) {
+func allServerCount(client *xrpc.Clients) (counter map[int32]int32, err error) {
 	var (
-		args  proto.NoArg
-		reply proto.AllServerCountReply
+		args  = proto.NoArg{}
+		reply = proto.AllServerCountReply{}
 	)
 	if err = client.Call(routerServiceAllServerCount, &args, &reply); err != nil {
 		log.Error("c.Call(\"%s\", nil) error(%v)", routerServiceAllServerCount, err)
@@ -187,14 +151,14 @@ func allServerCount(client *rpc.Client) (counter map[int32]int32, err error) {
 
 func genSubKey(userId int64) (res map[int32][]string) {
 	var (
+		err    error
 		i      int
 		ok     bool
 		key    string
 		keys   []string
-		client *rpc.Client
-		err    error
 		args   = proto.GetArg{UserId: userId}
-		reply  proto.GetReply
+		reply  = proto.GetReply{}
+		client *xrpc.Clients
 	)
 	res = make(map[int32][]string)
 	if client, err = getRouterByUID(userId); err != nil {
@@ -218,7 +182,7 @@ func genSubKey(userId int64) (res map[int32][]string) {
 func getSubKeys(res chan *proto.MGetReply, serverId string, userIds []int64) {
 	var (
 		args  = proto.MGetArg{UserIds: userIds}
-		reply proto.MGetReply
+		reply = proto.MGetReply{}
 	)
 	if client, err := getRouterByServer(serverId); err == nil {
 		if err = client.Call(routerServiceMGet, &args, &reply); err != nil {

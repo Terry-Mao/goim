@@ -8,7 +8,6 @@ import (
 	"goim/libs/bytes"
 	"goim/libs/define"
 	"goim/libs/encoding/binary"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -56,12 +55,10 @@ var (
 // websocket & http:
 // raw codec, with http header stored ver, operation, seqid
 type Proto struct {
-	HeaderLen int16           `json:"-"`    // header length
 	Ver       int16           `json:"ver"`  // protocol version
 	Operation int32           `json:"op"`   // operation for request
 	SeqId     int32           `json:"seq"`  // sequence number chosen by client
 	Body      json.RawMessage `json:"body"` // binary body bytes(json.RawMessage is []byte)
-	Time      time.Time       `json:"-"`    // proto send time
 }
 
 func (p *Proto) Reset() {
@@ -69,19 +66,16 @@ func (p *Proto) Reset() {
 }
 
 func (p *Proto) String() string {
-	return fmt.Sprintf("\n-------- proto --------\nheader: %d\nver: %d\nop: %d\nseq: %d\nbody: %s\ntime: %d\n-----------------------", p.HeaderLen, p.Ver, p.Operation, p.SeqId, string(p.Body), p.Time)
+	return fmt.Sprintf("\n-------- proto --------\nver: %d\nop: %d\nseq: %d\nbody: %v\n-----------------------", p.Ver, p.Operation, p.SeqId, p.Body)
 }
 
 func (p *Proto) WriteTo(b *bytes.Writer) {
 	var (
-		buf     []byte
-		packLen int32
+		packLen = RawHeaderSize + int32(len(p.Body))
+		buf     = b.Peek(RawHeaderSize)
 	)
-	packLen = RawHeaderSize + int32(len(p.Body))
-	p.HeaderLen = RawHeaderSize
-	buf = b.Peek(RawHeaderSize)
 	binary.BigEndian.PutInt32(buf[PackOffset:], packLen)
-	binary.BigEndian.PutInt16(buf[HeaderOffset:], p.HeaderLen)
+	binary.BigEndian.PutInt16(buf[HeaderOffset:], int16(RawHeaderSize))
 	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)
 	binary.BigEndian.PutInt32(buf[OperationOffset:], p.Operation)
 	binary.BigEndian.PutInt32(buf[SeqIdOffset:], p.SeqId)
@@ -92,25 +86,26 @@ func (p *Proto) WriteTo(b *bytes.Writer) {
 
 func (p *Proto) ReadTCP(rr *bufio.Reader) (err error) {
 	var (
-		bodyLen int
-		packLen int32
-		buf     []byte
+		bodyLen   int
+		headerLen int16
+		packLen   int32
+		buf       []byte
 	)
 	if buf, err = rr.Pop(RawHeaderSize); err != nil {
 		return
 	}
 	packLen = binary.BigEndian.Int32(buf[PackOffset:HeaderOffset])
-	p.HeaderLen = binary.BigEndian.Int16(buf[HeaderOffset:VerOffset])
+	headerLen = binary.BigEndian.Int16(buf[HeaderOffset:VerOffset])
 	p.Ver = binary.BigEndian.Int16(buf[VerOffset:OperationOffset])
 	p.Operation = binary.BigEndian.Int32(buf[OperationOffset:SeqIdOffset])
 	p.SeqId = binary.BigEndian.Int32(buf[SeqIdOffset:])
 	if packLen > MaxPackSize {
 		return ErrProtoPackLen
 	}
-	if p.HeaderLen != RawHeaderSize {
+	if headerLen != RawHeaderSize {
 		return ErrProtoHeaderLen
 	}
-	if bodyLen = int(packLen - int32(p.HeaderLen)); bodyLen > 0 {
+	if bodyLen = int(packLen - int32(headerLen)); bodyLen > 0 {
 		p.Body, err = rr.Pop(bodyLen)
 	} else {
 		p.Body = nil
@@ -124,16 +119,16 @@ func (p *Proto) WriteTCP(wr *bufio.Writer) (err error) {
 		packLen int32
 	)
 	if p.Operation == define.OP_RAW {
-		_, err = wr.Write(p.Body)
+		// write without buffer, job concact proto into raw buffer
+		_, err = wr.WriteRaw(p.Body)
 		return
 	}
 	packLen = RawHeaderSize + int32(len(p.Body))
-	p.HeaderLen = RawHeaderSize
 	if buf, err = wr.Peek(RawHeaderSize); err != nil {
 		return
 	}
 	binary.BigEndian.PutInt32(buf[PackOffset:], packLen)
-	binary.BigEndian.PutInt16(buf[HeaderOffset:], p.HeaderLen)
+	binary.BigEndian.PutInt16(buf[HeaderOffset:], int16(RawHeaderSize))
 	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)
 	binary.BigEndian.PutInt32(buf[OperationOffset:], p.Operation)
 	binary.BigEndian.PutInt32(buf[SeqIdOffset:], p.SeqId)
