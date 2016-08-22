@@ -18,7 +18,7 @@ func MergeRoomServers() {
 		ok          bool
 		roomId      int32
 		serverId    int32
-		roomIds     []int32
+		roomIds     map[int32]struct{}
 		servers     map[int32]struct{}
 		roomServers = make(map[int32]map[int32]struct{})
 	)
@@ -27,7 +27,7 @@ func MergeRoomServers() {
 		if c.rpcClient != nil {
 			if roomIds = roomsComet(c.rpcClient); roomIds != nil {
 				// merge room's servers
-				for _, roomId = range roomIds {
+				for roomId, _ = range roomIds {
 					if servers, ok = roomServers[roomId]; !ok {
 						servers = make(map[int32]struct{})
 						roomServers[roomId] = servers

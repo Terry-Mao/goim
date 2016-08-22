@@ -140,11 +140,11 @@ func (this *PushRPC) Rooms(arg *proto.NoArg, reply *proto.RoomsReply) (err error
 	var (
 		roomId  int32
 		bucket  *Bucket
-		roomIds []int32
+		roomIds = make(map[int32]struct{})
 	)
 	for _, bucket = range DefaultServer.Buckets {
 		for roomId, _ = range bucket.Rooms() {
-			roomIds = append(roomIds, roomId)
+			roomIds[roomId] = struct{}{}
 		}
 	}
 	reply.RoomIds = roomIds
