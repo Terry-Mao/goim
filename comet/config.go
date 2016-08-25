@@ -84,6 +84,9 @@ type Config struct {
 	RPCPushAddrs []string `goconf:"push:rpc.addrs:,"`
 	// logic
 	LogicAddrs []string `goconf:"logic:rpc.addrs:,"`
+	// monitor
+	MonitorOpen  bool     `goconf:"monitor:open"`
+	MonitorAddrs []string `goconf:"monitor:addrs:,"`
 }
 
 func NewConfig() *Config {

@@ -31,6 +31,12 @@ func (c *Clients) get() (*Client, error) {
 	return nil, ErrNoClient
 }
 
+// has a available client.
+func (c *Clients) Available() (err error) {
+	_, err = c.get()
+	return
+}
+
 // Call invokes the named function, waits for it to complete, and returns its error status.
 // this include rpc.Client.Call method, and takes a timeout.
 func (c *Clients) Call(serviceMethod string, args interface{}, reply interface{}) (err error) {

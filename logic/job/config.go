@@ -37,6 +37,9 @@ type Config struct {
 	// room
 	RoomBatch  int           `goconf:"room:batch"`
 	RoomSignal time.Duration `goconf:"room:signal:time"`
+	// monitor
+	MonitorOpen  bool     `goconf:"monitor:open"`
+	MonitorAddrs []string `goconf:"monitor:addrs:,"`
 }
 
 func NewConfig() *Config {

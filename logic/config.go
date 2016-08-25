@@ -49,6 +49,9 @@ type Config struct {
 	RouterRPCAddrs map[string]string `-`
 	// kafka
 	KafkaAddrs []string `goconf:"kafka:addrs"`
+	// monitor
+	MonitorOpen  bool     `goconf:"monitor:open"`
+	MonitorAddrs []string `goconf:"monitor:addrs:,"`
 }
 
 func NewConfig() *Config {

@@ -22,6 +22,10 @@ func main() {
 	if err := InitRouter(Conf.RouterRPCAddrs); err != nil {
 		log.Warn("router rpc current can't connect, retry")
 	}
+	// start monitor
+	if Conf.MonitorOpen {
+		InitMonitor(Conf.MonitorAddrs)
+	}
 	MergeCount()
 	go SyncCount()
 	// logic rpc
