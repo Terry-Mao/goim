@@ -22,7 +22,7 @@ type Bucket struct {
 	// room
 	rooms       map[int32]*Room // bucket room channels
 	routines    []chan *proto.BoardcastRoomArg
-	routinesNum int64
+	routinesNum uint64
 }
 
 // NewBucket new a bucket struct. store the key with im channel.
@@ -34,7 +34,6 @@ func NewBucket(boptions BucketOptions) (b *Bucket) {
 	//room
 	b.rooms = make(map[int32]*Room, boptions.RoomSize)
 	b.routines = make([]chan *proto.BoardcastRoomArg, boptions.RoutineAmount)
-	b.routinesNum = int64(0)
 	for i := int64(0); i < boptions.RoutineAmount; i++ {
 		c := make(chan *proto.BoardcastRoomArg, boptions.RoutineSize)
 		b.routines[i] = c
@@ -128,7 +127,7 @@ func (b *Bucket) DelRoom(rid int32) {
 
 // BroadcastRoom broadcast a message to specified room
 func (b *Bucket) BroadcastRoom(arg *proto.BoardcastRoomArg) {
-	num := atomic.AddInt64(&b.routinesNum, 1) % b.boptions.RoutineAmount
+	num := atomic.AddUint64(&b.routinesNum, 1) % uint64(b.boptions.RoutineAmount)
 	b.routines[num] <- arg
 }
 
