@@ -23,6 +23,10 @@ func main() {
 	log.Info("router[%s] start", VERSION)
 	// start prof
 	perf.Init(Conf.PprofAddrs)
+	// start monitor
+	if Conf.MonitorOpen {
+		InitMonitor(Conf.MonitorAddrs)
+	}
 	// start rpc
 	buckets := make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {

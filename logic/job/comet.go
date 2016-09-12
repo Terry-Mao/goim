@@ -193,7 +193,7 @@ func broadcastRoomBytes(roomId int32, body []byte) {
 	}
 }
 
-func roomsComet(c *xrpc.Clients) []int32 {
+func roomsComet(c *xrpc.Clients) map[int32]struct{} {
 	var (
 		args  = proto.NoArg{}
 		reply = proto.RoomsReply{}

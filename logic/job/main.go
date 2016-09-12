@@ -23,6 +23,10 @@ func main() {
 	if err != nil {
 		log.Warn("comet rpc current can't connect, retry")
 	}
+	// start monitor
+	if Conf.MonitorOpen {
+		InitMonitor(Conf.MonitorAddrs)
+	}
 	//round
 	round := NewRound(RoundOptions{
 		Timer:     Conf.Timer,

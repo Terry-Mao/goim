@@ -194,7 +194,9 @@ func (b *Bucket) AllRoomCount() (roomCounter map[int32]int32) {
 	b.bLock.RLock()
 	roomCounter = make(map[int32]int32, len(b.roomCounter))
 	for roomId, count = range b.roomCounter {
-		roomCounter[roomId] = count
+		if count > 0 {
+			roomCounter[roomId] = count
+		}
 	}
 	b.bLock.RUnlock()
 	return

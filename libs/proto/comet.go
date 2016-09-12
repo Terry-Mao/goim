@@ -47,5 +47,5 @@ type BoardcastRoomArg struct {
 }
 
 type RoomsReply struct {
-	RoomIds []int32
+	RoomIds map[int32]struct{}
 }

@@ -50,6 +50,10 @@ type RouterRPC struct {
 
 func (r *RouterRPC) bucket(userId int64) *Bucket {
 	idx := int(userId % r.BucketIdx)
+	// fix panic
+	if idx < 0 {
+		idx = 0
+	}
 	return r.Buckets[idx]
 }
 

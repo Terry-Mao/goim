@@ -35,6 +35,10 @@ func main() {
 	if err := InitLogicRpc(Conf.LogicAddrs); err != nil {
 		log.Warn("logic rpc current can't connect, retry")
 	}
+	// start monitor
+	if Conf.MonitorOpen {
+		InitMonitor(Conf.MonitorAddrs)
+	}
 	// new server
 	buckets := make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {

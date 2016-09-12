@@ -26,8 +26,6 @@ type Config struct {
 	KafkaTopic string   `goconf:"kafka:topic"`
 	// comet
 	Comets      map[int32]string `goconf:"-"`
-	DialTimeout time.Duration    `goconf:"comet:dial.timeout:time"`
-	CallTimeout time.Duration    `goconf:"comet:call.timeout:time"`
 	RoutineSize int64            `goconf:"comet:routine.size"`
 	RoutineChan int              `goconf:"comet:routine.chan"`
 	// push
@@ -39,6 +37,9 @@ type Config struct {
 	// room
 	RoomBatch  int           `goconf:"room:batch"`
 	RoomSignal time.Duration `goconf:"room:signal:time"`
+	// monitor
+	MonitorOpen  bool     `goconf:"monitor:open"`
+	MonitorAddrs []string `goconf:"monitor:addrs:,"`
 }
 
 func NewConfig() *Config {
@@ -48,8 +49,6 @@ func NewConfig() *Config {
 		KafkaTopic:   "kafka_topic_push",
 		RoutineSize:  16,
 		RoutineChan:  64,
-		DialTimeout:  5 * time.Second,
-		CallTimeout:  3 * time.Second,
 		PushChan:     4,
 		PushChanSize: 100,
 		//timer

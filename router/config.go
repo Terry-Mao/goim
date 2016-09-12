@@ -35,6 +35,9 @@ type Config struct {
 	// session
 	Session       int           `goconf:"session:session"`
 	SessionExpire time.Duration `goconf:"session:expire:time"`
+	// monitor
+	MonitorOpen  bool     `goconf:"monitor:open"`
+	MonitorAddrs []string `goconf:"monitor:addrs:,"`
 }
 
 func NewConfig() *Config {
