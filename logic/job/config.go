@@ -26,7 +26,7 @@ type Config struct {
 	KafkaTopic string   `goconf:"kafka:topic"`
 	// comet
 	Comets      map[int32]string `goconf:"-"`
-	RoutineSize int64            `goconf:"comet:routine.size"`
+	RoutineSize uint64            `goconf:"comet:routine.size"`
 	RoutineChan int              `goconf:"comet:routine.chan"`
 	// push
 	PushChan     int `goconf:"push:chan"`

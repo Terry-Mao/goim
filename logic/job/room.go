@@ -129,7 +129,7 @@ func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
 		n = 0
 		// TODO use reset buffer
 		// after push to room channel, renew a buffer, let old buffer gc
-		buf = bytes.NewWriterSize(buf.Size())
+		buf = bytes.NewWriterSize(buf.Len() * 2)
 	}
 	timer.Del(td)
 	log.Debug("room: %d goroutine exit", r.id)

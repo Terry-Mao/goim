@@ -10,7 +10,7 @@ import (
 type BucketOptions struct {
 	ChannelSize   int
 	RoomSize      int
-	RoutineAmount int64
+	RoutineAmount uint64
 	RoutineSize   int
 }
 
@@ -34,7 +34,7 @@ func NewBucket(boptions BucketOptions) (b *Bucket) {
 	//room
 	b.rooms = make(map[int32]*Room, boptions.RoomSize)
 	b.routines = make([]chan *proto.BoardcastRoomArg, boptions.RoutineAmount)
-	for i := int64(0); i < boptions.RoutineAmount; i++ {
+	for i := uint64(0); i < boptions.RoutineAmount; i++ {
 		c := make(chan *proto.BoardcastRoomArg, boptions.RoutineSize)
 		b.routines[i] = c
 		go b.roomproc(c)
@@ -127,7 +127,7 @@ func (b *Bucket) DelRoom(rid int32) {
 
 // BroadcastRoom broadcast a message to specified room
 func (b *Bucket) BroadcastRoom(arg *proto.BoardcastRoomArg) {
-	num := atomic.AddUint64(&b.routinesNum, 1) % uint64(b.boptions.RoutineAmount)
+	num := atomic.AddUint64(&b.routinesNum, 1) % b.boptions.RoutineAmount
 	b.routines[num] <- arg
 }
 

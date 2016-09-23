@@ -20,7 +20,7 @@ var (
 
 func InitKafka(kafkaAddrs []string) (err error) {
 	config := sarama.NewConfig()
-	config.Producer.RequiredAcks = sarama.NoResponse
+	config.Producer.RequiredAcks = sarama.WaitForLocal
 	config.Producer.Partitioner = sarama.NewHashPartitioner
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true

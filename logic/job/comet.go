@@ -27,7 +27,7 @@ const (
 )
 
 type CometOptions struct {
-	RoutineSize int64
+	RoutineSize uint64
 	RoutineChan int
 }
 
@@ -37,29 +37,29 @@ type Comet struct {
 	pushRoutines         []chan *proto.MPushMsgArg
 	broadcastRoutines    []chan *proto.BoardcastArg
 	roomRoutines         []chan *proto.BoardcastRoomArg
-	pushRoutinesNum      int64
-	roomRoutinesNum      int64
-	broadcastRoutinesNum int64
+	pushRoutinesNum      uint64
+	roomRoutinesNum      uint64
+	broadcastRoutinesNum uint64
 	options              CometOptions
 }
 
 // user push
 func (c *Comet) Push(arg *proto.MPushMsgArg) (err error) {
-	num := atomic.AddInt64(&c.pushRoutinesNum, 1) % c.options.RoutineSize
+	num := atomic.AddUint64(&c.pushRoutinesNum, 1) % c.options.RoutineSize
 	c.pushRoutines[num] <- arg
 	return
 }
 
 // room push
 func (c *Comet) BroadcastRoom(arg *proto.BoardcastRoomArg) (err error) {
-	num := atomic.AddInt64(&c.roomRoutinesNum, 1) % c.options.RoutineSize
+	num := atomic.AddUint64(&c.roomRoutinesNum, 1) % c.options.RoutineSize
 	c.roomRoutines[num] <- arg
 	return
 }
 
 // broadcast
 func (c *Comet) Broadcast(arg *proto.BoardcastArg) (err error) {
-	num := atomic.AddInt64(&c.broadcastRoutinesNum, 1) % c.options.RoutineSize
+	num := atomic.AddUint64(&c.broadcastRoutinesNum, 1) % c.options.RoutineSize
 	c.broadcastRoutines[num] <- arg
 	return
 }
@@ -133,7 +133,7 @@ func InitComet(addrs map[int32]string, options CometOptions) (err error) {
 		c.options = options
 		cometServiceMap[serverId] = c
 		// process
-		for i := int64(0); i < options.RoutineSize; i++ {
+		for i := uint64(0); i < options.RoutineSize; i++ {
 			pushChan := make(chan *proto.MPushMsgArg, options.RoutineChan)
 			roomChan := make(chan *proto.BoardcastRoomArg, options.RoutineChan)
 			broadcastChan := make(chan *proto.BoardcastArg, options.RoutineChan)
