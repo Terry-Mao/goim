@@ -111,11 +111,12 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	var (
 		err error
 		key string
+		rid int32
 		hb  time.Duration // heartbeat
 		p   *proto.Proto
 		b   *Bucket
 		trd *itime.TimerData
-		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
+		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto)
 	)
 	// handshake
 	trd = tr.Add(server.Options.HandshakeTimeout, func() {
@@ -123,9 +124,9 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	})
 	// must not setadv, only used in auth
 	if p, err = ch.CliProto.Set(); err == nil {
-		if key, ch.RoomId, hb, err = server.authWebsocket(conn, p); err == nil {
+		if key, rid, hb, err = server.authWebsocket(conn, p); err == nil {
 			b = server.Bucket(key)
-			err = b.Put(key, ch)
+			err = b.Put(key, rid, ch)
 		}
 	}
 	if err != nil {
@@ -165,7 +166,7 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	conn.Close()
 	ch.Close()
 	b.Del(key)
-	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
+	if err = server.operator.Disconnect(key, rid); err != nil {
 		log.Error("key: %s operator do disconnect error(%v)", key, err)
 	}
 	if Debug {
