@@ -11,14 +11,13 @@ import (
 )
 
 const (
-	KAFKA_GROUP_NAME                   = "kafka_topic_push_group"
 	OFFSETS_PROCESSING_TIMEOUT_SECONDS = 10 * time.Second
 	OFFSETS_COMMIT_INTERVAL            = 10 * time.Second
 )
 
 func InitKafka() error {
 	log.Info("start topic:%s consumer", Conf.KafkaTopic)
-	log.Info("consumer group name:%s", KAFKA_GROUP_NAME)
+	log.Info("consumer group name:%s", Conf.KafkaGroup)
 	sarama.Logger = llog.New(os.Stdout, "[Sarama] ", llog.LstdFlags)
 	config := consumergroup.NewConfig()
 	config.Offsets.Initial = sarama.OffsetNewest
@@ -26,7 +25,7 @@ func InitKafka() error {
 	config.Offsets.CommitInterval = OFFSETS_COMMIT_INTERVAL
 	config.Zookeeper.Chroot = Conf.ZKRoot
 	kafkaTopics := []string{Conf.KafkaTopic}
-	cg, err := consumergroup.JoinConsumerGroup(KAFKA_GROUP_NAME, kafkaTopics, Conf.ZKAddrs, config)
+	cg, err := consumergroup.JoinConsumerGroup(Conf.KafkaGroup, kafkaTopics, Conf.ZKAddrs, config)
 	if err != nil {
 		return err
 	}
