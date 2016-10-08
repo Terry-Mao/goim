@@ -10,17 +10,13 @@ import (
 	log "github.com/thinkboy/log4go"
 )
 
-const (
-	KafkaPushsTopic = "KafkaPushsTopic"
-)
-
 var (
 	producer sarama.AsyncProducer
 )
 
 func InitKafka(kafkaAddrs []string) (err error) {
 	config := sarama.NewConfig()
-	config.Producer.RequiredAcks = sarama.NoResponse
+	config.Producer.RequiredAcks = sarama.WaitForLocal
 	config.Producer.Partitioner = sarama.NewHashPartitioner
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
@@ -62,7 +58,7 @@ func mpushKafka(serverId int32, keys []string, msg []byte) (err error) {
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
-	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Value: sarama.ByteEncoder(vBytes)}
+	producer.Input() <- &sarama.ProducerMessage{Topic: Conf.KafkaTopic, Value: sarama.ByteEncoder(vBytes)}
 	return
 }
 
@@ -74,7 +70,7 @@ func broadcastKafka(msg []byte) (err error) {
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
-	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Value: sarama.ByteEncoder(vBytes)}
+	producer.Input() <- &sarama.ProducerMessage{Topic: Conf.KafkaTopic, Value: sarama.ByteEncoder(vBytes)}
 	return
 }
 
@@ -88,6 +84,6 @@ func broadcastRoomKafka(rid int32, msg []byte, ensure bool) (err error) {
 		return
 	}
 	binary.BigEndian.PutInt32(ridBytes[:], rid)
-	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Key: sarama.ByteEncoder(ridBytes[:]), Value: sarama.ByteEncoder(vBytes)}
+	producer.Input() <- &sarama.ProducerMessage{Topic: Conf.KafkaTopic, Key: sarama.ByteEncoder(ridBytes[:]), Value: sarama.ByteEncoder(vBytes)}
 	return
 }

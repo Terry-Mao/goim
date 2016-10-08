@@ -10,7 +10,7 @@ import (
 type BucketOptions struct {
 	ChannelSize   int
 	RoomSize      int
-	RoutineAmount int64
+	RoutineAmount uint64
 	RoutineSize   int
 }
 
@@ -34,7 +34,7 @@ func NewBucket(boptions BucketOptions) (b *Bucket) {
 	//room
 	b.rooms = make(map[int32]*Room, boptions.RoomSize)
 	b.routines = make([]chan *proto.BoardcastRoomArg, boptions.RoutineAmount)
-	for i := int64(0); i < boptions.RoutineAmount; i++ {
+	for i := uint64(0); i < boptions.RoutineAmount; i++ {
 		c := make(chan *proto.BoardcastRoomArg, boptions.RoutineSize)
 		b.routines[i] = c
 		go b.roomproc(c)
@@ -43,18 +43,19 @@ func NewBucket(boptions BucketOptions) (b *Bucket) {
 }
 
 // Put put a channel according with sub key.
-func (b *Bucket) Put(key string, ch *Channel) (err error) {
+func (b *Bucket) Put(key string, rid int32, ch *Channel) (err error) {
 	var (
 		room *Room
 		ok   bool
 	)
 	b.cLock.Lock()
 	b.chs[key] = ch
-	if ch.RoomId != define.NoRoom {
-		if room, ok = b.rooms[ch.RoomId]; !ok {
-			room = NewRoom(ch.RoomId)
-			b.rooms[ch.RoomId] = room
+	if rid != define.NoRoom {
+		if room, ok = b.rooms[rid]; !ok {
+			room = NewRoom(rid)
+			b.rooms[rid] = room
 		}
+		ch.Room = room
 	}
 	b.cLock.Unlock()
 	if room != nil {
@@ -72,15 +73,13 @@ func (b *Bucket) Del(key string) {
 	)
 	b.cLock.Lock()
 	if ch, ok = b.chs[key]; ok {
+		room = ch.Room
 		delete(b.chs, key)
-		if ch.RoomId != define.NoRoom {
-			room, _ = b.rooms[ch.RoomId]
-		}
 	}
 	b.cLock.Unlock()
 	if room != nil && room.Del(ch) {
 		// if empty room, must delete from bucket
-		b.DelRoom(ch.RoomId)
+		b.DelRoom(room)
 	}
 }
 
@@ -112,22 +111,17 @@ func (b *Bucket) Room(rid int32) (room *Room) {
 }
 
 // DelRoom delete a room by roomid.
-func (b *Bucket) DelRoom(rid int32) {
-	var room *Room
+func (b *Bucket) DelRoom(room *Room) {
 	b.cLock.Lock()
-	if room, _ = b.rooms[rid]; room != nil {
-		delete(b.rooms, rid)
-	}
+	delete(b.rooms, room.Id)
 	b.cLock.Unlock()
-	if room != nil {
-		room.Close()
-	}
+	room.Close()
 	return
 }
 
 // BroadcastRoom broadcast a message to specified room
 func (b *Bucket) BroadcastRoom(arg *proto.BoardcastRoomArg) {
-	num := atomic.AddUint64(&b.routinesNum, 1) % uint64(b.boptions.RoutineAmount)
+	num := atomic.AddUint64(&b.routinesNum, 1) % b.boptions.RoutineAmount
 	b.routines[num] <- arg
 }
 
