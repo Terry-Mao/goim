@@ -38,6 +38,7 @@ type Config struct {
 	// room
 	RoomBatch  int           `goconf:"room:batch"`
 	RoomSignal time.Duration `goconf:"room:signal:time"`
+	RoomIdle   time.Duration `goconf:"room:idle:time"`
 	// monitor
 	MonitorOpen  bool     `goconf:"monitor:open"`
 	MonitorAddrs []string `goconf:"monitor:addrs:,"`
@@ -48,12 +49,15 @@ func NewConfig() *Config {
 		Comets:       make(map[int32]string),
 		ZKRoot:       "",
 		KafkaGroup:   "kafka_topic_push_group",
-		KafkaTopic:   "kafka_topic_push",
+		KafkaTopic:   "KafkaPushsTopic",
 		RoutineSize:  16,
 		RoutineChan:  64,
 		PushChan:     4,
 		PushChanSize: 100,
-		//timer
+		// room
+		RoomBatch:  40,
+		RoomSignal: time.Second,
+		RoomIdle:   time.Hour,
 		// timer
 		Timer:     runtime.NumCPU(),
 		TimerSize: 1000,

@@ -20,7 +20,7 @@ var roomBucket *RoomBucket
 type RoomBucket struct {
 	roomNum int
 	rooms   map[int32]*Room
-	rwLock  sync.RWMutex
+	bLock   sync.RWMutex
 	options RoomOptions
 	round   *Round
 }
@@ -29,28 +29,35 @@ func InitRoomBucket(r *Round, options RoomOptions) {
 	roomBucket = &RoomBucket{
 		roomNum: 0,
 		rooms:   make(map[int32]*Room, roomMapCup),
-		rwLock:  sync.RWMutex{},
+		bLock:   sync.RWMutex{},
 		options: options,
 		round:   r,
 	}
 }
 
-func (this *RoomBucket) Get(roomId int32) (r *Room) {
-	this.rwLock.Lock()
-	room, ok := this.rooms[roomId]
+func (b *RoomBucket) Get(roomId int32) (r *Room) {
+	b.bLock.Lock()
+	room, ok := b.rooms[roomId]
 	if !ok {
-		room = NewRoom(roomId, this.round.Timer(this.roomNum), this.options)
-		this.rooms[roomId] = room
-		this.roomNum++
-		log.Debug("new roomId:%d num:%d", roomId, this.roomNum)
+		room = NewRoom(roomId, b.round.Timer(b.roomNum), b.options)
+		b.rooms[roomId] = room
+		b.roomNum++
+		log.Debug("new roomId:%d num:%d", roomId, b.roomNum)
 	}
-	this.rwLock.Unlock()
+	b.bLock.Unlock()
 	return room
+}
+
+func (b *RoomBucket) Del(roomId int32) {
+	b.bLock.Lock()
+	delete(b.rooms, roomId)
+	b.bLock.Unlock()
 }
 
 type RoomOptions struct {
 	BatchNum   int
 	SignalTime time.Duration
+	IdleTime   time.Duration
 }
 
 type Room struct {
@@ -67,7 +74,7 @@ func NewRoom(id int32, t *itime.Timer, options RoomOptions) (r *Room) {
 	r = new(Room)
 	r.id = id
 	r.proto = make(chan *proto.Proto, options.BatchNum*2)
-	go r.pushproc(t, options.BatchNum, options.SignalTime)
+	go r.pushproc(t, options.BatchNum, options.SignalTime, options.IdleTime)
 	return
 }
 
@@ -90,47 +97,43 @@ func (r *Room) EPush(ver int16, operation int32, msg []byte) {
 }
 
 // pushproc merge proto and push msgs in batch.
-func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration) {
+func (r *Room) pushproc(timer *itime.Timer, batch int, sigTime time.Duration, idleTime time.Duration) {
 	var (
-		n    int
-		last time.Time
-		p    *proto.Proto
-		td   *itime.TimerData
-		buf  = bytes.NewWriterSize(int(proto.MaxBodySize))
+		n   int
+		p   *proto.Proto
+		td  *itime.TimerData
+		buf = bytes.NewWriterSize(int(proto.MaxBodySize))
 	)
 	log.Debug("start room: %d goroutine", r.id)
-	td = timer.Add(sigTime, func() {
+	td = timer.Add(idleTime, func() {
 		select {
 		case r.proto <- roomReadyProto:
 		default:
 		}
 	})
 	for {
-		if p = <-r.proto; p == nil {
-			break // exit
-		} else if p != roomReadyProto {
+		if p = <-r.proto; p != roomReadyProto {
 			// merge buffer ignore error, always nil
 			p.WriteTo(buf)
+			// batch
 			if n++; n == 1 {
-				last = time.Now()
 				timer.Set(td, sigTime)
 				continue
 			} else if n < batch {
-				if sigTime > time.Now().Sub(last) {
-					continue
-				}
-			}
-		} else {
-			if n == 0 {
 				continue
 			}
+		} else if n == 0 {
+			// idle
+			break
 		}
+		timer.Set(td, idleTime)
 		broadcastRoomBytes(r.id, buf.Buffer())
-		n = 0
 		// TODO use reset buffer
 		// after push to room channel, renew a buffer, let old buffer gc
 		buf = bytes.NewWriterSize(buf.Size())
+		n = 0
 	}
 	timer.Del(td)
-	log.Debug("room: %d goroutine exit", r.id)
+	roomBucket.Del(r.id)
+	log.Debug("end room: %d goroutine exit", r.id)
 }

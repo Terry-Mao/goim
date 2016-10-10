@@ -14,7 +14,7 @@ func main() {
 	}
 	log.LoadConfiguration(Conf.Log)
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	//comet
+	// comet
 	err := InitComet(Conf.Comets,
 		CometOptions{
 			RoutineSize: Conf.RoutineSize,
@@ -27,16 +27,17 @@ func main() {
 	if Conf.MonitorOpen {
 		InitMonitor(Conf.MonitorAddrs)
 	}
-	//round
+	// round
 	round := NewRound(RoundOptions{
 		Timer:     Conf.Timer,
 		TimerSize: Conf.TimerSize,
 	})
-	//room
+	// room
 	InitRoomBucket(round,
 		RoomOptions{
 			BatchNum:   Conf.RoomBatch,
 			SignalTime: Conf.RoomSignal,
+			IdleTime:   Conf.RoomIdle,
 		})
 	//room info
 	MergeRoomServers()
