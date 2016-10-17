@@ -2,9 +2,13 @@ package main
 
 import (
 	"flag"
-	"runtime"
-
 	log "github.com/thinkboy/log4go"
+	"goim/libs/perf"
+	"runtime"
+)
+
+var (
+	DefaultStat *Stat
 )
 
 func main() {
@@ -14,6 +18,8 @@ func main() {
 	}
 	log.LoadConfiguration(Conf.Log)
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	perf.Init(Conf.PprofAddrs)
+	DefaultStat = NewStat()
 	// comet
 	err := InitComet(Conf.Comets,
 		CometOptions{

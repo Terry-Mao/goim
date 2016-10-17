@@ -21,6 +21,7 @@ func init() {
 
 type Config struct {
 	Log        string   `goconf:"base:log"`
+	PprofAddrs []string `goconf:"base:pprof.addrs:,"`
 	ZKAddrs    []string `goconf:"kafka:zookeeper.list:,"`
 	ZKRoot     string   `goconf:"kafka:zkroot"`
 	KafkaGroup string   `goconf:"kafka:group"`

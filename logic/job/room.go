@@ -54,6 +54,10 @@ func (b *RoomBucket) Del(roomId int32) {
 	b.bLock.Unlock()
 }
 
+func (b *RoomBucket) Size() int {
+	return len(b.rooms)
+}
+
 type RoomOptions struct {
 	BatchNum   int
 	SignalTime time.Duration

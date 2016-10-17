@@ -42,6 +42,16 @@ func NewBucket(boptions BucketOptions) (b *Bucket) {
 	return
 }
 
+// ChannelCount channel count in the bucket
+func (b *Bucket) ChannelCount() int {
+	return len(b.chs)
+}
+
+// RoomCount room count in the bucket
+func (b *Bucket) RoomCount() int {
+	return len(b.rooms)
+}
+
 // Put put a channel according with sub key.
 func (b *Bucket) Put(key string, rid int32, ch *Channel) (err error) {
 	var (

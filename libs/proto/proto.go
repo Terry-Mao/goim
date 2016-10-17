@@ -8,8 +8,7 @@ import (
 	"goim/libs/bytes"
 	"goim/libs/define"
 	"goim/libs/encoding/binary"
-
-	"github.com/gorilla/websocket"
+	"goim/libs/net/websocket"
 )
 
 // for tcp
@@ -138,61 +137,61 @@ func (p *Proto) WriteTCP(wr *bufio.Writer) (err error) {
 	return
 }
 
-func (p *Proto) ReadWebsocket(wr *websocket.Conn) (err error) {
-	err = wr.ReadJSON(p)
-	return
-}
-
-func (p *Proto) WriteBodyTo(b *bytes.Writer) (err error) {
+func (p *Proto) ReadWebsocket(ws *websocket.Conn) (err error) {
 	var (
-		ph  Proto
-		js  []json.RawMessage
-		j   json.RawMessage
-		jb  []byte
-		bts []byte
+		bodyLen   int
+		headerLen int16
+		packLen   int32
+		buf       []byte
 	)
-	offset := int32(PackOffset)
-	buf := p.Body[:]
-	for {
-		if (len(buf[offset:])) < RawHeaderSize {
-			// should not be here
-			break
-		}
-		packLen := binary.BigEndian.Int32(buf[offset : offset+HeaderOffset])
-		packBuf := buf[offset : offset+packLen]
-		// packet
-		ph.Ver = binary.BigEndian.Int16(packBuf[VerOffset:OperationOffset])
-		ph.Operation = binary.BigEndian.Int32(packBuf[OperationOffset:SeqIdOffset])
-		ph.SeqId = binary.BigEndian.Int32(packBuf[SeqIdOffset:RawHeaderSize])
-		ph.Body = packBuf[RawHeaderSize:]
-		if jb, err = json.Marshal(&ph); err != nil {
-			return
-		}
-		j = json.RawMessage(jb)
-		js = append(js, j)
-		offset += packLen
-	}
-	if bts, err = json.Marshal(js); err != nil {
+	if _, buf, err = ws.ReadMessage(); err != nil {
 		return
 	}
-	b.Write(bts)
+	if len(buf) < RawHeaderSize {
+		return ErrProtoPackLen
+	}
+	packLen = binary.BigEndian.Int32(buf[PackOffset:HeaderOffset])
+	headerLen = binary.BigEndian.Int16(buf[HeaderOffset:VerOffset])
+	p.Ver = binary.BigEndian.Int16(buf[VerOffset:OperationOffset])
+	p.Operation = binary.BigEndian.Int32(buf[OperationOffset:SeqIdOffset])
+	p.SeqId = binary.BigEndian.Int32(buf[SeqIdOffset:])
+	if packLen > MaxPackSize {
+		return ErrProtoPackLen
+	}
+	if headerLen != RawHeaderSize {
+		return ErrProtoHeaderLen
+	}
+	if bodyLen = int(packLen - int32(headerLen)); bodyLen > 0 {
+		p.Body = buf[headerLen:packLen]
+	} else {
+		p.Body = nil
+	}
 	return
 }
 
-func (p *Proto) WriteWebsocket(wr *websocket.Conn) (err error) {
-	if p.Body == nil {
-		p.Body = emptyJSONBody
-	}
-	// [{"ver":1,"op":8,"seq":1,"body":{}}, {"ver":1,"op":3,"seq":2,"body":{}}]
+func (p *Proto) WriteWebsocket(ws *websocket.Conn) (err error) {
+	var (
+		buf     []byte
+		packLen int
+	)
 	if p.Operation == define.OP_RAW {
-		// batch mod
-		var b = bytes.NewWriterSize(len(p.Body) + 40*RawHeaderSize)
-		if err = p.WriteBodyTo(b); err != nil {
-			return
-		}
-		err = wr.WriteMessage(websocket.TextMessage, b.Buffer())
+		err = ws.WriteMessage(websocket.BinaryMessage, p.Body)
 		return
 	}
-	err = wr.WriteJSON([]*Proto{p})
+	packLen = RawHeaderSize + len(p.Body)
+	if err = ws.WriteHeader(websocket.BinaryMessage, packLen); err != nil {
+		return
+	}
+	if buf, err = ws.Peek(RawHeaderSize); err != nil {
+		return
+	}
+	binary.BigEndian.PutInt32(buf[PackOffset:], int32(packLen))
+	binary.BigEndian.PutInt16(buf[HeaderOffset:], int16(RawHeaderSize))
+	binary.BigEndian.PutInt16(buf[VerOffset:], p.Ver)
+	binary.BigEndian.PutInt32(buf[OperationOffset:], p.Operation)
+	binary.BigEndian.PutInt32(buf[SeqIdOffset:], p.SeqId)
+	if p.Body != nil {
+		err = ws.WriteBody(p.Body)
+	}
 	return
 }
