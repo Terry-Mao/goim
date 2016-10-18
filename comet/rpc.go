@@ -21,6 +21,7 @@ func InitRPCPush(addrs []string) (err error) {
 			log.Error("inet.ParseNetwork() error(%v)", err)
 			return
 		}
+		log.Info("start rpc listen: \"%s\"", bind)
 		go rpcListen(network, addr)
 	}
 	return
@@ -63,6 +64,8 @@ func (this *PushRPC) PushMsg(arg *proto.PushMsgArg, reply *proto.NoReply) (err e
 	bucket = DefaultServer.Bucket(arg.Key)
 	if channel = bucket.Channel(arg.Key); channel != nil {
 		err = channel.Push(&arg.P)
+		// increase push stat
+		DefaultServer.Stat.IncrPushMsg()
 	}
 	return
 }
@@ -87,6 +90,8 @@ func (this *PushRPC) MPushMsg(arg *proto.MPushMsgArg, reply *proto.MPushMsgReply
 				return
 			}
 			reply.Index = int32(n)
+			// increase push stat
+			DefaultServer.Stat.IncrPushMsg()
 		}
 	}
 	return
@@ -113,6 +118,8 @@ func (this *PushRPC) MPushMsgs(arg *proto.MPushMsgsArg, reply *proto.MPushMsgsRe
 			}
 			n++
 			reply.Index = n
+			// increase push stat
+			DefaultServer.Stat.IncrPushMsg()
 		}
 	}
 	return
@@ -124,6 +131,8 @@ func (this *PushRPC) Broadcast(arg *proto.BoardcastArg, reply *proto.NoReply) (e
 	for _, bucket = range DefaultServer.Buckets {
 		go bucket.Broadcast(&arg.P)
 	}
+	// increase broadcast stat
+	DefaultServer.Stat.IncrBroadcastMsg()
 	return
 }
 
@@ -133,6 +142,8 @@ func (this *PushRPC) BroadcastRoom(arg *proto.BoardcastRoomArg, reply *proto.NoR
 	for _, bucket = range DefaultServer.Buckets {
 		bucket.BroadcastRoom(arg)
 	}
+	// increase broadcast stat
+	DefaultServer.Stat.IncrBroadcastRoomMsg()
 	return
 }
 

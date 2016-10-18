@@ -8,6 +8,7 @@
 package bufio
 
 import (
+	"bytes"
 	"errors"
 	"io"
 )
@@ -225,6 +226,113 @@ func (b *Reader) Read(p []byte) (n int, err error) {
 	return n, nil
 }
 
+// ReadByte reads and returns a single byte.
+// If no byte is available, returns an error.
+func (b *Reader) ReadByte() (c byte, err error) {
+	//b.lastRuneSize = -1
+	for b.r == b.w {
+		if b.err != nil {
+			return 0, b.readErr()
+		}
+		b.fill() // buffer is empty
+	}
+	c = b.buf[b.r]
+	b.r++
+	//b.lastByte = int(c)
+	return c, nil
+}
+
+// ReadSlice reads until the first occurrence of delim in the input,
+// returning a slice pointing at the bytes in the buffer.
+// The bytes stop being valid at the next read.
+// If ReadSlice encounters an error before finding a delimiter,
+// it returns all the data in the buffer and the error itself (often io.EOF).
+// ReadSlice fails with error ErrBufferFull if the buffer fills without a delim.
+// Because the data returned from ReadSlice will be overwritten
+// by the next I/O operation, most clients should use
+// ReadBytes or ReadString instead.
+// ReadSlice returns err != nil if and only if line does not end in delim.
+func (b *Reader) ReadSlice(delim byte) (line []byte, err error) {
+	for {
+		// Search buffer.
+		if i := bytes.IndexByte(b.buf[b.r:b.w], delim); i >= 0 {
+			line = b.buf[b.r : b.r+i+1]
+			b.r += i + 1
+			break
+		}
+
+		// Pending error?
+		if b.err != nil {
+			line = b.buf[b.r:b.w]
+			b.r = b.w
+			err = b.readErr()
+			break
+		}
+
+		// Buffer full?
+		if b.Buffered() >= len(b.buf) {
+			b.r = b.w
+			line = b.buf
+			err = ErrBufferFull
+			break
+		}
+
+		b.fill() // buffer is not full
+	}
+	return
+}
+
+// ReadLine is a low-level line-reading primitive. Most callers should use
+// ReadBytes('\n') or ReadString('\n') instead or use a Scanner.
+//
+// ReadLine tries to return a single line, not including the end-of-line bytes.
+// If the line was too long for the buffer then isPrefix is set and the
+// beginning of the line is returned. The rest of the line will be returned
+// from future calls. isPrefix will be false when returning the last fragment
+// of the line. The returned buffer is only valid until the next call to
+// ReadLine. ReadLine either returns a non-nil line or it returns an error,
+// never both.
+//
+// The text returned from ReadLine does not include the line end ("\r\n" or "\n").
+// No indication or error is given if the input ends without a final line end.
+// Calling UnreadByte after ReadLine will always unread the last byte read
+// (possibly a character belonging to the line end) even if that byte is not
+// part of the line returned by ReadLine.
+func (b *Reader) ReadLine() (line []byte, isPrefix bool, err error) {
+	line, err = b.ReadSlice('\n')
+	if err == ErrBufferFull {
+		// Handle the case where "\r\n" straddles the buffer.
+		if len(line) > 0 && line[len(line)-1] == '\r' {
+			// Put the '\r' back on buf and drop it from line.
+			// Let the next call to ReadLine check for "\r\n".
+			if b.r == 0 {
+				// should be unreachable
+				panic("bufio: tried to rewind past start of buffer")
+			}
+			b.r--
+			line = line[:len(line)-1]
+		}
+		return line, true, nil
+	}
+
+	if len(line) == 0 {
+		if err != nil {
+			line = nil
+		}
+		return
+	}
+	err = nil
+
+	if line[len(line)-1] == '\n' {
+		drop := 1
+		if len(line) > 1 && line[len(line)-2] == '\r' {
+			drop = 2
+		}
+		line = line[:len(line)-drop]
+	}
+	return
+}
+
 // Buffered returns the number of bytes that can be read from the current buffer.
 func (b *Reader) Buffered() int { return b.w - b.r }
 
@@ -384,4 +492,26 @@ func (b *Writer) Peek(n int) ([]byte, error) {
 	d := b.buf[b.n : b.n+n]
 	b.n += n
 	return d, nil
+}
+
+// WriteString writes a string.
+// It returns the number of bytes written.
+// If the count is less than len(s), it also returns an error explaining
+// why the write is short.
+func (b *Writer) WriteString(s string) (int, error) {
+	nn := 0
+	for len(s) > b.Available() && b.err == nil {
+		n := copy(b.buf[b.n:], s)
+		b.n += n
+		nn += n
+		s = s[n:]
+		b.flush()
+	}
+	if b.err != nil {
+		return nn, b.err
+	}
+	n := copy(b.buf[b.n:], s)
+	b.n += n
+	nn += n
+	return nn, nil
 }

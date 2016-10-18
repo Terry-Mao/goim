@@ -2,9 +2,13 @@ package main
 
 import (
 	"flag"
-	"runtime"
-
 	log "github.com/thinkboy/log4go"
+	"goim/libs/perf"
+	"runtime"
+)
+
+var (
+	DefaultStat *Stat
 )
 
 func main() {
@@ -14,7 +18,9 @@ func main() {
 	}
 	log.LoadConfiguration(Conf.Log)
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	//comet
+	perf.Init(Conf.PprofAddrs)
+	DefaultStat = NewStat()
+	// comet
 	err := InitComet(Conf.Comets,
 		CometOptions{
 			RoutineSize: Conf.RoutineSize,
@@ -27,16 +33,17 @@ func main() {
 	if Conf.MonitorOpen {
 		InitMonitor(Conf.MonitorAddrs)
 	}
-	//round
+	// round
 	round := NewRound(RoundOptions{
 		Timer:     Conf.Timer,
 		TimerSize: Conf.TimerSize,
 	})
-	//room
+	// room
 	InitRoomBucket(round,
 		RoomOptions{
 			BatchNum:   Conf.RoomBatch,
 			SignalTime: Conf.RoomSignal,
+			IdleTime:   Conf.RoomIdle,
 		})
 	//room info
 	MergeRoomServers()

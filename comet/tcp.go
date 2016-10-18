@@ -29,9 +29,7 @@ func InitTCP(addrs []string, accept int) (err error) {
 			log.Error("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
 		}
-		if Debug {
-			log.Debug("start tcp listen: \"%s\"", bind)
-		}
+		log.Info("start tcp listen: \"%s\"", bind)
 		// split N core accept
 		for i := 0; i < accept; i++ {
 			go acceptTCP(DefaultServer, listener)
@@ -134,6 +132,8 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	if white {
 		DefaultWhitelist.Log.Printf("key: %s[%d] auth\n", key, rid)
 	}
+	// increase tcp stat
+	server.Stat.IncrTcpOnline()
 	// hanshake ok start dispatch goroutine
 	go server.dispatchTCP(key, conn, wr, wp, wb, ch)
 	for {
@@ -190,6 +190,8 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	if Debug {
 		log.Debug("key: %s server tcp goroutine exit", key)
 	}
+	// decrease tcp stat
+	server.Stat.DecrTcpOnline()
 	return
 }
 

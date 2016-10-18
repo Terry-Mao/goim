@@ -20,6 +20,7 @@ func InitKafka(kafkaAddrs []string) (err error) {
 	config.Producer.Partitioner = sarama.NewHashPartitioner
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
+	log.Info("init kafka: %v", kafkaAddrs)
 	producer, err = sarama.NewAsyncProducer(kafkaAddrs, config)
 	go handleSuccess()
 	go handleError()
@@ -35,6 +36,8 @@ func handleSuccess() {
 		if pm != nil {
 			log.Info("producer message success, partition:%d offset:%d key:%v valus:%s", pm.Partition, pm.Offset, pm.Key, pm.Value)
 		}
+		// increase msg succeeded stat
+		DefaultStat.IncrMsgSucceeded()
 	}
 }
 
@@ -47,6 +50,8 @@ func handleError() {
 		if err != nil {
 			log.Error("producer message error, partition:%d offset:%d key:%v valus:%s error(%v)", err.Msg.Partition, err.Msg.Offset, err.Msg.Key, err.Msg.Value, err.Err)
 		}
+		// increase msg failed stat
+		DefaultStat.IncrMsgFailed()
 	}
 }
 

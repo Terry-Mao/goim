@@ -80,6 +80,7 @@ func (c *Comet) process(pushChan chan *proto.MPushMsgArg, roomChan chan *proto.B
 			err = c.rpcClient.Call(CometServiceMPushMsg, pushArg, reply)
 			if err != nil {
 				log.Error("rpcClient.Call(%s, %v, reply) serverId:%d error(%v)", CometServiceMPushMsg, pushArg, c.serverId, err)
+				DefaultStat.IncrPushMsgFailed()
 			}
 			pushArg = nil
 		case roomArg = <-roomChan:
@@ -87,6 +88,7 @@ func (c *Comet) process(pushChan chan *proto.MPushMsgArg, roomChan chan *proto.B
 			err = c.rpcClient.Call(CometServiceBroadcastRoom, roomArg, reply)
 			if err != nil {
 				log.Error("rpcClient.Call(%s, %v, reply) serverId:%d error(%v)", CometServiceBroadcastRoom, roomArg, c.serverId, err)
+				DefaultStat.IncrBroadcastRoomMsgFailed()
 			}
 			roomArg = nil
 		case broadcastArg = <-broadcastChan:
@@ -94,6 +96,7 @@ func (c *Comet) process(pushChan chan *proto.MPushMsgArg, roomChan chan *proto.B
 			err = c.rpcClient.Call(CometServiceBroadcast, broadcastArg, reply)
 			if err != nil {
 				log.Error("rpcClient.Call(%s, %v, reply) serverId:%d error(%v)", CometServiceBroadcast, broadcastArg, c.serverId, err)
+				DefaultStat.IncrBroadcastMsgFailed()
 			}
 			broadcastArg = nil
 		}
@@ -155,8 +158,10 @@ func mPushComet(serverId int32, subKeys []string, body json.RawMessage) {
 	if c, ok := cometServiceMap[serverId]; ok {
 		if err := c.Push(&args); err != nil {
 			log.Error("c.Push(%v) serverId:%d error(%v)", args, serverId, err)
+			DefaultStat.IncrPushMsgFailed()
 		}
 	}
+	DefaultStat.IncrPushMsg()
 }
 
 // broadcast broadcast a message to all
@@ -167,8 +172,10 @@ func broadcast(msg []byte) {
 	for serverId, c := range cometServiceMap {
 		if err := c.Broadcast(&args); err != nil {
 			log.Error("c.Broadcast(%v) serverId:%d error(%v)", args, serverId, err)
+			DefaultStat.IncrBroadcastMsgFailed()
 		}
 	}
+	DefaultStat.IncrBroadcastMsg()
 }
 
 // broadcastRoomBytes broadcast aggregation messages to room
@@ -187,10 +194,12 @@ func broadcastRoomBytes(roomId int32, body []byte) {
 				// push routines
 				if err = c.BroadcastRoom(&args); err != nil {
 					log.Error("c.BroadcastRoom(%v) roomId:%d error(%v)", args, roomId, err)
+					DefaultStat.IncrBroadcastRoomMsgFailed()
 				}
 			}
 		}
 	}
+	DefaultStat.IncrBroadcastRoomMsg()
 }
 
 func roomsComet(c *xrpc.Clients) map[int32]struct{} {

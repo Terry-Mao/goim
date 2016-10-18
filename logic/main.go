@@ -8,6 +8,10 @@ import (
 	log "github.com/thinkboy/log4go"
 )
 
+var (
+	DefaultStat *Stat
+)
+
 func main() {
 	flag.Parse()
 	if err := InitConfig(); err != nil {
@@ -18,9 +22,10 @@ func main() {
 	defer log.Close()
 	log.Info("logic[%s] start", Ver)
 	perf.Init(Conf.PprofAddrs)
+	DefaultStat = NewStat()
 	// router rpc
 	if err := InitRouter(Conf.RouterRPCAddrs); err != nil {
-		log.Warn("router rpc current can't connect, retry")
+		panic(err)
 	}
 	// start monitor
 	if Conf.MonitorOpen {

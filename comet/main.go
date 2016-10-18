@@ -33,12 +33,14 @@ func main() {
 	perf.Init(Conf.PprofBind)
 	// logic rpc
 	if err := InitLogicRpc(Conf.LogicAddrs); err != nil {
-		log.Warn("logic rpc current can't connect, retry")
+		panic(err)
 	}
 	// start monitor
 	if Conf.MonitorOpen {
 		InitMonitor(Conf.MonitorAddrs)
 	}
+	// new stat
+	stat := NewStat()
 	// new server
 	buckets := make([]*Bucket, Conf.Bucket)
 	for i := 0; i < Conf.Bucket; i++ {
@@ -60,7 +62,7 @@ func main() {
 		TimerSize:    Conf.TimerSize,
 	})
 	operator := new(DefaultOperator)
-	DefaultServer = NewServer(buckets, round, operator, ServerOptions{
+	DefaultServer = NewServer(stat, buckets, round, operator, ServerOptions{
 		CliProto:         Conf.CliProto,
 		SvrProto:         Conf.SvrProto,
 		HandshakeTimeout: Conf.HandshakeTimeout,
@@ -74,7 +76,7 @@ func main() {
 		panic(err)
 	}
 	// websocket comet
-	if err := InitWebsocket(Conf.WebsocketBind); err != nil {
+	if err := InitWebsocket(Conf.WebsocketBind, Conf.MaxProc); err != nil {
 		panic(err)
 	}
 	// flash safe policy
@@ -85,7 +87,7 @@ func main() {
 	}
 	// wss comet
 	if Conf.WebsocketTLSOpen {
-		if err := InitWebsocketWithTLS(Conf.WebsocketTLSBind, Conf.WebsocketCertFile, Conf.WebsocketPrivateFile); err != nil {
+		if err := InitWebsocketWithTLS(Conf.WebsocketTLSBind, Conf.WebsocketCertFile, Conf.WebsocketPrivateFile, Conf.MaxProc); err != nil {
 			panic(err)
 		}
 	}

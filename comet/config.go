@@ -75,11 +75,11 @@ type Config struct {
 	Timer     int `goconf:"timer:num"`
 	TimerSize int `goconf:"timer:size"`
 	// bucket
-	Bucket        int   `goconf:"bucket:num"`
-	BucketChannel int   `goconf:"bucket:channel"`
-	BucketRoom    int   `goconf:"bucket:room"`
+	Bucket        int    `goconf:"bucket:num"`
+	BucketChannel int    `goconf:"bucket:channel"`
+	BucketRoom    int    `goconf:"bucket:room"`
 	RoutineAmount uint64 `goconf:"bucket:routine.amount"`
-	RoutineSize   int   `goconf:"bucket:routine.size"`
+	RoutineSize   int    `goconf:"bucket:routine.size"`
 	// push
 	RPCPushAddrs []string `goconf:"push:rpc.addrs:,"`
 	// logic
