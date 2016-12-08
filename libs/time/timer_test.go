@@ -1,7 +1,7 @@
 package time
 
 import (
-	log "code.google.com/p/log4go"
+	log "github.com/thinkboy/log4go"
 	"testing"
 	"time"
 )

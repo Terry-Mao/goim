@@ -1,64 +1,57 @@
 package test
 
 import (
-	proto "github.com/Terry-Mao/goim/proto/router"
-	rpc "github.com/Terry-Mao/protorpc"
+	proto "goim/libs/proto"
+	rpc "net/rpc"
+	"sort"
 	"testing"
 )
 
-func TestRouterConnect(t *testing.T) {
+func TestRouterPut(t *testing.T) {
 	c, err := rpc.Dial("tcp", "localhost:7270")
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
-	arg := &proto.ConnArg{}
-	reply := &proto.ConnReply{}
-	arg.UserId = 1
-	arg.Server = 0
-	if err = c.Call("RouterRPC.Connect", arg, reply); err != nil {
+	args := proto.PutArg{UserId: 1, Server: 0, RoomId: -1}
+	reply := proto.PutReply{}
+	if err = c.Call("RouterRPC.Put", &args, &reply); err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
 	if reply.Seq != 1 {
-		t.Errorf("reply seq: %d not equal 0", reply.Seq)
+		t.Errorf("reply seq: %d not equal 1", reply.Seq)
 		t.FailNow()
 	}
-	arg.UserId = 1
-	arg.Server = 0
-	if err = c.Call("RouterRPC.Connect", arg, reply); err != nil {
+	if err = c.Call("RouterRPC.Put", &args, &reply); err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
 	if reply.Seq != 2 {
-		t.Errorf("reply seq: %d not equal 1", reply.Seq)
+		t.Errorf("reply seq: %d not equal 2", reply.Seq)
 		t.FailNow()
 	}
 }
 
-func TestRouterDisconnect(t *testing.T) {
+func TestRouterDel(t *testing.T) {
 	c, err := rpc.Dial("tcp", "localhost:7270")
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
-	arg := &proto.ConnArg{}
-	reply := &proto.ConnReply{}
-	arg.UserId = 2
-	arg.Server = 0
-	if err = c.Call("RouterRPC.Connect", arg, reply); err != nil {
+	args := proto.PutArg{UserId: 2, Server: 0, RoomId: -1}
+	reply := proto.PutReply{}
+	if err = c.Call("RouterRPC.Put", &args, &reply); err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
 	if reply.Seq != 1 {
-		t.Errorf("reply seq: %d not equal 0", reply.Seq)
+		t.Errorf("reply seq: %d not equal 1", reply.Seq)
 		t.FailNow()
 	}
-	arg1 := &proto.DisconnArg{}
-	arg1.UserId = 2
-	arg1.Seq = 1
-	reply1 := &proto.DisconnReply{}
-	if err = c.Call("RouterRPC.Disconnect", arg1, reply1); err != nil {
+	args1 := proto.DelArg{UserId: 2, Seq: 1, RoomId: -1}
+	reply1 := proto.DelReply{}
+	if err = c.Call("RouterRPC.Del", &args1, &reply1); err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
@@ -75,10 +68,9 @@ func TestRouterGet(t *testing.T) {
 		t.FailNow()
 	}
 
-	arg := &proto.GetArg{}
-	reply := &proto.GetReply{}
-	arg.UserId = 1
-	if err = c.Call("RouterRPC.Get", arg, reply); err != nil {
+	args := proto.GetArg{UserId: 1}
+	reply := proto.GetReply{}
+	if err = c.Call("RouterRPC.Get", &args, &reply); err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
@@ -86,8 +78,14 @@ func TestRouterGet(t *testing.T) {
 		t.Errorf("reply seqs||servers length not equals 2")
 		t.FailNow()
 	}
-	if reply.Seqs[0] != 1 || reply.Seqs[1] != 2 {
-		t.Error("reply seqs not match")
+	seqSize := len(reply.Seqs)
+	seqs := make([]int, seqSize)
+	for i := 0; i < seqSize; i++ {
+		seqs[i] = int(reply.Seqs[i])
+	}
+	sort.Ints(seqs)
+	if seqs[0] != 1 || seqs[1] != 2 {
+		t.Error("reply seqs not match, %v", reply.Seqs)
 		t.FailNow()
 	}
 	if reply.Servers[0] != 0 || reply.Servers[1] != 0 {
