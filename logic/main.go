@@ -26,7 +26,6 @@ func main() {
 	if Conf.MonitorOpen {
 		InitMonitor(Conf.MonitorAddrs)
 	}
-	MergeCount()
 	go SyncCount()
 	// logic rpc
 	if err := InitRPC(NewDefaultAuther()); err != nil {
