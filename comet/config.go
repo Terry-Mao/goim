@@ -141,7 +141,7 @@ func InitConfig() (err error) {
 	if err = gconf.Parse(confFile); err != nil {
 		return err
 	}
-	if err := gconf.Unmarshal(Conf); err != nil {
+	if err = gconf.Unmarshal(Conf); err != nil {
 		return err
 	}
 	return nil
