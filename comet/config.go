@@ -139,12 +139,12 @@ func InitConfig() (err error) {
 	Conf = NewConfig()
 	gconf = goconf.New()
 	if err = gconf.Parse(confFile); err != nil {
-		return err
+		return
 	}
-	if err := gconf.Unmarshal(Conf); err != nil {
-		return err
+	if err = gconf.Unmarshal(Conf); err != nil {
+		return
 	}
-	return nil
+	return
 }
 
 func ReloadConfig() (*Config, error) {
