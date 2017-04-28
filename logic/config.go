@@ -52,6 +52,10 @@ type Config struct {
 	// monitor
 	MonitorOpen  bool     `goconf:"monitor:open"`
 	MonitorAddrs []string `goconf:"monitor:addrs:,"`
+	// Nsq
+	NsqAddr string `goconf:"nsq:addr"`
+	// Queue
+	QueueType string `goconf:"queue.type"`
 }
 
 func NewConfig() *Config {

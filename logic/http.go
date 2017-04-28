@@ -105,9 +105,22 @@ func Push(w http.ResponseWriter, r *http.Request) {
 	}
 	subKeys = genSubKey(userId)
 	for serverId, keys = range subKeys {
-		if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
-			res["ret"] = InternalErr
-			return
+		switch Conf.QueueType {
+		case "kafka":
+			if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
+				res["ret"] = InternalErr
+				return
+			}
+		case "nsq":
+			if err = mpushNsq(serverId, keys, bodyBytes); err != nil {
+				res["ret"] = InternalErr
+				return
+			}
+		default:
+			if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
+				res["ret"] = InternalErr
+				return
+			}
 		}
 	}
 	res["ret"] = OK
@@ -159,9 +172,22 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 	}
 	subKeys = genSubKeys(userIds)
 	for serverId, keys = range subKeys {
-		if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
-			res["ret"] = InternalErr
-			return
+		switch Conf.QueueType {
+		case "kafka":
+			if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
+				res["ret"] = InternalErr
+				return
+			}
+		case "nsq":
+			if err = mpushNsq(serverId, keys, bodyBytes); err != nil {
+				res["ret"] = InternalErr
+				return
+			}
+		default:
+			if err = mpushKafka(serverId, keys, bodyBytes); err != nil {
+				res["ret"] = InternalErr
+				return
+			}
 		}
 	}
 	res["ret"] = OK
@@ -196,10 +222,25 @@ func PushRoom(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = InternalErr
 		return
 	}
-	if err = broadcastRoomKafka(int32(rid), bodyBytes, enable); err != nil {
-		log.Error("broadcastRoomKafka(\"%s\",\"%s\",\"%d\") error(%s)", rid, body, enable, err)
-		res["ret"] = InternalErr
-		return
+	switch Conf.QueueType {
+	case "kafka":
+		if err = broadcastRoomKafka(int32(rid), bodyBytes, enable); err != nil {
+			log.Error("broadcastRoomKafka(\"%s\",\"%s\",\"%d\") error(%s)", rid, body, enable, err)
+			res["ret"] = InternalErr
+			return
+		}
+	case "nsq":
+		if err = broadcastRoomNsq(int32(rid), bodyBytes, enable); err != nil {
+			log.Error("broadcastRoomNsq(\"%s\",\"%s\",\"%d\") error(%s)", rid, body, enable, err)
+			res["ret"] = InternalErr
+			return
+		}
+	default:
+		if err = broadcastRoomKafka(int32(rid), bodyBytes, enable); err != nil {
+			log.Error("broadcastRoomKafka(\"%s\",\"%s\",\"%d\") error(%s)", rid, body, enable, err)
+			res["ret"] = InternalErr
+			return
+		}
 	}
 	res["ret"] = OK
 	return
@@ -224,10 +265,25 @@ func PushAll(w http.ResponseWriter, r *http.Request) {
 	}
 	body = string(bodyBytes)
 	// push all
-	if err := broadcastKafka(bodyBytes); err != nil {
-		log.Error("broadcastKafka(\"%s\") error(%s)", body, err)
-		res["ret"] = InternalErr
-		return
+	switch Conf.QueueType {
+	case "kafka":
+		if err := broadcastKafka(bodyBytes); err != nil {
+			log.Error("broadcastKafka(\"%s\") error(%s)", body, err)
+			res["ret"] = InternalErr
+			return
+		}
+	case "nsq":
+		if err := broadcastNsq(bodyBytes); err != nil {
+			log.Error("broadcastNsq(\"%s\") error(%s)", body, err)
+			res["ret"] = InternalErr
+			return
+		}
+	default:
+		if err := broadcastKafka(bodyBytes); err != nil {
+			log.Error("broadcastKafka(\"%s\") error(%s)", body, err)
+			res["ret"] = InternalErr
+			return
+		}
 	}
 	res["ret"] = OK
 	return

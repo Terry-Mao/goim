@@ -22,7 +22,7 @@ func InitNsq() error {
 		return err
 	}
 	c.AddHandler(&ConsumerT{})
-	if err := c.ConnectToNSQD("127.0.0.1:4150"); err != nil {
+	if err := c.ConnectToNSQD(Conf.NsqAddr); err != nil {
 		return err
 	}
 

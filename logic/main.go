@@ -35,9 +35,21 @@ func main() {
 	if err := InitHTTP(); err != nil {
 		panic(err)
 	}
-	if err := InitKafka(Conf.KafkaAddrs); err != nil {
-		panic(err)
+	switch Conf.QueueType {
+	case "kafka":
+		if err := InitKafka(Conf.KafkaAddrs); err != nil {
+			panic(err)
+		}
+	case "nsq":
+		if err := InitNsq(Conf.NsqAddr); err != nil {
+			panic(err)
+		}
+	default:
+		if err := InitKafka(Conf.KafkaAddrs); err != nil {
+			panic(err)
+		}
 	}
+
 	// block until a signal is received.
 	InitSignal()
 }
