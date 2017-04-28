@@ -55,7 +55,7 @@ type Config struct {
 	// Nsq
 	NsqAddr string `goconf:"nsq:addr"`
 	// Queue
-	QueueType string `goconf:"queue.type"`
+	QueueType string `goconf:"queue:type"`
 }
 
 func NewConfig() *Config {
