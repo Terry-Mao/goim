@@ -6,6 +6,8 @@ import (
 	"goim/libs/proto"
 
 	"github.com/nsqio/go-nsq"
+
+	log "github.com/thinkboy/log4go"
 )
 
 const (
@@ -13,12 +15,26 @@ const (
 )
 
 var (
-	nsqProducer *nsq.Producer
+	nsqProducer  *nsq.Producer
+	responseChan chan *nsq.ProducerTransaction
 )
 
 func InitNsq(addr string) (err error) {
 	nsqProducer, err = nsq.NewProducer(addr, nsq.NewConfig())
+	responseChan = make(chan *nsq.ProducerTransaction)
+	go handleNsqResult()
 	return
+}
+
+func handleNsqResult() {
+	for {
+		trans := <-responseChan
+		if trans.Error != nil {
+			log.Info("producer message failed, err:" + trans.Error.Error())
+		} else {
+			log.Info("producer message success")
+		}
+	}
 }
 
 func mpushNsq(serverId int32, keys []string, msg []byte) (err error) {
@@ -29,7 +45,7 @@ func mpushNsq(serverId int32, keys []string, msg []byte) (err error) {
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
-	err = nsqProducer.Publish(NsqPushsTopic, vBytes)
+	err = nsqProducer.PublishAsync(NsqPushsTopic, vBytes, responseChan)
 	return
 }
 
@@ -41,7 +57,7 @@ func broadcastNsq(msg []byte) (err error) {
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
-	err = nsqProducer.Publish(NsqPushsTopic, vBytes)
+	err = nsqProducer.PublishAsync(NsqPushsTopic, vBytes, responseChan)
 	return
 }
 
@@ -53,6 +69,6 @@ func broadcastRoomNsq(rid int32, msg []byte, ensure bool) (err error) {
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
-	err = nsqProducer.Publish(NsqPushsTopic, vBytes)
+	err = nsqProducer.PublishAsync(NsqPushsTopic, vBytes, responseChan)
 	return
 }
