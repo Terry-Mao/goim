@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	NsqConsumeTopic = "NsqPushsTopic"
+	NsqConsumeTopic   = "NsqPushsTopic"
 	NsqConsumeChannel = "NsqPushsChannel"
 )
 

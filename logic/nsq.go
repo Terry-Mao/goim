@@ -47,8 +47,8 @@ func broadcastNsq(msg []byte) (err error) {
 
 func broadcastRoomNsq(rid int32, msg []byte, ensure bool) (err error) {
 	var (
-		vBytes   []byte
-		v        = &proto.NsqMsg{OP: define.NSQ_MESSAGE_BROADCAST_ROOM, RoomId: rid, Msg: msg, Ensure: ensure}
+		vBytes []byte
+		v      = &proto.NsqMsg{OP: define.NSQ_MESSAGE_BROADCAST_ROOM, RoomId: rid, Msg: msg, Ensure: ensure}
 	)
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
