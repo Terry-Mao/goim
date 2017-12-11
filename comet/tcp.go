@@ -29,9 +29,7 @@ func InitTCP(addrs []string, accept int) (err error) {
 			log.Error("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
 		}
-		if Debug {
-			log.Debug("start tcp listen: \"%s\"", bind)
-		}
+		log.Info("start tcp listen: \"%s\"", bind)
 		// split N core accept
 		for i := 0; i < accept; i++ {
 			go acceptTCP(DefaultServer, listener)
@@ -95,6 +93,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	var (
 		err   error
 		key   string
+		rid   int32
 		white bool
 		hb    time.Duration // heartbeat
 		p     *proto.Proto
@@ -102,7 +101,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		trd   *itime.TimerData
 		rb    = rp.Get()
 		wb    = wp.Get()
-		ch    = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
+		ch    = NewChannel(server.Options.CliProto, server.Options.SvrProto)
 		rr    = &ch.Reader
 		wr    = &ch.Writer
 	)
@@ -114,9 +113,9 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	})
 	// must not setadv, only used in auth
 	if p, err = ch.CliProto.Set(); err == nil {
-		if key, ch.RoomId, hb, err = server.authTCP(rr, wr, p); err == nil {
+		if key, rid, hb, err = server.authTCP(rr, wr, p); err == nil {
 			b = server.Bucket(key)
-			err = b.Put(key, ch)
+			err = b.Put(key, rid, ch)
 		}
 	}
 	if err != nil {
@@ -131,8 +130,10 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	tr.Set(trd, hb)
 	white = DefaultWhitelist.Contains(key)
 	if white {
-		DefaultWhitelist.Log.Printf("key: %s[%d] auth\n", key, ch.RoomId)
+		DefaultWhitelist.Log.Printf("key: %s[%d] auth\n", key, rid)
 	}
+	// increase tcp stat
+	server.Stat.IncrTcpOnline()
 	// hanshake ok start dispatch goroutine
 	go server.dispatchTCP(key, conn, wr, wp, wb, ch)
 	for {
@@ -180,7 +181,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	rp.Put(rb)
 	conn.Close()
 	ch.Close()
-	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
+	if err = server.operator.Disconnect(key, rid); err != nil {
 		log.Error("key: %s operator do disconnect error(%v)", key, err)
 	}
 	if white {
@@ -189,6 +190,8 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	if Debug {
 		log.Debug("key: %s server tcp goroutine exit", key)
 	}
+	// decrease tcp stat
+	server.Stat.DecrTcpOnline()
 	return
 }
 
@@ -269,7 +272,7 @@ func (server *Server) dispatchTCP(key string, conn *net.TCPConn, wr *bufio.Write
 	}
 failed:
 	if white {
-		DefaultWhitelist.Log.Printf("key: dispatch tcp error(%v)\n", key, err)
+		DefaultWhitelist.Log.Printf("key: %s dispatch tcp error(%v)\n", key, err)
 	}
 	if err != nil {
 		log.Error("key: %s dispatch tcp error(%v)", key, err)

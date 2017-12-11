@@ -34,7 +34,7 @@ func InitFlashPolicy() (err error) {
 			log.Error("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
 		}
-		log.Debug("start tcp listen: \"%s\"", bind)
+		log.Info("start flashPolicy listen: \"%s\"", bind)
 		// split N core accept
 		for i := 0; i < Conf.MaxProc; i++ {
 			go acceptFlashPolicy(DefaultServer, listener)
@@ -82,38 +82,37 @@ func serveFlashPolicy(server *Server, conn *net.TCPConn, r int) {
 	if Debug {
 		log.Debug("start tcp flash policy serve \"%s\" with \"%s\"", lAddr, rAddr)
 	}
-
 	server.serverFlashPolicy(conn, rp, wp, tr, rAddr)
 }
 
 func (server *Server) serverFlashPolicy(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.Timer, rAddr string) {
 	var (
-		rr bufio.Reader
-		wr bufio.Writer
-		rb = rp.Get()
-		wb = wp.Get()
+		err error
+		rr  bufio.Reader
+		wr  bufio.Writer
+		rb  = rp.Get()
+		wb  = wp.Get()
 	)
 	rr.ResetBuffer(conn, rb.Bytes())
 	wr.ResetBuffer(conn, wb.Bytes())
-
 	trd := tr.Add(server.Options.HandshakeTimeout, func() { //安全协议设置超时时间
 		conn.Close()
 	})
-	_, err := rr.Pop(FlashPolicyRequestLen)
-	if err != nil {
+	if _, err = rr.Pop(FlashPolicyRequestLen); err != nil {
 		log.Error("rr.Pop() error(%v)", err)
 		goto failed
 	}
-	_, err = wr.Write(FlashPolicyResponse)
-	if err != nil {
+	if _, err = wr.Write(FlashPolicyResponse); err != nil {
 		log.Error("wr.Write() error(%v)", err)
 		goto failed
 	}
-	wr.Flush()
+	if err = wr.Flush(); err != nil {
+		log.Error("wr.Flush() error(%v)", err)
+		goto failed
+	}
 	if Conf.Debug {
 		log.Debug("remote ip:%s write a flash safe proto succeed", rAddr)
 	}
-
 failed:
 	tr.Del(trd)
 	conn.Close()

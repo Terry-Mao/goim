@@ -61,5 +61,7 @@ func push(msg []byte) (err error) {
 	default:
 		log.Error("unknown operation:%s", m.OP)
 	}
+	// increase msg stat
+	DefaultStat.IncrAllMsg()
 	return
 }

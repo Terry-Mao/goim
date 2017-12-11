@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&confFile, "c", "./router-example.conf", " set router config file path")
+	flag.StringVar(&confFile, "c", "./router.conf", " set router config file path")
 }
 
 type Config struct {
