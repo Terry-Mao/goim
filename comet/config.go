@@ -63,6 +63,12 @@ type Config struct {
 	WebsocketTLSBind     []string `goconf:"websocket:tls.bind:,"`
 	WebsocketCertFile    string   `goconf:"websocket:cert.file"`
 	WebsocketPrivateFile string   `goconf:"websocket:private.file"`
+
+	//// socketio
+	SocketioBind        []string `goconf:"socketio:bind:,"`
+	SocketioTrans       []string `goconf:"socketio:trans:,"`
+	SocketioTLSOpen     bool     `goconf:"socketio:tls.open"`
+	SocketioTLSBind     []string `goconf:"socketio:tls.bind:,"`
 	// flash safe policy
 	FlashPolicyOpen bool     `goconf:"flash:policy.open"`
 	FlashPolicyBind []string `goconf:"flash:policy.bind:,"`
@@ -111,6 +117,13 @@ func NewConfig() *Config {
 		WebsocketTLSBind:     []string{"0.0.0.0:8095"},
 		WebsocketCertFile:    "../source/cert.pem",
 		WebsocketPrivateFile: "../source/private.pem",
+
+		// socketio
+		SocketioBind: []string{"0.0.0.0:8088"},
+		SocketioTrans: []string{"websoket"},
+		// Socketio tls
+		SocketioTLSOpen:     false,
+		SocketioTLSBind:     []string{"0.0.0.0:8089"},
 		// flash safe policy
 		FlashPolicyOpen: false,
 		FlashPolicyBind: []string{"0.0.0.0:843"},

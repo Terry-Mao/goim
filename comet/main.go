@@ -79,6 +79,10 @@ func main() {
 	if err := InitWebsocket(Conf.WebsocketBind, Conf.MaxProc); err != nil {
 		panic(err)
 	}
+	// socket.io comet
+	if err := InitSocketIO(Conf.SocketioBind, Conf.SocketioTrans,"room1"); err != nil {
+		panic(err)
+	}
 	// flash safe policy
 	if Conf.FlashPolicyOpen {
 		if err := InitFlashPolicy(); err != nil {
