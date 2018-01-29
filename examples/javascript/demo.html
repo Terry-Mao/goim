@@ -1,19 +1,43 @@
+<!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+
+<head>
+    <title>Goim-Demo</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>client demo</title>
-  </head>
-  <body>
-    <h1>client demo</h1>
-    <script src="client.js"></script>
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="vue.js"></script>
+    <script type="text/javascript" src="wsconnect.js"></script>
+
+</head>
+
+<body>
+    <h1>Client Demo</h1>
+    <h3>Settings:</h3>
+    Server Settings:<br /><br />
+    <form id="server_setting">
+        Server IP:<input type="text" id="ip" value="127.0.0.1"> Port:
+        <input type="text" id="port" value="8090">
+        <button type="button" onclick="start()">Connect</button>
+    </form>
+    <!-- curl -d "{\"name\":\"test\",\"msgbody\":\"1\"}" http://127.0.0.1:7172/1/push/all -->
+    <div id="s_msg">
+        <h3>Messages</h3>
+        <ol>
+            <li v-for="ms in show">
+                <b>{{ ms.name }}:</b>{{ ms.msgbody }}
+            </li>
+        </ol>
+    </div>
     <script>
-      var client = new MyClient({
-        notify: function(data) {
-          alert(data);
-        }
-      });
+        var msshow = new Vue({
+            el: '#s_msg',
+            data: {
+                show: window.message
+            }
+        })
     </script>
-  </body>
+</body>
+
 </html>
