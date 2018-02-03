@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <title>Goim-Demo</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="vue.js"></script>
+    <script type="text/javascript" src="wsconnect.js"></script>
+    <script>
+        function msg_send() {
+            var msgip = document.getElementById("ip").value;
+            var msport = document.getElementById("sendport").value;
+            var msname = document.getElementById("name_in").value;
+            var msbody = document.getElementById("msg_in").value;
+            $.post("http://" + msgip + ":" + msport + "/1/push/all", JSON.stringify({
+                "name": msname,
+                "msg_body": msbody
+            }), "json")
+
+        }
+    </script>
+</head>
+
+<body>
+    <h1>Client Demo</h1>
+    <b>Note:This page is not for IE/Edge.</b>
+    <h3>Settings:</h3>
+    Server Settings:<br />
+    <form id="server_setting">
+        Server IP:<input type="text" id="ip" value="127.0.0.1"> Port:
+        <input type="text" id="port" value="8090">
+        <button type="button" onclick="start()">Connect</button>
+    </form><br />
+    <b>Push command sample:</b><br /> $ curl -d "{\"name\":\"test\",\"msg_body\":\"1\"}" http://127.0.0.1:7172/1/push/all <br />
+    <h3>Message Post:</h3>
+    <form>
+        Port:<input type="text" id="sendport" value="7172"><br /> Name:
+        <input type="text" id="name_in" value="test"><br /> Message:
+        <input type="text" id="msg_in" value="1">
+        <button type="button" id="send" onclick="msg_send()">Send</button>
+    </form>
+    <!-- curl -d "{\"name\":\"test\",\"msg_body\":\"1\"}" http://127.0.0.1:7172/1/push/all -->
+    <div id="s_msg">
+        <h3>Messages</h3>
+        <ol>
+            <li v-for="ms in show">
+                <b>{{ ms.name }}:</b>{{ ms.msg_body }}
+            </li>
+        </ol>
+    </div>
+    <script>
+        var msshow = new Vue({
+            el: '#s_msg',
+            data: {
+                show: window.message
+            }
+        })
+    </script>
+</body>
+
+</html>
