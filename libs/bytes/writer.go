@@ -9,6 +9,10 @@ func NewWriterSize(n int) *Writer {
 	return &Writer{buf: make([]byte, n)}
 }
 
+func (w *Writer) Len() int {
+	return w.n
+}
+
 func (w *Writer) Size() int {
 	return len(w.buf)
 }

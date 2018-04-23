@@ -48,6 +48,7 @@ type Config struct {
 	// router RPC
 	RouterRPCAddrs map[string]string `-`
 	// kafka
+	KafkaTopic string   `goconf:"kafka:topic"`
 	KafkaAddrs []string `goconf:"kafka:addrs"`
 	// monitor
 	MonitorOpen  bool     `goconf:"monitor:open"`
@@ -61,6 +62,8 @@ func NewConfig() *Config {
 		Dir:            "./",
 		Log:            "./logic-log.xml",
 		MaxProc:        runtime.NumCPU(),
+		KafkaTopic:     "KafkaPushsTopic",
+		KafkaAddrs:     []string{"localhost:9092"},
 		PprofAddrs:     []string{"localhost:6971"},
 		HTTPAddrs:      []string{"7172"},
 		RouterRPCAddrs: make(map[string]string),

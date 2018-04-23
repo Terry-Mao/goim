@@ -1,9 +1,16 @@
 (function(win) {
+    const rawHeaderLen = 16;
+    const packetOffset = 0;
+    const headerOffset = 4;
+    const verOffset = 6;
+    const opOffset = 8;
+    const seqOffset = 12;
+
     var Client = function(options) {
-        var MAX_CONNECT_TIME = 10;
+        var MAX_CONNECT_TIMES = 10;
         var DELAY = 15000;
         this.options = options || {};
-        this.createConnect(MAX_CONNECT_TIME, DELAY);
+        this.createConnect(MAX_CONNECT_TIMES, DELAY);
     }
 
     Client.prototype.createConnect = function(max, delay) {
@@ -13,32 +20,49 @@
         }
         connect();
 
+        var textDecoder = new TextDecoder();
+        var textEncoder = new TextEncoder();
         var heartbeatInterval;
-
         function connect() {
-            var ws = new WebSocket('ws://localhost:8090/sub');
-            var auth = false;
-
+            var ws = new WebSocket('ws://127.0.0.1:8090/sub');
+            ws.binaryType = 'arraybuffer';
             ws.onopen = function() {
-                getAuth();
+                auth();
             }
 
             ws.onmessage = function(evt) {
-                var receives = JSON.parse(evt.data)
-                for(var i=0; i<receives.length; i++) {
-                    var data = receives[i]
-                    if (data.op == 8) {
-                        auth = true;
+                var data = evt.data;
+                var dataView = new DataView(data, 0);
+                var packetLen = dataView.getInt32(packetOffset);
+                var headerLen = dataView.getInt16(headerOffset);
+                var ver = dataView.getInt16(verOffset);
+                var op = dataView.getInt32(opOffset);
+                var seq = dataView.getInt32(seqOffset);
+
+                console.log("receiveHeader: packetLen=" + packetLen, "headerLen=" + headerLen, "ver=" + ver, "op=" + op, "seq=" + seq);
+
+                switch(op) {
+                    case 8:
+                        // heartbeat
                         heartbeat();
-                        heartbeatInterval = setInterval(heartbeat, 4 * 60 * 1000);
-                    }
-                    if (!auth) {
-                        setTimeout(getAuth, delay);
-                    }
-                    if (auth && data.op == 5) {
-                        var notify = self.options.notify;
-                        if(notify) notify(data.body);
-                    }
+                        heartbeatInterval = setInterval(heartbeat, 30 * 1000);
+                    break;
+                    case 3:
+                        // heartbeat reply
+                        console.log("receive: heartbeat");
+                    break;
+                    case 5:
+                        // batch message
+                        for (var offset=0; offset<data.byteLength; offset+=packetLen) {
+                            // parse
+                            var packetLen = dataView.getInt32(offset);
+                            var headerLen = dataView.getInt16(offset+headerOffset);
+                            var ver = dataView.getInt16(offset+verOffset);
+                            var msgBody = textDecoder.decode(data.slice(offset+headerLen, offset+packetLen));
+                            // callback
+                            messageReceived(ver, msgBody);
+                        }
+                    break;
                 }
             }
 
@@ -48,23 +72,52 @@
             }
 
             function heartbeat() {
-                ws.send(JSON.stringify({
-                    'ver': 1,
-                    'op': 2,
-                    'seq': 2,
-                    'body': {}
-                }));
+                var headerBuf = new ArrayBuffer(rawHeaderLen);
+                var headerView = new DataView(headerBuf, 0);
+                headerView.setInt32(packetOffset, rawHeaderLen);
+                headerView.setInt16(headerOffset, rawHeaderLen);
+                headerView.setInt16(verOffset, 1);
+                headerView.setInt32(opOffset, 2);
+                headerView.setInt32(seqOffset, 1);
+                ws.send(headerBuf);
+                console.log("send: heartbeat");
             }
 
-            function getAuth() {
-                ws.send(JSON.stringify({
-                    'ver': 1,
-                    'op': 7,
-                    'seq': 1,
-                    'body': {
-                        'data': {}
-                    }
-                }));
+            function auth() {
+                var token = "1" // userID
+                var headerBuf = new ArrayBuffer(rawHeaderLen);
+                var headerView = new DataView(headerBuf, 0);
+                var bodyBuf = textEncoder.encode(token);
+                headerView.setInt32(packetOffset, rawHeaderLen + bodyBuf.byteLength);
+                headerView.setInt16(headerOffset, rawHeaderLen);
+                headerView.setInt16(verOffset, 1);
+                headerView.setInt32(opOffset, 7);
+                headerView.setInt32(seqOffset, 1);
+                ws.send(mergeArrayBuffer(headerBuf, bodyBuf));
+            }
+
+            function messageReceived(ver, body) {
+                var notify = self.options.notify;
+                if(notify) notify(body);
+                console.log("messageReceived:", "ver=" + ver, "body=" + body);
+            }
+
+            function mergeArrayBuffer(ab1, ab2) {
+                var u81 = new Uint8Array(ab1),
+                    u82 = new Uint8Array(ab2),
+                    res = new Uint8Array(ab1.byteLength + ab2.byteLength);
+                res.set(u81, 0);
+                res.set(u82, ab1.byteLength);
+                return res.buffer;
+            }
+
+            function char2ab(str) {
+                var buf = new ArrayBuffer(str.length);
+                var bufView = new Uint8Array(buf);
+                for (var i=0; i<str.length; i++) {
+                    bufView[i] = str[i];
+                }
+                return buf;
             }
 
         }
