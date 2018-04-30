@@ -10,20 +10,17 @@ import (
 	log "github.com/thinkboy/log4go"
 )
 
-const (
-	KafkaPushsTopic = "KafkaPushsTopic"
-)
-
 var (
 	producer sarama.AsyncProducer
 )
 
 func InitKafka(kafkaAddrs []string) (err error) {
 	config := sarama.NewConfig()
-	config.Producer.RequiredAcks = sarama.NoResponse
+	config.Producer.RequiredAcks = sarama.WaitForLocal
 	config.Producer.Partitioner = sarama.NewHashPartitioner
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
+	log.Info("init kafka: %v", kafkaAddrs)
 	producer, err = sarama.NewAsyncProducer(kafkaAddrs, config)
 	go handleSuccess()
 	go handleError()
@@ -39,6 +36,8 @@ func handleSuccess() {
 		if pm != nil {
 			log.Info("producer message success, partition:%d offset:%d key:%v valus:%s", pm.Partition, pm.Offset, pm.Key, pm.Value)
 		}
+		// increase msg succeeded stat
+		DefaultStat.IncrMsgSucceeded()
 	}
 }
 
@@ -51,6 +50,8 @@ func handleError() {
 		if err != nil {
 			log.Error("producer message error, partition:%d offset:%d key:%v valus:%s error(%v)", err.Msg.Partition, err.Msg.Offset, err.Msg.Key, err.Msg.Value, err.Err)
 		}
+		// increase msg failed stat
+		DefaultStat.IncrMsgFailed()
 	}
 }
 
@@ -62,7 +63,7 @@ func mpushKafka(serverId int32, keys []string, msg []byte) (err error) {
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
-	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Value: sarama.ByteEncoder(vBytes)}
+	producer.Input() <- &sarama.ProducerMessage{Topic: Conf.KafkaTopic, Value: sarama.ByteEncoder(vBytes)}
 	return
 }
 
@@ -74,7 +75,7 @@ func broadcastKafka(msg []byte) (err error) {
 	if vBytes, err = json.Marshal(v); err != nil {
 		return
 	}
-	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Value: sarama.ByteEncoder(vBytes)}
+	producer.Input() <- &sarama.ProducerMessage{Topic: Conf.KafkaTopic, Value: sarama.ByteEncoder(vBytes)}
 	return
 }
 
@@ -88,6 +89,6 @@ func broadcastRoomKafka(rid int32, msg []byte, ensure bool) (err error) {
 		return
 	}
 	binary.BigEndian.PutInt32(ridBytes[:], rid)
-	producer.Input() <- &sarama.ProducerMessage{Topic: KafkaPushsTopic, Key: sarama.ByteEncoder(ridBytes[:]), Value: sarama.ByteEncoder(vBytes)}
+	producer.Input() <- &sarama.ProducerMessage{Topic: Conf.KafkaTopic, Key: sarama.ByteEncoder(ridBytes[:]), Value: sarama.ByteEncoder(vBytes)}
 	return
 }

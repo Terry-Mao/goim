@@ -11,7 +11,8 @@
     <script>
       var client = new MyClient({
         notify: function(data) {
-          alert(data);
+		  console.log(data);
+          alert(JSON.stringify(data));
         }
       });
     </script>
