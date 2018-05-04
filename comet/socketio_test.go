@@ -1,11 +1,9 @@
-package test
+package main
 
 import (
 	"net/http"
 	"testing"
 	log "github.com/thinkboy/log4go"
-
-	//"github.com/googollee/go-socket.io"
 	"github.com/nkovacs/go-socket.io"
 )
 

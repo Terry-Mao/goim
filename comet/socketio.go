@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	log "github.com/thinkboy/log4go"
-	//"github.com/googollee/go-socket.io"
 	"github.com/nkovacs/go-socket.io"
 
 )
@@ -18,7 +17,6 @@ func InitSocketIO(addrs string, transport []string, accept string) (err error) {
 		log.Warn("socketio init err")
 	}
 	http.Handle("/socket.io/", server)
-	//http.Handle("/", http.FileServer(http.Dir("./www")))
 	log.Info("socketio Serving at ",addrs)
 	http.ListenAndServe(addrs, nil))
 	key := accept
