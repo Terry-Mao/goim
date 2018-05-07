@@ -76,6 +76,7 @@ func retPWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{
 }
 
 func Push(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
@@ -131,6 +132,7 @@ func parsePushsBody(body []byte) (msg []byte, userIds []int64, err error) {
 
 // {"m":{"test":1},"u":"1,2,3"}
 func Pushs(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
@@ -169,6 +171,7 @@ func Pushs(w http.ResponseWriter, r *http.Request) {
 }
 
 func PushRoom(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
@@ -206,6 +209,7 @@ func PushRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 func PushAll(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
@@ -244,6 +248,7 @@ type ServerCounter struct {
 }
 
 func Count(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 	if r.Method != "GET" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
@@ -270,6 +275,7 @@ func Count(w http.ResponseWriter, r *http.Request) {
 }
 
 func DelServer(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
