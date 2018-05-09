@@ -18,7 +18,7 @@ func InitSocketIO(addrs string, transport []string, accept string) (err error) {
 	}
 	http.Handle("/socket.io/", server)
 	log.Info("socketio Serving at ",addrs)
-	http.ListenAndServe(addrs, nil))
+	http.ListenAndServe(addrs, nil)
 	key := accept
 	go dispatchSocketIOEvent(server,key)
 
