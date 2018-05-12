@@ -65,7 +65,7 @@ type Config struct {
 	WebsocketPrivateFile string   `goconf:"websocket:private.file"`
 
 	//// socketio
-	SocketioBind        []string `goconf:"socketio:bind:,"`
+	SocketioBind        string `goconf:"socketio:bind:,"`
 	SocketioTrans       []string `goconf:"socketio:trans:,"`
 	SocketioTLSOpen     bool     `goconf:"socketio:tls.open"`
 	SocketioTLSBind     []string `goconf:"socketio:tls.bind:,"`
