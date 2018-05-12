@@ -52,7 +52,7 @@ type Config struct {
 	KafkaAddrs []string `goconf:"kafka:addrs"`
 	//cors
 	CORSOpen bool `goconf:"cors:enable"`
-	CORSAddr []string `goconf:"cors:addr"`
+	CORSAddr string `goconf:"cors:addr"`
 	// monitor
 	MonitorOpen  bool     `goconf:"monitor:open"`
 	MonitorAddrs []string `goconf:"monitor:addrs:,"`
