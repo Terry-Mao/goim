@@ -53,7 +53,7 @@ func dispatchSocketIOEvent(server *socketio.Server,key string){
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (server *Server) authSocketio(ws *socketio.Socket,, p *proto.Proto) (key string, rid int32, heartbeat time.Duration, err error) {
+func (server *Server) authSocketio(ws *socketio.Socket, p *proto.Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	if err = p.ReadWebsocket(ws); err != nil {
 		return
 	}
