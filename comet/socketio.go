@@ -11,17 +11,19 @@ import (
 )
 
 // Initsocket.io listen all tcp.bind and start accept connections.
-func InitSocketIO(addrs string, transport []string, accept string) (err error) {
-	server,err := socketio.NewServer(transport)
-	if(err != nil){
-		log.Warn("socketio init err")
-	}
-	http.Handle("/socket.io/", server)
-	log.Info("socketio Serving at ",addrs)
-	http.ListenAndServe(addrs, nil))
-	key := accept
-	go dispatchSocketIOEvent(server,key)
-
+func InitSocketIO(addrs []string, transport []string, accept string) (err error) {
+	var bind string
+	for _, bind = range addrs {
+		server,err := socketio.NewServer(transport)
+	    if(err != nil){
+		    log.Warn("socketio init err")
+	    }
+		http.Handle("/socket.io/", server)
+	    log.Info("socketio Serving at ",bind)
+	    go http.ListenAndServe(bind, nil)
+	    key := accept
+	    go dispatchSocketIOEvent(server,key)
+		}
 	return err
 }
 

@@ -119,7 +119,7 @@ func NewConfig() *Config {
 		WebsocketPrivateFile: "../source/private.pem",
 
 		// socketio
-		SocketioBind: []string{"0.0.0.0:8088"},
+		SocketioBind: []string {"0.0.0.0:8088"},
 		SocketioTrans: []string{"websoket"},
 		// Socketio tls
 		SocketioTLSOpen:     false,
