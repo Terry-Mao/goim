@@ -67,6 +67,8 @@ func NewConfig() *Config {
 		MaxProc:        runtime.NumCPU(),
 		KafkaTopic:     "KafkaPushsTopic",
 		KafkaAddrs:     []string{"localhost:9092"},
+		CORSOpen:       false,
+		CORSAddr:       "*",
 		PprofAddrs:     []string{"localhost:6971"},
 		HTTPAddrs:      []string{"7172"},
 		RouterRPCAddrs: make(map[string]string),
