@@ -56,7 +56,7 @@ func TestRouterDel(t *testing.T) {
 		t.FailNow()
 	}
 	if !reply1.Has {
-		t.Errorf("reply has: %d not equal true", reply1.Has)
+		t.Errorf("reply has: %t not equal true", reply1.Has)
 		t.FailNow()
 	}
 }
