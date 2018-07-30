@@ -65,7 +65,7 @@ func disconnect(key string, roomId int32) (has bool, err error) {
 		reply = proto.DisconnReply{}
 	)
 	if err = logicRpcClient.Call(logicServiceDisconnect, &arg, &reply); err != nil {
-		log.Error("c.Call(\"%s\", \"%v\", &ret) error(%v)", logicServiceConnect, arg, err)
+		log.Error("c.Call(\"%s\", \"%v\", &ret) error(%v)", logicServiceDisconnect, arg, err)
 		return
 	}
 	has = reply.Has
