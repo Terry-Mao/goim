@@ -1,4 +1,4 @@
-goim
+goim v2.0
 ==============
 goim is a im server writen by golang.
 
@@ -15,7 +15,7 @@ goim is a im server writen by golang.
  * Asynchronous push notification based on Kafka
 
 ## Architecture
-![arch](https://github.com/Terry-Mao/goim/blob/master/doc/arch.png)
+![arch](https://github.com/Terry-Mao/goim/blob/v2.0/doc/arch.png)
 
 Protocol:
 
