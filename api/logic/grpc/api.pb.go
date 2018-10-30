@@ -8,6 +8,9 @@ import fmt "fmt"
 import math "math"
 import _ "github.com/gogo/protobuf/gogoproto"
 
+import context "golang.org/x/net/context"
+import grpc "google.golang.org/grpc"
+
 import encoding_binary "encoding/binary"
 
 import io "io"
@@ -1088,6 +1091,361 @@ func init() {
 	proto.RegisterType((*ServerListReply)(nil), "goim.logic.ServerListReply")
 	proto.RegisterType((*Backoff)(nil), "goim.logic.Backoff")
 }
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// Client API for Logic service
+
+type LogicClient interface {
+	// Ping Service
+	Ping(ctx context.Context, in *PingReq, opts ...grpc.CallOption) (*PingReply, error)
+	// Close Service
+	Close(ctx context.Context, in *CloseReq, opts ...grpc.CallOption) (*CloseReply, error)
+	// Connect
+	Connect(ctx context.Context, in *ConnectReq, opts ...grpc.CallOption) (*ConnectReply, error)
+	// Disconnect
+	Disconnect(ctx context.Context, in *DisconnectReq, opts ...grpc.CallOption) (*DisconnectReply, error)
+	// Heartbeat
+	Heartbeat(ctx context.Context, in *HeartbeatReq, opts ...grpc.CallOption) (*HeartbeatReply, error)
+	// RenewServer
+	RenewServer(ctx context.Context, in *ServerReq, opts ...grpc.CallOption) (*ServerReply, error)
+	// RenewOnline
+	RenewOnline(ctx context.Context, in *OnlineReq, opts ...grpc.CallOption) (*OnlineReply, error)
+	// Receive
+	Receive(ctx context.Context, in *ReceiveReq, opts ...grpc.CallOption) (*ReceiveReply, error)
+	// ServerList
+	ServerList(ctx context.Context, in *ServerListReq, opts ...grpc.CallOption) (*ServerListReply, error)
+}
+
+type logicClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewLogicClient(cc *grpc.ClientConn) LogicClient {
+	return &logicClient{cc}
+}
+
+func (c *logicClient) Ping(ctx context.Context, in *PingReq, opts ...grpc.CallOption) (*PingReply, error) {
+	out := new(PingReply)
+	err := c.cc.Invoke(ctx, "/goim.logic.Logic/Ping", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logicClient) Close(ctx context.Context, in *CloseReq, opts ...grpc.CallOption) (*CloseReply, error) {
+	out := new(CloseReply)
+	err := c.cc.Invoke(ctx, "/goim.logic.Logic/Close", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logicClient) Connect(ctx context.Context, in *ConnectReq, opts ...grpc.CallOption) (*ConnectReply, error) {
+	out := new(ConnectReply)
+	err := c.cc.Invoke(ctx, "/goim.logic.Logic/Connect", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logicClient) Disconnect(ctx context.Context, in *DisconnectReq, opts ...grpc.CallOption) (*DisconnectReply, error) {
+	out := new(DisconnectReply)
+	err := c.cc.Invoke(ctx, "/goim.logic.Logic/Disconnect", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logicClient) Heartbeat(ctx context.Context, in *HeartbeatReq, opts ...grpc.CallOption) (*HeartbeatReply, error) {
+	out := new(HeartbeatReply)
+	err := c.cc.Invoke(ctx, "/goim.logic.Logic/Heartbeat", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logicClient) RenewServer(ctx context.Context, in *ServerReq, opts ...grpc.CallOption) (*ServerReply, error) {
+	out := new(ServerReply)
+	err := c.cc.Invoke(ctx, "/goim.logic.Logic/RenewServer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logicClient) RenewOnline(ctx context.Context, in *OnlineReq, opts ...grpc.CallOption) (*OnlineReply, error) {
+	out := new(OnlineReply)
+	err := c.cc.Invoke(ctx, "/goim.logic.Logic/RenewOnline", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logicClient) Receive(ctx context.Context, in *ReceiveReq, opts ...grpc.CallOption) (*ReceiveReply, error) {
+	out := new(ReceiveReply)
+	err := c.cc.Invoke(ctx, "/goim.logic.Logic/Receive", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *logicClient) ServerList(ctx context.Context, in *ServerListReq, opts ...grpc.CallOption) (*ServerListReply, error) {
+	out := new(ServerListReply)
+	err := c.cc.Invoke(ctx, "/goim.logic.Logic/ServerList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for Logic service
+
+type LogicServer interface {
+	// Ping Service
+	Ping(context.Context, *PingReq) (*PingReply, error)
+	// Close Service
+	Close(context.Context, *CloseReq) (*CloseReply, error)
+	// Connect
+	Connect(context.Context, *ConnectReq) (*ConnectReply, error)
+	// Disconnect
+	Disconnect(context.Context, *DisconnectReq) (*DisconnectReply, error)
+	// Heartbeat
+	Heartbeat(context.Context, *HeartbeatReq) (*HeartbeatReply, error)
+	// RenewServer
+	RenewServer(context.Context, *ServerReq) (*ServerReply, error)
+	// RenewOnline
+	RenewOnline(context.Context, *OnlineReq) (*OnlineReply, error)
+	// Receive
+	Receive(context.Context, *ReceiveReq) (*ReceiveReply, error)
+	// ServerList
+	ServerList(context.Context, *ServerListReq) (*ServerListReply, error)
+}
+
+func RegisterLogicServer(s *grpc.Server, srv LogicServer) {
+	s.RegisterService(&_Logic_serviceDesc, srv)
+}
+
+func _Logic_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogicServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.logic.Logic/Ping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogicServer).Ping(ctx, req.(*PingReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Logic_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CloseReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogicServer).Close(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.logic.Logic/Close",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogicServer).Close(ctx, req.(*CloseReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Logic_Connect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogicServer).Connect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.logic.Logic/Connect",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogicServer).Connect(ctx, req.(*ConnectReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Logic_Disconnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DisconnectReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogicServer).Disconnect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.logic.Logic/Disconnect",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogicServer).Disconnect(ctx, req.(*DisconnectReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Logic_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HeartbeatReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogicServer).Heartbeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.logic.Logic/Heartbeat",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogicServer).Heartbeat(ctx, req.(*HeartbeatReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Logic_RenewServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServerReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogicServer).RenewServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.logic.Logic/RenewServer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogicServer).RenewServer(ctx, req.(*ServerReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Logic_RenewOnline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OnlineReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogicServer).RenewOnline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.logic.Logic/RenewOnline",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogicServer).RenewOnline(ctx, req.(*OnlineReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Logic_Receive_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReceiveReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogicServer).Receive(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.logic.Logic/Receive",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogicServer).Receive(ctx, req.(*ReceiveReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Logic_ServerList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ServerListReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LogicServer).ServerList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.logic.Logic/ServerList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LogicServer).ServerList(ctx, req.(*ServerListReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Logic_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "goim.logic.Logic",
+	HandlerType: (*LogicServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Ping",
+			Handler:    _Logic_Ping_Handler,
+		},
+		{
+			MethodName: "Close",
+			Handler:    _Logic_Close_Handler,
+		},
+		{
+			MethodName: "Connect",
+			Handler:    _Logic_Connect_Handler,
+		},
+		{
+			MethodName: "Disconnect",
+			Handler:    _Logic_Disconnect_Handler,
+		},
+		{
+			MethodName: "Heartbeat",
+			Handler:    _Logic_Heartbeat_Handler,
+		},
+		{
+			MethodName: "RenewServer",
+			Handler:    _Logic_RenewServer_Handler,
+		},
+		{
+			MethodName: "RenewOnline",
+			Handler:    _Logic_RenewOnline_Handler,
+		},
+		{
+			MethodName: "Receive",
+			Handler:    _Logic_Receive_Handler,
+		},
+		{
+			MethodName: "ServerList",
+			Handler:    _Logic_ServerList_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "api.proto",
+}
+
 func (m *CloseReply) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1774,9 +2132,6 @@ func encodeVarintApi(dAtA []byte, offset int, v uint64) int {
 	return offset + 1
 }
 func (m *CloseReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -1786,9 +2141,6 @@ func (m *CloseReply) Size() (n int) {
 }
 
 func (m *CloseReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -1798,9 +2150,6 @@ func (m *CloseReq) Size() (n int) {
 }
 
 func (m *PingReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -1810,9 +2159,6 @@ func (m *PingReply) Size() (n int) {
 }
 
 func (m *PingReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -1822,9 +2168,6 @@ func (m *PingReq) Size() (n int) {
 }
 
 func (m *ConnectReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.Server)
@@ -1850,9 +2193,6 @@ func (m *ConnectReq) Size() (n int) {
 }
 
 func (m *ConnectReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Mid != 0 {
@@ -1884,9 +2224,6 @@ func (m *ConnectReply) Size() (n int) {
 }
 
 func (m *DisconnectReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Mid != 0 {
@@ -1907,9 +2244,6 @@ func (m *DisconnectReq) Size() (n int) {
 }
 
 func (m *DisconnectReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Has {
@@ -1922,9 +2256,6 @@ func (m *DisconnectReply) Size() (n int) {
 }
 
 func (m *HeartbeatReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Mid != 0 {
@@ -1945,9 +2276,6 @@ func (m *HeartbeatReq) Size() (n int) {
 }
 
 func (m *HeartbeatReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -1957,9 +2285,6 @@ func (m *HeartbeatReply) Size() (n int) {
 }
 
 func (m *ServerReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.Server)
@@ -1988,9 +2313,6 @@ func (m *ServerReq) Size() (n int) {
 }
 
 func (m *ServerReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -2000,9 +2322,6 @@ func (m *ServerReply) Size() (n int) {
 }
 
 func (m *OnlineReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.Server)
@@ -2024,9 +2343,6 @@ func (m *OnlineReq) Size() (n int) {
 }
 
 func (m *OnlineReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if len(m.AllRoomCount) > 0 {
@@ -2044,9 +2360,6 @@ func (m *OnlineReply) Size() (n int) {
 }
 
 func (m *ReceiveReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Mid != 0 {
@@ -2059,9 +2372,6 @@ func (m *ReceiveReq) Size() (n int) {
 }
 
 func (m *ReceiveReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -2071,9 +2381,6 @@ func (m *ReceiveReply) Size() (n int) {
 }
 
 func (m *ServerListReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.Platform)
@@ -2087,9 +2394,6 @@ func (m *ServerListReq) Size() (n int) {
 }
 
 func (m *ServerListReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.Domain)
@@ -2128,9 +2432,6 @@ func (m *ServerListReply) Size() (n int) {
 }
 
 func (m *Backoff) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.MaxDelay != 0 {
@@ -2712,17 +3013,6 @@ func (m *ConnectReply) Unmarshal(dAtA []byte) error {
 				postIndex := iNdEx + packedLen
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
-				}
-				var elementCount int
-				var count int
-				for _, integer := range dAtA {
-					if integer < 128 {
-						count++
-					}
-				}
-				elementCount = count
-				if elementCount != 0 && len(m.Accepts) == 0 {
-					m.Accepts = make([]int32, 0, elementCount)
 				}
 				for iNdEx < postIndex {
 					var v int32

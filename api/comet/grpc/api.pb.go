@@ -8,6 +8,9 @@ import fmt "fmt"
 import math "math"
 import _ "github.com/gogo/protobuf/gogoproto"
 
+import context "golang.org/x/net/context"
+import grpc "google.golang.org/grpc"
+
 import io "io"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -21,13 +24,14 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+//
+// v1.0.0
+// protocol
 type Proto struct {
-	Ver                  int32    `protobuf:"varint,1,opt,name=ver,proto3" json:"ver,omitempty"`
-	Operation            int32    `protobuf:"varint,2,opt,name=operation,proto3" json:"operation,omitempty"`
-	SeqId                int32    `protobuf:"varint,3,opt,name=seqId,proto3" json:"seqId,omitempty"`
-	Compress             int32    `protobuf:"varint,4,opt,name=compress,proto3" json:"compress,omitempty"`
-	ContentType          int32    `protobuf:"varint,5,opt,name=contentType,proto3" json:"contentType,omitempty"`
-	Body                 []byte   `protobuf:"bytes,6,opt,name=body,proto3" json:"body,omitempty"`
+	Ver                  int32    `protobuf:"varint,1,opt,name=ver,proto3" json:"ver"`
+	Op                   int32    `protobuf:"varint,2,opt,name=op,proto3" json:"op"`
+	Seq                  int32    `protobuf:"varint,3,opt,name=seq,proto3" json:"seq"`
+	Body                 []byte   `protobuf:"bytes,4,opt,name=body,proto3" json:"body"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -37,7 +41,7 @@ func (m *Proto) Reset()         { *m = Proto{} }
 func (m *Proto) String() string { return proto.CompactTextString(m) }
 func (*Proto) ProtoMessage()    {}
 func (*Proto) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_6056fa0d4d117f42, []int{0}
+	return fileDescriptor_api_557c4b2bc7cfc8e4, []int{0}
 }
 func (m *Proto) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -73,30 +77,16 @@ func (m *Proto) GetVer() int32 {
 	return 0
 }
 
-func (m *Proto) GetOperation() int32 {
+func (m *Proto) GetOp() int32 {
 	if m != nil {
-		return m.Operation
+		return m.Op
 	}
 	return 0
 }
 
-func (m *Proto) GetSeqId() int32 {
+func (m *Proto) GetSeq() int32 {
 	if m != nil {
-		return m.SeqId
-	}
-	return 0
-}
-
-func (m *Proto) GetCompress() int32 {
-	if m != nil {
-		return m.Compress
-	}
-	return 0
-}
-
-func (m *Proto) GetContentType() int32 {
-	if m != nil {
-		return m.ContentType
+		return m.Seq
 	}
 	return 0
 }
@@ -118,7 +108,7 @@ func (m *Empty) Reset()         { *m = Empty{} }
 func (m *Empty) String() string { return proto.CompactTextString(m) }
 func (*Empty) ProtoMessage()    {}
 func (*Empty) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_6056fa0d4d117f42, []int{1}
+	return fileDescriptor_api_557c4b2bc7cfc8e4, []int{1}
 }
 func (m *Empty) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -160,7 +150,7 @@ func (m *PushMsgReq) Reset()         { *m = PushMsgReq{} }
 func (m *PushMsgReq) String() string { return proto.CompactTextString(m) }
 func (*PushMsgReq) ProtoMessage()    {}
 func (*PushMsgReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_6056fa0d4d117f42, []int{2}
+	return fileDescriptor_api_557c4b2bc7cfc8e4, []int{2}
 }
 func (m *PushMsgReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -220,7 +210,7 @@ func (m *PushMsgReply) Reset()         { *m = PushMsgReply{} }
 func (m *PushMsgReply) String() string { return proto.CompactTextString(m) }
 func (*PushMsgReply) ProtoMessage()    {}
 func (*PushMsgReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_6056fa0d4d117f42, []int{3}
+	return fileDescriptor_api_557c4b2bc7cfc8e4, []int{3}
 }
 func (m *PushMsgReply) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -263,7 +253,7 @@ func (m *BroadcastReq) Reset()         { *m = BroadcastReq{} }
 func (m *BroadcastReq) String() string { return proto.CompactTextString(m) }
 func (*BroadcastReq) ProtoMessage()    {}
 func (*BroadcastReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_6056fa0d4d117f42, []int{4}
+	return fileDescriptor_api_557c4b2bc7cfc8e4, []int{4}
 }
 func (m *BroadcastReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -330,7 +320,7 @@ func (m *BroadcastReply) Reset()         { *m = BroadcastReply{} }
 func (m *BroadcastReply) String() string { return proto.CompactTextString(m) }
 func (*BroadcastReply) ProtoMessage()    {}
 func (*BroadcastReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_6056fa0d4d117f42, []int{5}
+	return fileDescriptor_api_557c4b2bc7cfc8e4, []int{5}
 }
 func (m *BroadcastReply) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -371,7 +361,7 @@ func (m *BroadcastRoomReq) Reset()         { *m = BroadcastRoomReq{} }
 func (m *BroadcastRoomReq) String() string { return proto.CompactTextString(m) }
 func (*BroadcastRoomReq) ProtoMessage()    {}
 func (*BroadcastRoomReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_6056fa0d4d117f42, []int{6}
+	return fileDescriptor_api_557c4b2bc7cfc8e4, []int{6}
 }
 func (m *BroadcastRoomReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -424,7 +414,7 @@ func (m *BroadcastRoomReply) Reset()         { *m = BroadcastRoomReply{} }
 func (m *BroadcastRoomReply) String() string { return proto.CompactTextString(m) }
 func (*BroadcastRoomReply) ProtoMessage()    {}
 func (*BroadcastRoomReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_6056fa0d4d117f42, []int{7}
+	return fileDescriptor_api_557c4b2bc7cfc8e4, []int{7}
 }
 func (m *BroadcastRoomReply) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -463,7 +453,7 @@ func (m *RoomsReq) Reset()         { *m = RoomsReq{} }
 func (m *RoomsReq) String() string { return proto.CompactTextString(m) }
 func (*RoomsReq) ProtoMessage()    {}
 func (*RoomsReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_6056fa0d4d117f42, []int{8}
+	return fileDescriptor_api_557c4b2bc7cfc8e4, []int{8}
 }
 func (m *RoomsReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -502,7 +492,7 @@ type RoomsReply struct {
 func (m *RoomsReply) Reset()      { *m = RoomsReply{} }
 func (*RoomsReply) ProtoMessage() {}
 func (*RoomsReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_api_6056fa0d4d117f42, []int{9}
+	return fileDescriptor_api_557c4b2bc7cfc8e4, []int{9}
 }
 func (m *RoomsReply) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -551,6 +541,256 @@ func init() {
 	proto.RegisterType((*RoomsReply)(nil), "goim.comet.RoomsReply")
 	proto.RegisterMapType((map[string]bool)(nil), "goim.comet.RoomsReply.RoomsEntry")
 }
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// Client API for Comet service
+
+type CometClient interface {
+	// Ping Service
+	Ping(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
+	// Close Service
+	Close(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
+	// PushMsg push by key or mid
+	PushMsg(ctx context.Context, in *PushMsgReq, opts ...grpc.CallOption) (*PushMsgReply, error)
+	// Broadcast send to every enrity
+	Broadcast(ctx context.Context, in *BroadcastReq, opts ...grpc.CallOption) (*BroadcastReply, error)
+	// BroadcastRoom broadcast to one room
+	BroadcastRoom(ctx context.Context, in *BroadcastRoomReq, opts ...grpc.CallOption) (*BroadcastRoomReply, error)
+	// Rooms get all rooms
+	Rooms(ctx context.Context, in *RoomsReq, opts ...grpc.CallOption) (*RoomsReply, error)
+}
+
+type cometClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewCometClient(cc *grpc.ClientConn) CometClient {
+	return &cometClient{cc}
+}
+
+func (c *cometClient) Ping(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/goim.comet.Comet/Ping", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cometClient) Close(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/goim.comet.Comet/Close", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cometClient) PushMsg(ctx context.Context, in *PushMsgReq, opts ...grpc.CallOption) (*PushMsgReply, error) {
+	out := new(PushMsgReply)
+	err := c.cc.Invoke(ctx, "/goim.comet.Comet/PushMsg", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cometClient) Broadcast(ctx context.Context, in *BroadcastReq, opts ...grpc.CallOption) (*BroadcastReply, error) {
+	out := new(BroadcastReply)
+	err := c.cc.Invoke(ctx, "/goim.comet.Comet/Broadcast", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cometClient) BroadcastRoom(ctx context.Context, in *BroadcastRoomReq, opts ...grpc.CallOption) (*BroadcastRoomReply, error) {
+	out := new(BroadcastRoomReply)
+	err := c.cc.Invoke(ctx, "/goim.comet.Comet/BroadcastRoom", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cometClient) Rooms(ctx context.Context, in *RoomsReq, opts ...grpc.CallOption) (*RoomsReply, error) {
+	out := new(RoomsReply)
+	err := c.cc.Invoke(ctx, "/goim.comet.Comet/Rooms", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for Comet service
+
+type CometServer interface {
+	// Ping Service
+	Ping(context.Context, *Empty) (*Empty, error)
+	// Close Service
+	Close(context.Context, *Empty) (*Empty, error)
+	// PushMsg push by key or mid
+	PushMsg(context.Context, *PushMsgReq) (*PushMsgReply, error)
+	// Broadcast send to every enrity
+	Broadcast(context.Context, *BroadcastReq) (*BroadcastReply, error)
+	// BroadcastRoom broadcast to one room
+	BroadcastRoom(context.Context, *BroadcastRoomReq) (*BroadcastRoomReply, error)
+	// Rooms get all rooms
+	Rooms(context.Context, *RoomsReq) (*RoomsReply, error)
+}
+
+func RegisterCometServer(s *grpc.Server, srv CometServer) {
+	s.RegisterService(&_Comet_serviceDesc, srv)
+}
+
+func _Comet_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CometServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.comet.Comet/Ping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CometServer).Ping(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Comet_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CometServer).Close(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.comet.Comet/Close",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CometServer).Close(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Comet_PushMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PushMsgReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CometServer).PushMsg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.comet.Comet/PushMsg",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CometServer).PushMsg(ctx, req.(*PushMsgReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Comet_Broadcast_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BroadcastReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CometServer).Broadcast(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.comet.Comet/Broadcast",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CometServer).Broadcast(ctx, req.(*BroadcastReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Comet_BroadcastRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BroadcastRoomReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CometServer).BroadcastRoom(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.comet.Comet/BroadcastRoom",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CometServer).BroadcastRoom(ctx, req.(*BroadcastRoomReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Comet_Rooms_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RoomsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CometServer).Rooms(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/goim.comet.Comet/Rooms",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CometServer).Rooms(ctx, req.(*RoomsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Comet_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "goim.comet.Comet",
+	HandlerType: (*CometServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Ping",
+			Handler:    _Comet_Ping_Handler,
+		},
+		{
+			MethodName: "Close",
+			Handler:    _Comet_Close_Handler,
+		},
+		{
+			MethodName: "PushMsg",
+			Handler:    _Comet_PushMsg_Handler,
+		},
+		{
+			MethodName: "Broadcast",
+			Handler:    _Comet_Broadcast_Handler,
+		},
+		{
+			MethodName: "BroadcastRoom",
+			Handler:    _Comet_BroadcastRoom_Handler,
+		},
+		{
+			MethodName: "Rooms",
+			Handler:    _Comet_Rooms_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "api.proto",
+}
+
 func (m *Proto) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -571,28 +811,18 @@ func (m *Proto) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintApi(dAtA, i, uint64(m.Ver))
 	}
-	if m.Operation != 0 {
+	if m.Op != 0 {
 		dAtA[i] = 0x10
 		i++
-		i = encodeVarintApi(dAtA, i, uint64(m.Operation))
+		i = encodeVarintApi(dAtA, i, uint64(m.Op))
 	}
-	if m.SeqId != 0 {
+	if m.Seq != 0 {
 		dAtA[i] = 0x18
 		i++
-		i = encodeVarintApi(dAtA, i, uint64(m.SeqId))
-	}
-	if m.Compress != 0 {
-		dAtA[i] = 0x20
-		i++
-		i = encodeVarintApi(dAtA, i, uint64(m.Compress))
-	}
-	if m.ContentType != 0 {
-		dAtA[i] = 0x28
-		i++
-		i = encodeVarintApi(dAtA, i, uint64(m.ContentType))
+		i = encodeVarintApi(dAtA, i, uint64(m.Seq))
 	}
 	if len(m.Body) > 0 {
-		dAtA[i] = 0x32
+		dAtA[i] = 0x22
 		i++
 		i = encodeVarintApi(dAtA, i, uint64(len(m.Body)))
 		i += copy(dAtA[i:], m.Body)
@@ -895,25 +1125,16 @@ func encodeVarintApi(dAtA []byte, offset int, v uint64) int {
 	return offset + 1
 }
 func (m *Proto) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.Ver != 0 {
 		n += 1 + sovApi(uint64(m.Ver))
 	}
-	if m.Operation != 0 {
-		n += 1 + sovApi(uint64(m.Operation))
+	if m.Op != 0 {
+		n += 1 + sovApi(uint64(m.Op))
 	}
-	if m.SeqId != 0 {
-		n += 1 + sovApi(uint64(m.SeqId))
-	}
-	if m.Compress != 0 {
-		n += 1 + sovApi(uint64(m.Compress))
-	}
-	if m.ContentType != 0 {
-		n += 1 + sovApi(uint64(m.ContentType))
+	if m.Seq != 0 {
+		n += 1 + sovApi(uint64(m.Seq))
 	}
 	l = len(m.Body)
 	if l > 0 {
@@ -926,9 +1147,6 @@ func (m *Proto) Size() (n int) {
 }
 
 func (m *Empty) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -938,9 +1156,6 @@ func (m *Empty) Size() (n int) {
 }
 
 func (m *PushMsgReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if len(m.Keys) > 0 {
@@ -963,9 +1178,6 @@ func (m *PushMsgReq) Size() (n int) {
 }
 
 func (m *PushMsgReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -975,9 +1187,6 @@ func (m *PushMsgReply) Size() (n int) {
 }
 
 func (m *BroadcastReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.ProtoOp != 0 {
@@ -1001,9 +1210,6 @@ func (m *BroadcastReq) Size() (n int) {
 }
 
 func (m *BroadcastReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -1013,9 +1219,6 @@ func (m *BroadcastReply) Size() (n int) {
 }
 
 func (m *BroadcastRoomReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	l = len(m.RoomID)
@@ -1033,9 +1236,6 @@ func (m *BroadcastRoomReq) Size() (n int) {
 }
 
 func (m *BroadcastRoomReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -1045,9 +1245,6 @@ func (m *BroadcastRoomReply) Size() (n int) {
 }
 
 func (m *RoomsReq) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -1057,9 +1254,6 @@ func (m *RoomsReq) Size() (n int) {
 }
 
 func (m *RoomsReply) Size() (n int) {
-	if m == nil {
-		return 0
-	}
 	var l int
 	_ = l
 	if len(m.Rooms) > 0 {
@@ -1139,9 +1333,9 @@ func (m *Proto) Unmarshal(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Operation", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Op", wireType)
 			}
-			m.Operation = 0
+			m.Op = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowApi
@@ -1151,16 +1345,16 @@ func (m *Proto) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Operation |= (int32(b) & 0x7F) << shift
+				m.Op |= (int32(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 3:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SeqId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Seq", wireType)
 			}
-			m.SeqId = 0
+			m.Seq = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowApi
@@ -1170,50 +1364,12 @@ func (m *Proto) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.SeqId |= (int32(b) & 0x7F) << shift
+				m.Seq |= (int32(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Compress", wireType)
-			}
-			m.Compress = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowApi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Compress |= (int32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ContentType", wireType)
-			}
-			m.ContentType = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowApi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ContentType |= (int32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Body", wireType)
 			}
@@ -2182,42 +2338,42 @@ var (
 	ErrIntOverflowApi   = fmt.Errorf("proto: integer overflow")
 )
 
-func init() { proto.RegisterFile("api.proto", fileDescriptor_api_6056fa0d4d117f42) }
+func init() { proto.RegisterFile("api.proto", fileDescriptor_api_557c4b2bc7cfc8e4) }
 
-var fileDescriptor_api_6056fa0d4d117f42 = []byte{
-	// 542 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x52, 0xc1, 0x6e, 0xd3, 0x4c,
-	0x10, 0xee, 0x26, 0xd9, 0x24, 0x9e, 0xe4, 0xaf, 0xf2, 0xaf, 0xa2, 0xc8, 0xb2, 0xaa, 0x10, 0x7c,
-	0x21, 0x07, 0x9a, 0x4a, 0x41, 0x88, 0xaa, 0x9c, 0x68, 0xe9, 0xa1, 0x87, 0x8a, 0x68, 0xe1, 0xc4,
-	0xcd, 0x71, 0xb6, 0x6e, 0xd4, 0x38, 0xbb, 0xb1, 0x37, 0x95, 0x7c, 0x46, 0xbc, 0x43, 0x6f, 0xf0,
-	0x38, 0x1c, 0x79, 0x04, 0x14, 0x6e, 0x3c, 0x05, 0xda, 0xb1, 0x89, 0x6d, 0x08, 0x28, 0xb7, 0xf9,
-	0x66, 0x66, 0x67, 0xbe, 0xfd, 0xe6, 0x03, 0xcb, 0x53, 0xf3, 0x91, 0x8a, 0xa4, 0x96, 0x0c, 0x02,
-	0x39, 0x0f, 0x47, 0xbe, 0x0c, 0x85, 0x76, 0x8e, 0x83, 0xb9, 0xbe, 0x5d, 0x4f, 0x0d, 0x3a, 0x09,
-	0x64, 0x20, 0x4f, 0xb0, 0x65, 0xba, 0xbe, 0x41, 0x84, 0x00, 0xa3, 0xf4, 0xa9, 0xfb, 0x89, 0x00,
-	0x9d, 0xe0, 0x90, 0x0e, 0x54, 0xef, 0x45, 0x64, 0x93, 0x01, 0x19, 0x52, 0x6e, 0x42, 0x76, 0x04,
-	0x96, 0x54, 0x22, 0xf2, 0xf4, 0x5c, 0x2e, 0xed, 0x0a, 0xe6, 0xf3, 0x04, 0xeb, 0x02, 0x8d, 0xc5,
-	0xea, 0x6a, 0x66, 0x57, 0xb1, 0x92, 0x02, 0xe6, 0x40, 0xd3, 0x97, 0xa1, 0x8a, 0x44, 0x1c, 0xdb,
-	0x35, 0x2c, 0x6c, 0x31, 0x1b, 0x40, 0xcb, 0x97, 0x4b, 0x2d, 0x96, 0xfa, 0x5d, 0xa2, 0x84, 0x4d,
-	0xb1, 0x5c, 0x4c, 0x31, 0x06, 0xb5, 0xa9, 0x9c, 0x25, 0x76, 0x7d, 0x40, 0x86, 0x6d, 0x8e, 0xb1,
-	0xdb, 0x00, 0x7a, 0x19, 0x2a, 0x9d, 0xb8, 0x3e, 0xc0, 0x64, 0x1d, 0xdf, 0x5e, 0xc7, 0x01, 0x17,
-	0x2b, 0xd3, 0x7a, 0x27, 0x92, 0xd8, 0x26, 0x83, 0xea, 0xd0, 0xe2, 0x18, 0xb3, 0x27, 0x40, 0xf1,
-	0x57, 0x48, 0xb6, 0x35, 0xfe, 0x7f, 0x94, 0xeb, 0x32, 0xc2, 0x4f, 0xf2, 0xb4, 0xce, 0x6c, 0x68,
-	0x60, 0xf0, 0x46, 0x65, 0xec, 0x7f, 0x41, 0xf7, 0x10, 0xda, 0xdb, 0x25, 0x6a, 0x91, 0xb8, 0x1f,
-	0x08, 0xb4, 0xcf, 0x23, 0xe9, 0xcd, 0x7c, 0x2f, 0xd6, 0x66, 0x6f, 0xe1, 0x29, 0x29, 0x3d, 0xdd,
-	0x7f, 0xbb, 0x51, 0x4e, 0x09, 0x91, 0x2b, 0x67, 0x80, 0x51, 0x4e, 0x2d, 0x3c, 0x7d, 0x23, 0xa3,
-	0x10, 0x95, 0xb3, 0xf8, 0x16, 0xbb, 0x1d, 0x38, 0x2c, 0x90, 0x30, 0xbc, 0xde, 0x42, 0x27, 0xcf,
-	0x48, 0x19, 0x1a, 0x6a, 0x3d, 0xa8, 0x47, 0x52, 0x86, 0x57, 0xaf, 0x91, 0x99, 0xc5, 0x33, 0xb4,
-	0x37, 0x31, 0xb7, 0x0b, 0xec, 0xb7, 0xa1, 0x66, 0x15, 0x40, 0xd3, 0x80, 0x98, 0x8b, 0x95, 0xfb,
-	0x91, 0x00, 0x64, 0x40, 0x2d, 0x12, 0xf6, 0x02, 0xa8, 0xd9, 0x91, 0x5e, 0xa1, 0x35, 0x7e, 0x5c,
-	0x9c, 0x9c, 0xb7, 0xa5, 0xe1, 0xe5, 0x52, 0x47, 0x09, 0x4f, 0xfb, 0x9d, 0xd3, 0x6c, 0x0c, 0x26,
-	0x8d, 0xf5, 0xee, 0x44, 0x92, 0xb1, 0x36, 0xa1, 0x91, 0xe8, 0xde, 0x5b, 0xac, 0x05, 0x52, 0x6e,
-	0xf2, 0x14, 0x9c, 0x55, 0x4e, 0xc9, 0x59, 0xed, 0xe1, 0xf3, 0xa3, 0x83, 0xf1, 0x8f, 0x0a, 0xd0,
-	0x0b, 0xb3, 0x86, 0x3d, 0x85, 0xda, 0x64, 0xbe, 0x0c, 0x58, 0xe9, 0x57, 0x68, 0x18, 0xe7, 0xcf,
-	0x14, 0x3b, 0x06, 0x7a, 0xb1, 0x90, 0xb1, 0xd8, 0xb3, 0xfd, 0x25, 0x34, 0x32, 0x37, 0xb0, 0x5e,
-	0x49, 0xb5, 0xad, 0x0f, 0x1d, 0x7b, 0x67, 0xde, 0x88, 0xf3, 0x0a, 0xac, 0xad, 0x9a, 0xac, 0xd4,
-	0x56, 0x34, 0x94, 0xe3, 0xfc, 0xa5, 0x62, 0x46, 0x5c, 0xc3, 0x7f, 0xa5, 0x83, 0xb0, 0xa3, 0xdd,
-	0xcd, 0xa9, 0x01, 0x9c, 0xfe, 0x3f, 0xaa, 0x66, 0xdc, 0x73, 0xa0, 0xa8, 0x3a, 0xeb, 0xee, 0x38,
-	0xd4, 0xca, 0xe9, 0xed, 0x3e, 0xdf, 0x79, 0xef, 0xcb, 0xa6, 0x4f, 0xbe, 0x6e, 0xfa, 0xe4, 0xdb,
-	0xa6, 0x4f, 0x1e, 0xbe, 0xf7, 0x0f, 0xde, 0xd7, 0x82, 0x48, 0xf9, 0xd3, 0x3a, 0xba, 0xe6, 0xd9,
-	0xcf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xd8, 0xa4, 0x3a, 0xda, 0x8a, 0x04, 0x00, 0x00,
+var fileDescriptor_api_557c4b2bc7cfc8e4 = []byte{
+	// 529 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x52, 0xcd, 0x6e, 0xd3, 0x40,
+	0x10, 0xee, 0x3a, 0x76, 0x7e, 0xa6, 0xa1, 0x0a, 0xab, 0x28, 0x32, 0x56, 0x95, 0x04, 0x5f, 0xc8,
+	0x81, 0xa6, 0x52, 0x10, 0xa2, 0x2a, 0x27, 0x52, 0x7a, 0xe0, 0x50, 0x11, 0x2d, 0x37, 0x6e, 0x4e,
+	0xb2, 0x75, 0xa3, 0xda, 0xdd, 0xb5, 0xd7, 0xa9, 0xe4, 0x33, 0xe2, 0x1d, 0x7a, 0xe4, 0x71, 0x38,
+	0xf2, 0x04, 0x11, 0x0a, 0xb7, 0x3c, 0x05, 0xda, 0xb1, 0x49, 0x62, 0x08, 0x55, 0x2e, 0xab, 0xf9,
+	0xe6, 0xef, 0xfb, 0x76, 0x66, 0xa0, 0xe6, 0xc9, 0x59, 0x5f, 0xc6, 0x22, 0x11, 0x14, 0x7c, 0x31,
+	0x0b, 0xfb, 0x13, 0x11, 0xf2, 0xc4, 0x39, 0xf1, 0x67, 0xc9, 0xcd, 0x7c, 0xac, 0xd1, 0xa9, 0x2f,
+	0x7c, 0x71, 0x8a, 0x29, 0xe3, 0xf9, 0x35, 0x22, 0x04, 0x68, 0x65, 0xa5, 0xae, 0x02, 0x6b, 0x84,
+	0x3d, 0x9e, 0x41, 0xe9, 0x9e, 0xc7, 0x36, 0xe9, 0x92, 0x9e, 0x35, 0xac, 0xac, 0x16, 0x1d, 0x0d,
+	0x99, 0x7e, 0x68, 0x0b, 0x0c, 0x21, 0x6d, 0x03, 0x23, 0xe5, 0xd5, 0xa2, 0x63, 0x08, 0xc9, 0x0c,
+	0x21, 0x75, 0x89, 0xe2, 0x91, 0x5d, 0xda, 0x94, 0x28, 0x1e, 0x31, 0xfd, 0xd0, 0x63, 0x30, 0xc7,
+	0x62, 0x9a, 0xda, 0x66, 0x97, 0xf4, 0xea, 0xc3, 0xea, 0x6a, 0xd1, 0x41, 0xcc, 0xf0, 0x75, 0x2b,
+	0x60, 0x5d, 0x86, 0x32, 0x49, 0xdd, 0x09, 0xc0, 0x68, 0xae, 0x6e, 0xae, 0x94, 0xcf, 0x78, 0x44,
+	0x29, 0x98, 0xb7, 0x3c, 0x55, 0x36, 0xe9, 0x96, 0x7a, 0x35, 0x86, 0x36, 0x7d, 0x01, 0x16, 0x0a,
+	0x45, 0xfa, 0xc3, 0xc1, 0xd3, 0xfe, 0xe6, 0xab, 0x7d, 0x14, 0xce, 0xb2, 0x38, 0xb5, 0xa1, 0x82,
+	0xc6, 0x47, 0x99, 0x09, 0x62, 0x7f, 0xa0, 0x7b, 0x04, 0xf5, 0x35, 0x89, 0x0c, 0x52, 0xf7, 0x0b,
+	0x81, 0xfa, 0x30, 0x16, 0xde, 0x74, 0xe2, 0xa9, 0x44, 0xf3, 0x6e, 0x95, 0x92, 0x42, 0xe9, 0xfe,
+	0xec, 0x4d, 0xb0, 0x94, 0xe4, 0x7c, 0x9a, 0x73, 0x67, 0x80, 0x3a, 0x50, 0x95, 0x81, 0x97, 0x5c,
+	0x8b, 0x38, 0xc4, 0x49, 0xd4, 0xd8, 0x1a, 0xbb, 0x0d, 0x38, 0xda, 0x12, 0xa1, 0x75, 0x7d, 0x82,
+	0xc6, 0xc6, 0x23, 0x44, 0xa8, 0xa5, 0xb5, 0xa0, 0x1c, 0x0b, 0x11, 0x7e, 0x78, 0x8f, 0xca, 0x6a,
+	0x2c, 0x47, 0x7b, 0x0b, 0x73, 0x9b, 0x40, 0xff, 0x6a, 0xaa, 0xa9, 0x00, 0xaa, 0x1a, 0x28, 0xc6,
+	0x23, 0xf7, 0x2b, 0x01, 0xc8, 0x81, 0x0c, 0x52, 0xfa, 0x06, 0x2c, 0xcd, 0x91, 0x6d, 0xe1, 0x70,
+	0xf0, 0x7c, 0xbb, 0xf3, 0x26, 0x2d, 0x33, 0x2f, 0xef, 0x92, 0x38, 0x65, 0x59, 0xbe, 0x73, 0x96,
+	0xb7, 0x41, 0x27, 0x6d, 0x40, 0xe9, 0x96, 0xa7, 0xb9, 0x6a, 0x6d, 0xea, 0x11, 0xdd, 0x7b, 0xc1,
+	0x9c, 0xa3, 0xe4, 0x2a, 0xcb, 0xc0, 0xb9, 0x71, 0x46, 0xce, 0xcd, 0x87, 0x6f, 0x9d, 0x83, 0xc1,
+	0xca, 0x00, 0xeb, 0x42, 0xd3, 0xd0, 0x97, 0x60, 0x8e, 0x66, 0x77, 0x3e, 0x2d, 0xfc, 0x0a, 0x0f,
+	0xc6, 0xf9, 0xd7, 0x45, 0x4f, 0xc0, 0xba, 0x08, 0x84, 0xe2, 0x7b, 0xa6, 0xbf, 0x85, 0x4a, 0x7e,
+	0x0d, 0xb4, 0x55, 0x98, 0xda, 0xfa, 0x0e, 0x1d, 0x7b, 0xa7, 0x5f, 0x0f, 0xe7, 0x1d, 0xd4, 0xd6,
+	0xd3, 0xa4, 0x85, 0xb4, 0xed, 0x83, 0x72, 0x9c, 0xff, 0x44, 0x74, 0x8b, 0x2b, 0x78, 0x52, 0x58,
+	0x08, 0x3d, 0xde, 0x9d, 0x9c, 0x1d, 0x80, 0xd3, 0x7e, 0x24, 0xaa, 0xdb, 0xbd, 0x06, 0x0b, 0xa7,
+	0x4e, 0x9b, 0x3b, 0x16, 0x15, 0x39, 0xad, 0xdd, 0xeb, 0x1b, 0xb6, 0xbe, 0x2f, 0xdb, 0xe4, 0xc7,
+	0xb2, 0x4d, 0x7e, 0x2e, 0xdb, 0xe4, 0xe1, 0x57, 0xfb, 0xe0, 0xb3, 0xe9, 0xc7, 0x72, 0x32, 0x2e,
+	0xe3, 0xd5, 0xbc, 0xfa, 0x1d, 0x00, 0x00, 0xff, 0xff, 0x46, 0xef, 0x03, 0xca, 0x5d, 0x04, 0x00,
+	0x00,
 }

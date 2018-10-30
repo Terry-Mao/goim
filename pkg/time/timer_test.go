@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"go-common/library/log"
+	log "github.com/golang/glog"
 )
 
 func TestTimer(t *testing.T) {
@@ -15,7 +15,7 @@ func TestTimer(t *testing.T) {
 	}
 	printTimer(timer)
 	for i := 0; i < 100; i++ {
-		log.Info("td: %s, %s, %d", tds[i].Key, tds[i].ExpireString(), tds[i].index)
+		log.Infof("td: %s, %s, %d", tds[i].Key, tds[i].ExpireString(), tds[i].index)
 		timer.Del(tds[i])
 	}
 	printTimer(timer)
@@ -35,9 +35,9 @@ func TestTimer(t *testing.T) {
 }
 
 func printTimer(timer *Timer) {
-	log.Info("----------timers: %d ----------", len(timer.timers))
+	log.Infof("----------timers: %d ----------", len(timer.timers))
 	for i := 0; i < len(timer.timers); i++ {
-		log.Info("timer: %s, %s, index: %d", timer.timers[i].Key, timer.timers[i].ExpireString(), timer.timers[i].index)
+		log.Infof("timer: %s, %s, index: %d", timer.timers[i].Key, timer.timers[i].ExpireString(), timer.timers[i].index)
 	}
-	log.Info("--------------------")
+	log.Infof("--------------------")
 }

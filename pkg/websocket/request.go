@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"go-common/app/service/main/broadcast/libs/bufio"
+	"github.com/Terry-Mao/goim/pkg/bufio"
 )
 
 // Request request.

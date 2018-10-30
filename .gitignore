@@ -18,3 +18,8 @@
 # system ignore
 .DS_Store
 Thumbs.db
+
+# cmd
+/cmd/comet/comet
+/cmd/log/logic
+/cmd/job/job

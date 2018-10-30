@@ -40,7 +40,7 @@ func (b *Builder) Build(target resolver.Target, cc resolver.ClientConn, opts res
 	clusters := map[string]struct{}{}
 	str := strings.SplitN(target.Endpoint, "?", 2)
 	if len(str) == 0 {
-		return nil, errors.Errorf("warden resolver: parse target.Endpoint(%s) failed!err:=endpoint is empty", target.Endpoint)
+		return nil, errors.Errorf("grpc resolver: parse target.Endpoint(%s) failed! the endpoint is empty", target.Endpoint)
 	} else if len(str) == 2 {
 		m, err := url.ParseQuery(str[1])
 		if err == nil {
@@ -134,7 +134,7 @@ func (r *Resolver) newAddress(instances []*naming.Instance) {
 			}
 		}
 		if rpc == "" {
-			log.Warningf("warden/resolver: invalid rpc address(%s,%s,%v) found!", ins.AppID, ins.Hostname, ins.Addrs)
+			log.Warningf("grpc resolver: invalid rpc address(%s,%s,%v) found!", ins.AppID, ins.Hostname, ins.Addrs)
 			continue
 		}
 		addr := resolver.Address{
