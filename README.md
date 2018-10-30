@@ -15,11 +15,11 @@ goim is a im server writen by golang.
  * Asynchronous push notification based on Kafka
 
 ## Architecture
-![arch](https://github.com/Terry-Mao/goim/blob/v2.0/doc/arch.png)
+![arch](./docs/arch.png)
 
 Protocol:
 
-[proto](https://github.com/Terry-Mao/goim/blob/master/doc/protocol.png)
+[proto](./docs/protocol.png)
 
 ## Document
 [English](./README_en.md)
@@ -34,7 +34,7 @@ Android: [Android](https://github.com/roamdy/goim-sdk)
 iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 
 ## Benchmark
-![benchmark](./doc/benchmark.jpg)
+![benchmark](./docs/benchmark.jpg)
 
 ### Benchmark Server
 | CPU | Memory | OS | Instance |
@@ -57,9 +57,9 @@ iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 ### Benchmark Result
 * Received: 35,900,000/s
 
-[中文](./doc/benchmark_cn.md)
+[中文](./docs/benchmark_cn.md)
 
-[English](./doc/benchmark_en.md)
+[English](./docs/benchmark_en.md)
 
 ## LICENSE
 goim is is distributed under the terms of the MIT License.
