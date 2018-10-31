@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -13,16 +14,29 @@ import (
 	"time"
 
 	"github.com/Bilibili/discovery/naming"
+	resolver "github.com/Bilibili/discovery/naming/grpc"
 	"github.com/Terry-Mao/goim/internal/comet"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
 	"github.com/Terry-Mao/goim/internal/comet/grpc"
-	xgrpc "github.com/Terry-Mao/goim/pkg/grpc"
 	"github.com/Terry-Mao/goim/pkg/ip"
 	log "github.com/golang/glog"
 )
 
 const (
 	ver = "2.0.0"
+)
+
+const (
+	// MetaWeight meta weight
+	MetaWeight = "weight"
+	// MetaOffline meta offline
+	MetaOffline = "offline"
+	// MetaIPAddrs meta public ip addrs
+	MetaIPAddrs = "ip_addrs"
+	// MetaStatIP meta stat ip count
+	MetaStatIP = "stat.ip"
+	// MetaStatConn meta stat conn
+	MetaStatConn = "stat.conn"
 )
 
 func main() {
@@ -35,7 +49,7 @@ func main() {
 	log.Infof("goim-comet [version: %s] start", ver)
 	// grpc register naming
 	dis := naming.New(conf.Conf.Naming)
-	xgrpc.Register(dis)
+	resolver.Register(dis)
 	// server
 	srv := comet.NewServer(conf.Conf)
 	if err := comet.InitWhitelist(conf.Conf.Whitelist); err != nil {
@@ -54,25 +68,48 @@ func main() {
 	}
 	// grpc
 	rpcSrv := grpc.New(conf.Conf.RPCServer, srv)
+	cancel := register(dis, srv)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
+	for {
+		s := <-c
+		log.Infof("goim-comet get a signal %s", s.String())
+		switch s {
+		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
+			log.Infof("goim-comet [version: %s] exit", ver)
+			if cancel != nil {
+				cancel()
+			}
+			srv.Close()
+			rpcSrv.GracefulStop()
+			return
+		case syscall.SIGHUP:
+		default:
+			return
+		}
+	}
+}
+
+func register(dis *naming.Discovery, srv *comet.Server) context.CancelFunc {
 	env := conf.Conf.Env
 	addr := ip.InternalIP()
 	_, port, _ := net.SplitHostPort(conf.Conf.RPCServer.Addr)
 	ins := &naming.Instance{
 		Region:   env.Region,
 		Zone:     env.Zone,
-		Env:      env.DeployEnv,
-		Hostname: env.Hostname,
+		Env:      env.Env,
+		Hostname: env.Host,
 		AppID:    "goim.comet",
 		Addrs: []string{
 			"grpc://" + addr + ":" + port,
 		},
 		Metadata: map[string]string{
-			"weight":   env.Weight,
-			"offline":  env.Offline,
-			"ip_addrs": strings.Join(env.IPAddrs, ","),
+			MetaWeight:  env.Weight,
+			MetaOffline: env.Offline,
+			MetaIPAddrs: strings.Join(env.IPAddrs, ","),
 		},
 	}
-	disCancel, err := dis.Register(ins)
+	cancel, err := dis.Register(ins)
 	if err != nil {
 		panic(err)
 	}
@@ -90,33 +127,15 @@ func main() {
 				}
 				conns += bucket.ChannelCount()
 			}
-			ins.Metadata["conns"] = fmt.Sprint(conns)
-			ins.Metadata["ips"] = fmt.Sprint(len(ips))
-			//if err = dis.Set(ins); err != nil {
-			log.Errorf("dis.Set(%+v) error(%v)", ins, err)
-			//	time.Sleep(time.Second)
-			//	continue
-			//}
+			ins.Metadata[MetaStatConn] = fmt.Sprint(conns)
+			ins.Metadata[MetaStatIP] = fmt.Sprint(len(ips))
+			if err = dis.Set(ins); err != nil {
+				log.Errorf("dis.Set(%+v) error(%v)", ins, err)
+				time.Sleep(time.Second)
+				continue
+			}
 			time.Sleep(time.Duration(conf.Conf.ServerTick))
 		}
 	}()
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
-	for {
-		s := <-c
-		log.Infof("goim-comet get a signal %s", s.String())
-		switch s {
-		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
-			log.Infof("goim-comet [version: %s] exit", ver)
-			if disCancel != nil {
-				disCancel()
-			}
-			srv.Close()
-			rpcSrv.GracefulStop()
-			return
-		case syscall.SIGHUP:
-		default:
-			return
-		}
-	}
+	return cancel
 }

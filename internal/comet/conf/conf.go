@@ -37,13 +37,13 @@ type Config struct {
 
 // Env is env config.
 type Env struct {
-	Region    string
-	Zone      string
-	DeployEnv string
-	Hostname  string
-	Weight    string
-	Offline   string
-	IPAddrs   []string
+	Region  string
+	Zone    string
+	Env     string
+	Host    string
+	Weight  string
+	Offline string
+	IPAddrs []string
 }
 
 func (e *Env) fix() {
@@ -53,11 +53,11 @@ func (e *Env) fix() {
 	if e.Zone == "" {
 		e.Zone = os.Getenv("ZONE")
 	}
-	if e.DeployEnv == "" {
-		e.DeployEnv = os.Getenv("DEPLOY_ENV")
+	if e.Env == "" {
+		e.Env = os.Getenv("DEPLOY_ENV")
 	}
-	if e.Hostname == "" {
-		e.Hostname, _ = os.Hostname()
+	if e.Host == "" {
+		e.Host, _ = os.Hostname()
 	}
 	if e.Weight == "" {
 		e.Weight = os.Getenv("WEIGHT")
@@ -98,6 +98,9 @@ type RPCServer struct {
 }
 
 func (r *RPCServer) fix() {
+	if r.Network == "" {
+		r.Network = "tcp"
+	}
 	if r.Timeout <= 0 {
 		r.Timeout = xtime.Duration(time.Second)
 	}

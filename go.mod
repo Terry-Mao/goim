@@ -1,7 +1,7 @@
 module github.com/Terry-Mao/goim
 
 require (
-	github.com/Bilibili/discovery v0.0.0-20181030121503-510956db7ae6
+	github.com/Bilibili/discovery v0.0.0-20181031105343-06a9e867cd84
 	github.com/BurntSushi/toml v0.3.1
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
