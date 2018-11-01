@@ -23,7 +23,7 @@ type Config struct {
 	MaxProc      int
 	ServerTick   xtime.Duration
 	OnlineTick   xtime.Duration
-	Naming       *naming.Config
+	Discovery    *naming.Config
 	TCP          *TCP
 	WebSocket    *WebSocket
 	Timer        *Timer

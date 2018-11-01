@@ -13,7 +13,7 @@ onlineTick = "10s"
 	weight = "10"
 	ipAddrs = ["127.0.0.1"]
 
-[naming]
+[discovery]
 	nodes = ["127.0.0.1:7171"]
 	region = "sh"
 	zone = "sh001"

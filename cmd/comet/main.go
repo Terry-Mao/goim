@@ -48,7 +48,7 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	log.Infof("goim-comet [version: %s] start", ver)
 	// grpc register naming
-	dis := naming.New(conf.Conf.Naming)
+	dis := naming.New(conf.Conf.Discovery)
 	resolver.Register(dis)
 	// server
 	srv := comet.NewServer(conf.Conf)

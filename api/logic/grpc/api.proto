@@ -6,6 +6,22 @@ option go_package = "grpc";
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
+message PushMsg {
+    enum Type {
+        PUSH = 0;
+        BROADCAST = 1;
+        BROADCAST_ROOM = 2;
+    }
+    Type type = 1;
+    int32 operation = 2;
+    string server = 3;
+    repeated string keys = 4;
+    string room = 5;
+    int32 speed = 6;
+    string platform = 7;
+    bytes msg = 8;
+}
+
 message CloseReply {
 }
 

@@ -16,7 +16,7 @@ var (
 )
 
 // JoinInt32s format int323232 slice like:n1,n2,n3.
-func JoinInt32s(is []int32) string {
+func JoinInt32s(is []int32, p string) string {
 	if len(is) == 0 {
 		return ""
 	}
@@ -26,7 +26,7 @@ func JoinInt32s(is []int32) string {
 	buf := bfPool.Get().(*bytes.Buffer)
 	for _, i := range is {
 		buf.WriteString(strconv.FormatInt(int64(i), 10))
-		buf.WriteByte(',')
+		buf.WriteString(p)
 	}
 	if buf.Len() > 0 {
 		buf.Truncate(buf.Len() - 1)
@@ -38,11 +38,11 @@ func JoinInt32s(is []int32) string {
 }
 
 // SplitInt32s split string into int32 slice.
-func SplitInt32s(s string) ([]int32, error) {
+func SplitInt32s(s, p string) ([]int32, error) {
 	if s == "" {
 		return nil, nil
 	}
-	sArr := strings.Split(s, ",")
+	sArr := strings.Split(s, p)
 	res := make([]int32, 0, len(sArr))
 	for _, sc := range sArr {
 		i, err := strconv.ParseInt(sc, 10, 32)
