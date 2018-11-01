@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"context"
@@ -10,12 +10,12 @@ import (
 )
 
 // ServerInfos get servers info.
-func (s *Service) ServerInfos(c context.Context) (res []*naming.Instance, err error) {
+func (s *Logic) ServerInfos(c context.Context) (res []*naming.Instance, err error) {
 	return s.servers, nil
 }
 
 // ServerList get server list.
-func (s *Service) ServerList(c context.Context, platform, ip string) *pb.ServerListReply {
+func (s *Logic) ServerList(c context.Context, platform, ip string) *pb.ServerListReply {
 	reply := &pb.ServerListReply{
 		Domain:       s.c.Server.Domain,
 		TcpPort:      int32(s.c.Server.TCPPort),
@@ -43,7 +43,7 @@ func (s *Service) ServerList(c context.Context, platform, ip string) *pb.ServerL
 }
 
 // ServerWeight server node details.
-func (s *Service) ServerWeight(c context.Context, clientIP string) (interface{}, string, string, error) {
+func (s *Logic) ServerWeight(c context.Context, clientIP string) (interface{}, string, string, error) {
 	var (
 		region   string
 		province string
@@ -54,7 +54,7 @@ func (s *Service) ServerWeight(c context.Context, clientIP string) (interface{},
 	return s.loadBalancer.NodeDetails(region, s.c.Server.RegionWeight), region, province, nil
 }
 
-func (s *Service) nodeAddrs(c context.Context, ip string) (domains, addrs []string) {
+func (s *Logic) nodeAddrs(c context.Context, ip string) (domains, addrs []string) {
 	var region string
 	province, err := s.location(c, ip)
 	if err == nil {
@@ -65,7 +65,7 @@ func (s *Service) nodeAddrs(c context.Context, ip string) (domains, addrs []stri
 	return
 }
 
-func (s *Service) location(c context.Context, ip string) (province string, err error) {
+func (s *Logic) location(c context.Context, ip string) (province string, err error) {
 	// TODO find a geolocation of an IP address including province, region and country.
 	// province: 中国上海
 	return

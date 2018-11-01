@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"context"

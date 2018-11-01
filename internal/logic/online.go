@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"context"
@@ -13,7 +13,7 @@ var (
 )
 
 // OnlineTop get the top online.
-func (s *Service) OnlineTop(c context.Context, business string, n int) (tops []*model.Top, err error) {
+func (s *Logic) OnlineTop(c context.Context, business string, n int) (tops []*model.Top, err error) {
 	for roomKey, cnt := range s.roomCount {
 		if strings.HasPrefix(roomKey, business) {
 			_, roomID, err := model.DecodeRoomKey(roomKey)
@@ -40,7 +40,7 @@ func (s *Service) OnlineTop(c context.Context, business string, n int) (tops []*
 }
 
 // OnlineRoom get rooms online.
-func (s *Service) OnlineRoom(c context.Context, business string, rooms []string) (res map[string]int32, err error) {
+func (s *Logic) OnlineRoom(c context.Context, business string, rooms []string) (res map[string]int32, err error) {
 	res = make(map[string]int32, len(rooms))
 	for _, roomID := range rooms {
 		res[roomID] = s.roomCount[model.EncodeRoomKey(business, roomID)]
@@ -49,6 +49,6 @@ func (s *Service) OnlineRoom(c context.Context, business string, rooms []string)
 }
 
 // OnlineTotal get all online.
-func (s *Service) OnlineTotal(c context.Context) (int64, int64) {
+func (s *Logic) OnlineTotal(c context.Context) (int64, int64) {
 	return s.totalIPs, s.totalConns
 }

@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"context"
@@ -17,8 +17,8 @@ const (
 	_onlineDeadline = time.Minute * 5
 )
 
-// Service struct
-type Service struct {
+// Logic struct
+type Logic struct {
 	c   *conf.Config
 	dis *naming.Discovery
 	dao *dao.Dao
@@ -33,8 +33,8 @@ type Service struct {
 }
 
 // New init
-func New(c *conf.Config) (s *Service) {
-	s = &Service{
+func New(c *conf.Config) (s *Logic) {
+	s = &Logic{
 		c:            c,
 		dao:          dao.New(c),
 		dis:          naming.New(c.Discovery),
@@ -49,16 +49,16 @@ func New(c *conf.Config) (s *Service) {
 }
 
 // Ping ping resources is ok.
-func (s *Service) Ping(c context.Context) (err error) {
+func (s *Logic) Ping(c context.Context) (err error) {
 	return s.dao.Ping(c)
 }
 
 // Close close resources.
-func (s *Service) Close() {
+func (s *Logic) Close() {
 	s.dao.Close()
 }
 
-func (s *Service) initRegions() {
+func (s *Logic) initRegions() {
 	for region, ps := range s.c.Regions {
 		for _, province := range ps {
 			s.regions[province] = region
@@ -66,7 +66,7 @@ func (s *Service) initRegions() {
 	}
 }
 
-func (s *Service) initServer() {
+func (s *Logic) initServer() {
 	res := s.dis.Build("push.interface.broadcast")
 	event := res.Watch()
 	select {
@@ -89,7 +89,7 @@ func (s *Service) initServer() {
 	}()
 }
 
-func (s *Service) newServers(res naming.Resolver) {
+func (s *Logic) newServers(res naming.Resolver) {
 	if zoneIns, ok := res.Fetch(); ok {
 		var (
 			totalConns int64
@@ -127,7 +127,7 @@ func (s *Service) newServers(res naming.Resolver) {
 	}
 }
 
-func (s *Service) onlineproc() {
+func (s *Logic) onlineproc() {
 	for {
 		time.Sleep(_onlineTick)
 		if err := s.loadOnline(); err != nil {
@@ -136,7 +136,7 @@ func (s *Service) onlineproc() {
 	}
 }
 
-func (s *Service) loadOnline() (err error) {
+func (s *Logic) loadOnline() (err error) {
 	var (
 		roomCount = make(map[string]int32)
 	)

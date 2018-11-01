@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 )
 
 // PushKeys push a message by keys.
-func (s *Service) PushKeys(c context.Context, op int32, keys []string, msg string) (err error) {
+func (s *Logic) PushKeys(c context.Context, op int32, keys []string, msg string) (err error) {
 	servers, err := s.dao.ServersByKeys(c, keys)
 	if err != nil {
 		return
@@ -28,7 +28,7 @@ func (s *Service) PushKeys(c context.Context, op int32, keys []string, msg strin
 }
 
 // PushMids push a message by mid.
-func (s *Service) PushMids(c context.Context, op int32, mids []int64, msg string) (err error) {
+func (s *Logic) PushMids(c context.Context, op int32, mids []int64, msg string) (err error) {
 	keyServers, _, err := s.dao.KeysByMids(c, mids)
 	if err != nil {
 		return
@@ -50,7 +50,7 @@ func (s *Service) PushMids(c context.Context, op int32, mids []int64, msg string
 }
 
 // PushRoom push a message by room.
-func (s *Service) PushRoom(c context.Context, op int32, room, msg string) (err error) {
+func (s *Logic) PushRoom(c context.Context, op int32, room, msg string) (err error) {
 	if err = s.dao.BroadcastRoomMsg(c, op, room, msg); err != nil {
 		return
 	}
@@ -58,7 +58,7 @@ func (s *Service) PushRoom(c context.Context, op int32, room, msg string) (err e
 }
 
 // PushAll push a message to all.
-func (s *Service) PushAll(c context.Context, op, speed int32, msg, platform string) (err error) {
+func (s *Logic) PushAll(c context.Context, op, speed int32, msg, platform string) (err error) {
 	if err = s.dao.BroadcastMsg(c, op, speed, msg, platform); err != nil {
 		return
 	}

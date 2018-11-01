@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 )
 
 // Connect connect a conn.
-func (s *Service) Connect(c context.Context, server, serverKey, cookie string, token []byte) (mid int64, key, roomID string, paltform string, accepts []int32, err error) {
+func (s *Logic) Connect(c context.Context, server, serverKey, cookie string, token []byte) (mid int64, key, roomID string, paltform string, accepts []int32, err error) {
 	// TODO test example: mid|key|roomid|platform|accepts
 	params := strings.Split(string(token), "|")
 	if len(params) != 5 {
@@ -34,7 +34,7 @@ func (s *Service) Connect(c context.Context, server, serverKey, cookie string, t
 }
 
 // Disconnect disconnect a conn.
-func (s *Service) Disconnect(c context.Context, mid int64, key, server string) (has bool, err error) {
+func (s *Logic) Disconnect(c context.Context, mid int64, key, server string) (has bool, err error) {
 	if has, err = s.dao.DelMapping(c, mid, key, server); err != nil {
 		log.Errorf("s.dao.DelMapping(%d,%s) error(%v)", mid, key, server)
 		return
@@ -44,7 +44,7 @@ func (s *Service) Disconnect(c context.Context, mid int64, key, server string) (
 }
 
 // Heartbeat heartbeat a conn.
-func (s *Service) Heartbeat(c context.Context, mid int64, key, server string) (err error) {
+func (s *Logic) Heartbeat(c context.Context, mid int64, key, server string) (err error) {
 	has, err := s.dao.ExpireMapping(c, mid, key)
 	if err != nil {
 		log.Errorf("s.dao.ExpireMapping(%d,%s,%s) error(%v)", mid, key, server, err)
@@ -61,7 +61,7 @@ func (s *Service) Heartbeat(c context.Context, mid int64, key, server string) (e
 }
 
 // RenewServer renew a server info.
-func (s *Service) RenewServer(c context.Context, server string, ipAddrs []string, ipCount, connCount int32, shutdown bool) (err error) {
+func (s *Logic) RenewServer(c context.Context, server string, ipAddrs []string, ipCount, connCount int32, shutdown bool) (err error) {
 	if shutdown {
 		s.dao.DelServerInfo(c, server)
 		return
@@ -80,7 +80,7 @@ func (s *Service) RenewServer(c context.Context, server string, ipAddrs []string
 }
 
 // RenewOnline renew a server online.
-func (s *Service) RenewOnline(c context.Context, server string, roomCount map[string]int32) (allRoomCount map[string]int32, err error) {
+func (s *Logic) RenewOnline(c context.Context, server string, roomCount map[string]int32) (allRoomCount map[string]int32, err error) {
 	online := &model.Online{
 		Server:    server,
 		RoomCount: roomCount,
@@ -93,7 +93,7 @@ func (s *Service) RenewOnline(c context.Context, server string, roomCount map[st
 }
 
 // Receive receive a message.
-func (s *Service) Receive(c context.Context, mid int64) (err error) {
+func (s *Logic) Receive(c context.Context, mid int64) (err error) {
 	// TODO upstream message
 	log.Infof("conn receive a message mid:%d", mid)
 	return
