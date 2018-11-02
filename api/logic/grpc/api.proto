@@ -69,17 +69,6 @@ message HeartbeatReq {
 message HeartbeatReply {
 }
 
-message ServerReq {
-    string server = 1;
-    repeated string ipAddrs = 2;
-    int32 ipCount = 3;
-    int32 connCount = 4;
-    bool shutdown = 5;
-}
-
-message ServerReply {
-}
-
 message OnlineReq {
     option (gogoproto.goproto_stringer) = false;
     string server = 1;
@@ -98,11 +87,11 @@ message ReceiveReq {
 message ReceiveReply {
 }
 
-message ServerListReq {
+message NodeListReq {
 	string platform = 1;
 }
 
-message ServerListReply {
+message NodeListReply {
 	string domain = 1 [(gogoproto.jsontag) = "domain"];
 	int32 tcpPort = 2 [(gogoproto.jsontag) = "tcp_port"];
 	int32 wsPort = 3 [(gogoproto.jsontag) = "ws_port"];
@@ -131,12 +120,10 @@ service Logic {
     rpc Disconnect(DisconnectReq) returns (DisconnectReply);
     // Heartbeat
     rpc Heartbeat(HeartbeatReq) returns (HeartbeatReply);
-    // RenewServer
-    rpc RenewServer(ServerReq) returns (ServerReply);
     // RenewOnline
     rpc RenewOnline(OnlineReq) returns (OnlineReply);
     // Receive
     rpc Receive(ReceiveReq) returns (ReceiveReply);
 	//ServerList
-	rpc ServerList(ServerListReq) returns (ServerListReply);
+	rpc NodeList(NodeListReq) returns (NodeListReply);
 }

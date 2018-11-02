@@ -20,21 +20,21 @@ type Config struct {
 	Discovery *naming.Config
 	Kafka     *Kafka
 	Redis     *Redis
-	Server    *Server
+	Node      *Node
 	Backoff   *Backoff
 	Regions   map[string][]string
 }
 
-// Server .
-type Server struct {
-	Domain       string
-	HostDomain   string
-	TCPPort      int
-	WSPort       int
-	WSSPort      int
-	HeartbeatMax int
-	Heartbeat    xtime.Duration
-	RegionWeight float64
+// Node .
+type Node struct {
+	DefaultDomain string
+	HostDomain    string
+	TCPPort       int
+	WSPort        int
+	WSSPort       int
+	HeartbeatMax  int
+	Heartbeat     xtime.Duration
+	RegionWeight  float64
 }
 
 // Backoff .
