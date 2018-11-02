@@ -5,11 +5,6 @@ import (
 	"net/url"
 )
 
-const (
-	// NoRoom default no room key
-	NoRoom = "noroom"
-)
-
 // EncodeRoomKey encode a room key.
 func EncodeRoomKey(business string, room string) string {
 	return fmt.Sprintf("%s://%s", business, room)

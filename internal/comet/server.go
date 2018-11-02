@@ -39,7 +39,7 @@ type Server struct {
 func newLogicClient(c *conf.RPCClient) logic.LogicClient {
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
-		grpc.WithBlock(),
+		// grpc.WithBlock(),
 		grpc.WithTimeout(time.Second),
 		grpc.WithCompressor(grpc.NewGZIPCompressor()),
 	}

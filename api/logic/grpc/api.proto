@@ -87,11 +87,12 @@ message ReceiveReq {
 message ReceiveReply {
 }
 
-message NodeListReq {
+message NodesReq {
 	string platform = 1;
+	string clientIP = 2;
 }
 
-message NodeListReply {
+message NodesReply {
 	string domain = 1 [(gogoproto.jsontag) = "domain"];
 	int32 tcpPort = 2 [(gogoproto.jsontag) = "tcp_port"];
 	int32 wsPort = 3 [(gogoproto.jsontag) = "ws_port"];
@@ -125,5 +126,5 @@ service Logic {
     // Receive
     rpc Receive(ReceiveReq) returns (ReceiveReply);
 	//ServerList
-	rpc NodeList(NodeListReq) returns (NodeListReply);
+	rpc Nodes(NodesReq) returns (NodesReply);
 }

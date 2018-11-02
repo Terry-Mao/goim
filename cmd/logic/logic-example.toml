@@ -6,9 +6,9 @@ perf = "0.0.0.0:8010"
     "sh" = ["上海","江苏","浙江","安徽","江西","湖北","重庆","陕西","青海","河南","台湾"]
     "gz" = ["广东","福建","广西","海南","湖南","四川","贵州","云南","西藏","香港","澳门"]
     
-[server]
-    domain = "conn.goim.io"
-    hostDomain = ".conn.goim.io"
+[node]
+    defaultDomain = "goim.tony.wiki"
+    hostDomain = ".goim.tony.wiki"
     heartbeat = "30s"
 	heartbeatMax = 3
     tcpPort = 8001
@@ -22,12 +22,16 @@ perf = "0.0.0.0:8010"
     factor = 1.8
     jitter = 0.3
 
-[discovery]
-	nodes = ["127.0.0.1:7171"]
-	region = "sh"
+[env]
+    region = "sh"
 	zone = "sh001"
 	env = "dev"
 	host = "test"
+	weight = 10
+	ipAddrs = ["127.0.0.1"]
+
+[discovery]
+	nodes = ["127.0.0.1:7171"]
 
 [rpcServer]
 	dial = "100ms"
@@ -37,9 +41,10 @@ perf = "0.0.0.0:8010"
     addr = "0.0.0.0:8019"
     timeout = "1s"
 
-[http]
+[httpServer]
     addr = "0.0.0.0:8011"
-	timeout = "1s"
+	readTimeout = "1s"
+	writeTimeout = "1s"
 
 [kafka]
     topic = "goimJob-push"

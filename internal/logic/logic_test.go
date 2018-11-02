@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"flag"
@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	s *Service
+	l *Logic
 )
 
 func TestMain(m *testing.M) {
@@ -17,6 +17,6 @@ func TestMain(m *testing.M) {
 	if err := conf.Init(); err != nil {
 		panic(err)
 	}
-	s = New(conf.Conf)
+	l = New(conf.Conf)
 	m.Run()
 }

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -18,25 +19,14 @@ import (
 	"github.com/Terry-Mao/goim/internal/comet"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
 	"github.com/Terry-Mao/goim/internal/comet/grpc"
+	md "github.com/Terry-Mao/goim/internal/logic/model"
 	"github.com/Terry-Mao/goim/pkg/ip"
 	log "github.com/golang/glog"
 )
 
 const (
-	ver = "2.0.0"
-)
-
-const (
-	// MetaWeight meta weight
-	MetaWeight = "weight"
-	// MetaOffline meta offline
-	MetaOffline = "offline"
-	// MetaIPAddrs meta public ip addrs
-	MetaIPAddrs = "ip_addrs"
-	// MetaStatIP meta stat ip count
-	MetaStatIP = "stat.ip"
-	// MetaStatConn meta stat conn
-	MetaStatConn = "stat.conn"
+	ver   = "2.0.0"
+	appid = "goim.comet"
 )
 
 func main() {
@@ -46,11 +36,11 @@ func main() {
 	}
 	runtime.GOMAXPROCS(conf.Conf.MaxProc)
 	rand.Seed(time.Now().UTC().UnixNano())
-	log.Infof("goim-comet [version: %s] start", ver)
-	// grpc register naming
+	log.Infof("goim-comet [version: %s env: %+v] start", ver, conf.Conf.Env)
+	// register discovery
 	dis := naming.New(conf.Conf.Discovery)
 	resolver.Register(dis)
-	// server
+	// new comet server
 	srv := comet.NewServer(conf.Conf)
 	if err := comet.InitWhitelist(conf.Conf.Whitelist); err != nil {
 		panic(err)
@@ -66,7 +56,7 @@ func main() {
 			panic(err)
 		}
 	}
-	// grpc
+	// new grpc server
 	rpcSrv := grpc.New(conf.Conf.RPCServer, srv)
 	cancel := register(dis, srv)
 	c := make(chan os.Signal, 1)
@@ -76,12 +66,13 @@ func main() {
 		log.Infof("goim-comet get a signal %s", s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
-			log.Infof("goim-comet [version: %s] exit", ver)
 			if cancel != nil {
 				cancel()
 			}
-			srv.Close()
 			rpcSrv.GracefulStop()
+			srv.Close()
+			log.Infof("goim-comet [version: %s] exit", ver)
+			log.Flush()
 			return
 		case syscall.SIGHUP:
 		default:
@@ -99,14 +90,14 @@ func register(dis *naming.Discovery, srv *comet.Server) context.CancelFunc {
 		Zone:     env.Zone,
 		Env:      env.Env,
 		Hostname: env.Host,
-		AppID:    "goim.comet",
+		AppID:    appid,
 		Addrs: []string{
 			"grpc://" + addr + ":" + port,
 		},
 		Metadata: map[string]string{
-			MetaWeight:  env.Weight,
-			MetaOffline: env.Offline,
-			MetaIPAddrs: strings.Join(env.IPAddrs, ","),
+			md.MetaWeight:  strconv.FormatInt(env.Weight, 10),
+			md.MetaOffline: strconv.FormatBool(env.Offline),
+			md.MetaIPAddrs: strings.Join(env.IPAddrs, ","),
 		},
 	}
 	cancel, err := dis.Register(ins)
@@ -127,8 +118,8 @@ func register(dis *naming.Discovery, srv *comet.Server) context.CancelFunc {
 				}
 				conns += bucket.ChannelCount()
 			}
-			ins.Metadata[MetaStatConn] = fmt.Sprint(conns)
-			ins.Metadata[MetaStatIP] = fmt.Sprint(len(ips))
+			ins.Metadata[md.MetaConnCount] = fmt.Sprint(conns)
+			ins.Metadata[md.MetaIPCount] = fmt.Sprint(len(ips))
 			if err = dis.Set(ins); err != nil {
 				log.Errorf("dis.Set(%+v) error(%v)", ins, err)
 				time.Sleep(time.Second)

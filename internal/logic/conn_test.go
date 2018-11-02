@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"context"
@@ -15,17 +15,17 @@ func TestConnect(t *testing.T) {
 		c         = context.Background()
 	)
 	// connect
-	mid, key, roomID, _, accepts, err := s.Connect(c, server, serverKey, "", token)
+	mid, key, roomID, _, accepts, err := l.Connect(c, server, serverKey, "", token)
 	assert.Nil(t, err)
 	assert.Equal(t, serverKey, key)
 	assert.Equal(t, roomID, "live://test_room")
 	assert.Equal(t, len(accepts), 3)
 	t.Log(mid, key, roomID, accepts, err)
 	// heartbeat
-	err = s.Heartbeat(c, mid, key, server)
+	err = l.Heartbeat(c, mid, key, server)
 	assert.Nil(t, err)
 	// disconnect
-	has, err := s.Disconnect(c, mid, key, server)
+	has, err := l.Disconnect(c, mid, key, server)
 	assert.Nil(t, err)
 	assert.Equal(t, true, has)
 }

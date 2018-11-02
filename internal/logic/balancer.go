@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/Bilibili/discovery/naming"
+	"github.com/Terry-Mao/goim/internal/logic/model"
 	log "github.com/golang/glog"
 )
 
@@ -168,14 +169,14 @@ func (lb *LoadBalancer) Update(ins []*naming.Instance) {
 			totalWeight += old.fixedWeight
 		} else {
 			meta := in.Metadata
-			weight, err := strconv.ParseInt(meta["weight"], 10, 32)
+			weight, err := strconv.ParseInt(meta[model.MetaWeight], 10, 32)
 			if err != nil {
-				log.Errorf("strconv.ParseInt(weight:%s) error(%v)", meta["weight"], err)
+				log.Errorf("instance(%+v) strconv.ParseInt(weight:%s) error(%v)", in, meta[model.MetaWeight], err)
 				continue
 			}
-			conns, err := strconv.ParseInt(meta["conns"], 10, 32)
+			conns, err := strconv.ParseInt(meta[model.MetaConnCount], 10, 32)
 			if err != nil {
-				log.Errorf("strconv.ParseInt(conns:%s) error(%v)", meta["conns"], err)
+				log.Errorf("instance(%+v) strconv.ParseInt(conns:%s) error(%v)", in, meta[model.MetaConnCount], err)
 				continue
 			}
 			nodes[in.Hostname] = &weightedNode{
@@ -183,7 +184,7 @@ func (lb *LoadBalancer) Update(ins []*naming.Instance) {
 				hostname:     in.Hostname,
 				fixedWeight:  weight,
 				currentConns: conns,
-				addrs:        strings.Split(meta["ip_addrs"], ","),
+				addrs:        strings.Split(meta[model.MetaIPAddrs], ","),
 				updated:      in.LastTs,
 			}
 			totalConns += conns

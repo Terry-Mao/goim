@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"context"
@@ -17,8 +17,8 @@ const (
 	_onlineDeadline = time.Minute * 5
 )
 
-// Service struct
-type Service struct {
+// Logic struct
+type Logic struct {
 	c   *conf.Config
 	dis *naming.Discovery
 	dao *dao.Dao
@@ -27,52 +27,52 @@ type Service struct {
 	totalConns int64
 	roomCount  map[string]int32
 	// load balancer
-	servers      []*naming.Instance
+	nodes        []*naming.Instance
 	loadBalancer *LoadBalancer
 	regions      map[string]string // province -> region
 }
 
 // New init
-func New(c *conf.Config) (s *Service) {
-	s = &Service{
+func New(c *conf.Config) (l *Logic) {
+	l = &Logic{
 		c:            c,
 		dao:          dao.New(c),
 		dis:          naming.New(c.Discovery),
 		loadBalancer: NewLoadBalancer(),
 		regions:      make(map[string]string),
 	}
-	s.initRegions()
-	s.initServer()
-	s.loadOnline()
-	go s.onlineproc()
-	return s
+	l.initRegions()
+	l.initNodes()
+	l.loadOnline()
+	go l.onlineproc()
+	return l
 }
 
 // Ping ping resources is ok.
-func (s *Service) Ping(c context.Context) (err error) {
-	return s.dao.Ping(c)
+func (l *Logic) Ping(c context.Context) (err error) {
+	return l.dao.Ping(c)
 }
 
 // Close close resources.
-func (s *Service) Close() {
-	s.dao.Close()
+func (l *Logic) Close() {
+	l.dao.Close()
 }
 
-func (s *Service) initRegions() {
-	for region, ps := range s.c.Regions {
+func (l *Logic) initRegions() {
+	for region, ps := range l.c.Regions {
 		for _, province := range ps {
-			s.regions[province] = region
+			l.regions[province] = region
 		}
 	}
 }
 
-func (s *Service) initServer() {
-	res := s.dis.Build("push.interface.broadcast")
+func (l *Logic) initNodes() {
+	res := l.dis.Build("goim.comet")
 	event := res.Watch()
 	select {
 	case _, ok := <-event:
 		if ok {
-			s.newServers(res)
+			l.newNodes(res)
 		} else {
 			panic("discovery watch failed")
 		}
@@ -84,76 +84,78 @@ func (s *Service) initServer() {
 			if _, ok := <-event; !ok {
 				return
 			}
-			s.newServers(res)
+			l.newNodes(res)
 		}
 	}()
 }
 
-func (s *Service) newServers(res naming.Resolver) {
+func (l *Logic) newNodes(res naming.Resolver) {
 	if zoneIns, ok := res.Fetch(); ok {
 		var (
 			totalConns int64
 			totalIPs   int64
-			ins        []*naming.Instance
+			allIns     []*naming.Instance
 		)
 		for _, zins := range zoneIns {
-			for _, in := range zins {
-				if in.Metadata == nil {
-					log.Errorf("instance metadata is empty(%+v)", in)
+			for _, ins := range zins {
+				if ins.Metadata == nil {
+					log.Errorf("node instance metadata is empty(%+v)", ins)
 					continue
 				}
-				if in.Metadata["offline"] == "true" {
+				offline, err := strconv.ParseBool(ins.Metadata[model.MetaOffline])
+				if err != nil || offline {
+					log.Warningf("strconv.ParseBool(offline:%t) error(%v)", offline, err)
 					continue
 				}
-				conns, err := strconv.ParseInt(in.Metadata["conns"], 10, 32)
+				conns, err := strconv.ParseInt(ins.Metadata[model.MetaConnCount], 10, 32)
 				if err != nil {
 					log.Errorf("strconv.ParseInt(conns:%d) error(%v)", conns, err)
 					continue
 				}
-				ips, err := strconv.ParseInt(in.Metadata["ips"], 10, 32)
+				ips, err := strconv.ParseInt(ins.Metadata[model.MetaIPCount], 10, 32)
 				if err != nil {
 					log.Errorf("strconv.ParseInt(ips:%d) error(%v)", ips, err)
 					continue
 				}
 				totalConns += conns
 				totalIPs += ips
-				ins = append(ins, in)
+				allIns = append(allIns, ins)
 			}
 		}
-		s.totalConns = totalConns
-		s.totalIPs = totalIPs
-		s.servers = ins
-		s.loadBalancer.Update(ins)
+		l.totalConns = totalConns
+		l.totalIPs = totalIPs
+		l.nodes = allIns
+		l.loadBalancer.Update(allIns)
 	}
 }
 
-func (s *Service) onlineproc() {
+func (l *Logic) onlineproc() {
 	for {
 		time.Sleep(_onlineTick)
-		if err := s.loadOnline(); err != nil {
+		if err := l.loadOnline(); err != nil {
 			log.Errorf("onlineproc error(%v)", err)
 		}
 	}
 }
 
-func (s *Service) loadOnline() (err error) {
+func (l *Logic) loadOnline() (err error) {
 	var (
 		roomCount = make(map[string]int32)
 	)
-	for _, server := range s.servers {
+	for _, server := range l.nodes {
 		var online *model.Online
-		online, err = s.dao.ServerOnline(context.Background(), server.Hostname)
+		online, err = l.dao.ServerOnline(context.Background(), server.Hostname)
 		if err != nil {
 			return
 		}
 		if time.Since(time.Unix(online.Updated, 0)) > _onlineDeadline {
-			s.dao.DelServerOnline(context.Background(), server.Hostname)
+			l.dao.DelServerOnline(context.Background(), server.Hostname)
 			continue
 		}
 		for roomID, count := range online.RoomCount {
 			roomCount[roomID] += count
 		}
 	}
-	s.roomCount = roomCount
+	l.roomCount = roomCount
 	return
 }

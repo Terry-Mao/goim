@@ -29,7 +29,11 @@ func New(c *conf.RPCServer, s *comet.Server) *grpc.Server {
 	if err != nil {
 		panic(err)
 	}
-	srv.Serve(lis)
+	go func() {
+		if err := srv.Serve(lis); err != nil {
+			panic(err)
+		}
+	}()
 	return srv
 }
 

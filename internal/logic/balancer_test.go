@@ -1,10 +1,11 @@
-package service
+package logic
 
 import (
 	"sort"
 	"testing"
 
 	"github.com/Bilibili/discovery/naming"
+	"github.com/Terry-Mao/goim/internal/logic/model"
 )
 
 func TestWeightedNode(t *testing.T) {
@@ -35,30 +36,30 @@ func TestLoadBalancer(t *testing.T) {
 			Region:   "bj",
 			Hostname: "01",
 			Metadata: map[string]string{
-				"weight":   "10",
-				"conns":    "240590",
-				"ips":      "10",
-				"ip_addrs": "ip_bj",
+				model.MetaWeight:    "10",
+				model.MetaConnCount: "240590",
+				model.MetaIPCount:   "10",
+				model.MetaIPAddrs:   "ip_bj",
 			},
 		},
 		&naming.Instance{
 			Region:   "sh",
 			Hostname: "02",
 			Metadata: map[string]string{
-				"weight":   "10",
-				"conns":    "375420",
-				"ips":      "10",
-				"ip_addrs": "ip_sh",
+				model.MetaWeight:    "10",
+				model.MetaConnCount: "375420",
+				model.MetaIPCount:   "10",
+				model.MetaIPAddrs:   "ip_sh",
 			},
 		},
 		&naming.Instance{
 			Region:   "gz",
 			Hostname: "03",
 			Metadata: map[string]string{
-				"weight":   "10",
-				"conns":    "293430",
-				"ips":      "10",
-				"ip_addrs": "ip_gz",
+				model.MetaWeight:    "10",
+				model.MetaConnCount: "293430",
+				model.MetaIPCount:   "10",
+				model.MetaIPAddrs:   "ip_gz",
 			},
 		},
 	}

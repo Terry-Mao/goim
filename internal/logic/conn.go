@@ -1,4 +1,4 @@
-package service
+package logic
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	log "github.com/golang/glog"
 )
 
-// Connect connect a conn.
-func (s *Service) Connect(c context.Context, server, serverKey, cookie string, token []byte) (mid int64, key, roomID string, paltform string, accepts []int32, err error) {
+// Connect connected a conn.
+func (l *Logic) Connect(c context.Context, server, serverKey, cookie string, token []byte) (mid int64, key, roomID string, paltform string, accepts []int32, err error) {
 	// TODO test example: mid|key|roomid|platform|accepts
 	params := strings.Split(string(token), "|")
 	if len(params) != 5 {
@@ -34,9 +34,9 @@ func (s *Service) Connect(c context.Context, server, serverKey, cookie string, t
 }
 
 // Disconnect disconnect a conn.
-func (s *Service) Disconnect(c context.Context, mid int64, key, server string) (has bool, err error) {
-	if has, err = s.dao.DelMapping(c, mid, key, server); err != nil {
-		log.Errorf("s.dao.DelMapping(%d,%s) error(%v)", mid, key, server)
+func (l *Logic) Disconnect(c context.Context, mid int64, key, server string) (has bool, err error) {
+	if has, err = l.dao.DelMapping(c, mid, key, server); err != nil {
+		log.Errorf("l.dao.DelMapping(%d,%s) error(%v)", mid, key, server)
 		return
 	}
 	log.Infof("conn disconnected key:%s server:%s mid:%d", key, server, mid)
@@ -44,15 +44,15 @@ func (s *Service) Disconnect(c context.Context, mid int64, key, server string) (
 }
 
 // Heartbeat heartbeat a conn.
-func (s *Service) Heartbeat(c context.Context, mid int64, key, server string) (err error) {
-	has, err := s.dao.ExpireMapping(c, mid, key)
+func (l *Logic) Heartbeat(c context.Context, mid int64, key, server string) (err error) {
+	has, err := l.dao.ExpireMapping(c, mid, key)
 	if err != nil {
-		log.Errorf("s.dao.ExpireMapping(%d,%s,%s) error(%v)", mid, key, server, err)
+		log.Errorf("l.dao.ExpireMapping(%d,%s,%s) error(%v)", mid, key, server, err)
 		return
 	}
 	if !has {
-		if err = s.dao.AddMapping(c, mid, key, server); err != nil {
-			log.Errorf("s.dao.AddMapping(%d,%s,%s) error(%v)", mid, key, server, err)
+		if err = l.dao.AddMapping(c, mid, key, server); err != nil {
+			log.Errorf("l.dao.AddMapping(%d,%s,%s) error(%v)", mid, key, server, err)
 			return
 		}
 	}
@@ -61,9 +61,9 @@ func (s *Service) Heartbeat(c context.Context, mid int64, key, server string) (e
 }
 
 // RenewServer renew a server info.
-func (s *Service) RenewServer(c context.Context, server string, ipAddrs []string, ipCount, connCount int32, shutdown bool) (err error) {
+func (l *Logic) RenewServer(c context.Context, server string, ipAddrs []string, ipCount, connCount int32, shutdown bool) (err error) {
 	if shutdown {
-		s.dao.DelServerInfo(c, server)
+		l.dao.DelServerInfo(c, server)
 		return
 	}
 	serverInfo := &model.ServerInfo{
@@ -73,27 +73,27 @@ func (s *Service) RenewServer(c context.Context, server string, ipAddrs []string
 		ConnCount: connCount,
 		Updated:   time.Now().Unix(),
 	}
-	if err = s.dao.AddServerInfo(c, server, serverInfo); err != nil {
+	if err = l.dao.AddServerInfo(c, server, serverInfo); err != nil {
 		return
 	}
 	return
 }
 
 // RenewOnline renew a server online.
-func (s *Service) RenewOnline(c context.Context, server string, roomCount map[string]int32) (allRoomCount map[string]int32, err error) {
+func (l *Logic) RenewOnline(c context.Context, server string, roomCount map[string]int32) (allRoomCount map[string]int32, err error) {
 	online := &model.Online{
 		Server:    server,
 		RoomCount: roomCount,
 		Updated:   time.Now().Unix(),
 	}
-	if err = s.dao.AddServerOnline(context.Background(), server, online); err != nil {
+	if err = l.dao.AddServerOnline(context.Background(), server, online); err != nil {
 		return
 	}
-	return s.roomCount, nil
+	return l.roomCount, nil
 }
 
 // Receive receive a message.
-func (s *Service) Receive(c context.Context, mid int64) (err error) {
+func (l *Logic) Receive(c context.Context, mid int64) (err error) {
 	// TODO upstream message
 	log.Infof("conn receive a message mid:%d", mid)
 	return

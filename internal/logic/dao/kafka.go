@@ -10,13 +10,13 @@ import (
 )
 
 // PushMsg push a message to databus.
-func (d *Dao) PushMsg(c context.Context, op int32, server, msg string, keys []string) (err error) {
+func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_PUSH,
 		Operation: op,
 		Server:    server,
 		Keys:      keys,
-		Msg:       []byte(msg),
+		Msg:       msg,
 	}
 	b, err := proto.Marshal(pushMsg)
 	if err != nil {
@@ -34,12 +34,12 @@ func (d *Dao) PushMsg(c context.Context, op int32, server, msg string, keys []st
 }
 
 // BroadcastRoomMsg push a message to databus.
-func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room, msg string) (err error) {
+func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_BROADCAST_ROOM,
 		Operation: op,
 		Room:      room,
-		Msg:       []byte(msg),
+		Msg:       msg,
 	}
 	b, err := proto.Marshal(pushMsg)
 	if err != nil {
@@ -57,12 +57,12 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room, msg string) (e
 }
 
 // BroadcastMsg push a message to databus.
-func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, msg, platform string) (err error) {
+func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, platform string, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_BROADCAST,
 		Operation: op,
 		Speed:     speed,
-		Msg:       []byte(msg),
+		Msg:       msg,
 		Platform:  platform,
 	}
 	b, err := proto.Marshal(pushMsg)

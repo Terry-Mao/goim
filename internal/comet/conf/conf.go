@@ -3,6 +3,7 @@ package conf
 import (
 	"flag"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,8 +42,8 @@ type Env struct {
 	Zone    string
 	Env     string
 	Host    string
-	Weight  string
-	Offline string
+	Weight  int64
+	Offline bool
 	IPAddrs []string
 }
 
@@ -59,11 +60,11 @@ func (e *Env) fix() {
 	if e.Host == "" {
 		e.Host, _ = os.Hostname()
 	}
-	if e.Weight == "" {
-		e.Weight = os.Getenv("WEIGHT")
+	if e.Weight <= 0 {
+		e.Weight, _ = strconv.ParseInt(os.Getenv("WEIGHT"), 10, 32)
 	}
-	if e.Offline == "" {
-		e.Offline = os.Getenv("OFFLINE")
+	if !e.Offline {
+		e.Offline, _ = strconv.ParseBool(os.Getenv("OFFLINE"))
 	}
 	if len(e.IPAddrs) == 0 {
 		e.IPAddrs = strings.Split(os.Getenv("IP_ADDRS"), ",")
@@ -191,6 +192,10 @@ func local() (err error) {
 }
 
 func (c *Config) fix() {
+	if c.Env == nil {
+		c.Env = new(Env)
+	}
+	c.Env.fix()
 	if c.MaxProc <= 0 {
 		c.MaxProc = 32
 	}
@@ -206,8 +211,16 @@ func (c *Config) fix() {
 	if c.RPCServer != nil {
 		c.RPCServer.fix()
 	}
-	if c.Env == nil {
-		c.Env = new(Env)
+	if c.Discovery.Region == "" {
+		c.Discovery.Region = c.Env.Region
 	}
-	c.Env.fix()
+	if c.Discovery.Zone == "" {
+		c.Discovery.Zone = c.Env.Zone
+	}
+	if c.Discovery.Env == "" {
+		c.Discovery.Env = c.Env.Env
+	}
+	if c.Discovery.Host == "" {
+		c.Discovery.Host = c.Env.Host
+	}
 }

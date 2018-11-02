@@ -10,15 +10,11 @@ onlineTick = "10s"
 	zone = "sh001"
 	env = "dev"
 	host = "test"
-	weight = "10"
+	weight = 10
 	ipAddrs = ["127.0.0.1"]
 
 [discovery]
 	nodes = ["127.0.0.1:7171"]
-	region = "sh"
-	zone = "sh001"
-	env = "dev"
-	host = "test"
 
 [rpcServer]
     network = "tcp"
@@ -60,7 +56,7 @@ onlineTick = "10s"
 
 [whitelist]
     Whitelist = [123]
-    WhiteLog  = "tmp/white_list.log"
+    WhiteLog  = "/tmp/white_list.log"
 
 [bucket]
     size = 32
