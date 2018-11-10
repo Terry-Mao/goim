@@ -9,8 +9,8 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 message PushMsg {
     enum Type {
         PUSH = 0;
-        BROADCAST = 1;
-        BROADCAST_ROOM = 2;
+        ROOM = 1;
+        BROADCAST = 2;
     }
     Type type = 1;
     int32 operation = 2;

@@ -18,6 +18,10 @@ var (
 	Conf = &Config{}
 )
 
+func init() {
+	flag.StringVar(&confPath, "conf", "comet-example.toml", "default config path")
+}
+
 // Config is comet config.
 type Config struct {
 	Debug        bool

@@ -47,7 +47,7 @@ perf = "0.0.0.0:8010"
 	writeTimeout = "1s"
 
 [kafka]
-    topic = "goimJob-push"
+    topic = "goimPush-topic"
     brokers = ["127.0.0.1:9092"]
 
 [redis]

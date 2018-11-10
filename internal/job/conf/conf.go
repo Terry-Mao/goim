@@ -1,8 +1,10 @@
 package conf
 
 import (
+	"flag"
 	"os"
 
+	"github.com/Bilibili/discovery/naming"
 	"github.com/BurntSushi/toml"
 )
 
@@ -12,9 +14,29 @@ var (
 	Conf = &Config{}
 )
 
+func init() {
+	flag.StringVar(&confPath, "conf", "job-example.toml", "default config path")
+}
+
 // Config is job config.
 type Config struct {
-	Env *Env
+	Env       *Env
+	Kafka     *Kafka
+	Discovery *naming.Config
+	Comet     *Comet
+}
+
+// Comet is comet config.
+type Comet struct {
+	RoutineChan int
+	RoutineSize int
+}
+
+// Kafka is kafka config.
+type Kafka struct {
+	Topic   string
+	Group   string
+	Brokers []string
 }
 
 // Env is env config.

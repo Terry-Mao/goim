@@ -18,6 +18,10 @@ var (
 	Conf = &Config{}
 )
 
+func init() {
+	flag.StringVar(&confPath, "conf", "logic-example.toml", "default config path")
+}
+
 // Config .
 type Config struct {
 	Env        *Env
@@ -156,10 +160,6 @@ type HTTPServer struct {
 	Addr         string
 	ReadTimeout  xtime.Duration
 	WriteTimeout xtime.Duration
-}
-
-func init() {
-	flag.StringVar(&confPath, "conf", "", "default config path")
 }
 
 // Init init conf
