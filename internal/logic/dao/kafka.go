@@ -36,7 +36,7 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 // BroadcastRoomMsg push a message to databus.
 func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
-		Type:      pb.PushMsg_BROADCAST_ROOM,
+		Type:      pb.PushMsg_ROOM,
 		Operation: op,
 		Room:      room,
 		Msg:       msg,

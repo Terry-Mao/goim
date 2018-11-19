@@ -1,10 +1,18 @@
 # This is a TOML document. Boom
 perf = "0.0.0.0:8010"
 
+[env]
+    region = "sh"
+	zone = "sh001"
+	env = "dev"
+	host = "test"
+	weight = 10
+	ipAddrs = ["127.0.0.1"]
+
 [discovery]
 	nodes = ["127.0.0.1:7171"]
 
 [kafka]
-    topic = "goimPush-topic"
-    group = "goimPush-group"
+    topic = "goim-push-topic"
+    group = "goim-push-group"
     brokers = ["127.0.0.1:9092"]

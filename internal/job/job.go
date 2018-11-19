@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/Bilibili/discovery/naming"
@@ -19,6 +20,9 @@ type Job struct {
 	c            *conf.Config
 	consumer     *cluster.Consumer
 	cometServers map[string]*Comet
+
+	rooms      map[string]*Room
+	roomsMutex sync.RWMutex
 }
 
 // New new a push job.

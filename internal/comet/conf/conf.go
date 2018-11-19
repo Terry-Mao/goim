@@ -178,10 +178,6 @@ type Bucket struct {
 	RoutineSize   int
 }
 
-func init() {
-	flag.StringVar(&confPath, "conf", "", "default config path")
-}
-
 // Init init conf.
 func Init() error {
 	return local()

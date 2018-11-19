@@ -34,8 +34,8 @@ func main() {
 	if err := conf.Init(); err != nil {
 		panic(err)
 	}
-	runtime.GOMAXPROCS(conf.Conf.MaxProc)
 	rand.Seed(time.Now().UTC().UnixNano())
+	runtime.GOMAXPROCS(conf.Conf.MaxProc)
 	log.Infof("goim-comet [version: %s env: %+v] start", ver, conf.Conf.Env)
 	// register discovery
 	dis := naming.New(conf.Conf.Discovery)
