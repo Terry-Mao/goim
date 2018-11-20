@@ -80,14 +80,12 @@ func (s *Server) Operate(p *model.Proto, ch *Channel, b *Bucket) (err error) {
 		err = b.ChangeRoom(string(p.Body), ch)
 		p.Op = model.OpChangeRoomReply
 	case p.Op == model.OpRegister:
-		ops, err := strings.SplitInt32s(string(p.Body), ",")
-		if err == nil {
+		if ops, err := strings.SplitInt32s(string(p.Body), ","); err == nil {
 			ch.Watch(ops...)
 		}
 		p.Op = model.OpRegisterReply
 	case p.Op == model.OpUnregister:
-		ops, err := strings.SplitInt32s(string(p.Body), ",")
-		if err == nil {
+		if ops, err := strings.SplitInt32s(string(p.Body), ","); err == nil {
 			ch.UnWatch(ops...)
 		}
 		p.Op = model.OpUnregisterReply

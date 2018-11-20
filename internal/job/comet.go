@@ -17,10 +17,9 @@ import (
 
 func newCometClient(addr string) (pb.CometClient, error) {
 	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
 		// grpc.WithBlock(),
+		grpc.WithInsecure(),
 		grpc.WithTimeout(time.Second),
-		grpc.WithCompressor(grpc.NewGZIPCompressor()),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second))
 	defer cancel()

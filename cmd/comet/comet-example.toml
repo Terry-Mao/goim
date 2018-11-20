@@ -1,20 +1,20 @@
 # This is a TOML document. Boom
-debug = false
+debug = true
 perf = "0.0.0.0:7820"
 maxproc = 32
 serverTick = "5s"
 onlineTick = "10s"
 
 [env]
-    region = "sh"
-	zone = "sh001"
+    region = "hk"
+	zone = "hk001"
 	env = "dev"
 	host = "test"
 	weight = 10
-	ipAddrs = ["127.0.0.1"]
+	ipAddrs = ["hk001.tony.wiki"]
 
 [discovery]
-	nodes = ["127.0.0.1:7171"]
+	nodes = ["hk001.tony.wiki:7171"]
 
 [rpcServer]
     network = "tcp"

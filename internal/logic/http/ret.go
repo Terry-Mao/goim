@@ -15,7 +15,7 @@ const (
 )
 
 // Ret ret.
-type Ret struct {
+type ret struct {
 	Code int         `json:"code"`
 	Data interface{} `json:"data,omitempty"`
 }
@@ -25,7 +25,7 @@ func writeJSON(w http.ResponseWriter, code int, data interface{}) (err error) {
 	header := w.Header()
 	header["Content-Type"] = []string{"application/json; charset=utf-8"}
 	// write body
-	ret := Ret{
+	ret := ret{
 		Code: code,
 		Data: data,
 	}

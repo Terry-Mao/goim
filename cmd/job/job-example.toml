@@ -2,15 +2,13 @@
 perf = "0.0.0.0:8010"
 
 [env]
-    region = "sh"
-	zone = "sh001"
+    region = "hk"
+	zone = "hk001"
 	env = "dev"
 	host = "test"
-	weight = 10
-	ipAddrs = ["127.0.0.1"]
 
 [discovery]
-	nodes = ["127.0.0.1:7171"]
+	nodes = ["hk001.tony.wiki:7171"]
 
 [kafka]
     topic = "goim-push-topic"

@@ -38,7 +38,7 @@ func NewChannel(cli, svr int) *Channel {
 func (c *Channel) Watch(accepts ...int32) {
 	c.mutex.Lock()
 	for _, op := range accepts {
-		if op > grpc.MaxBusinessOp {
+		if op >= grpc.MaxBusinessOp {
 			c.watchOps[op] = struct{}{}
 		}
 	}

@@ -24,7 +24,7 @@
         var textEncoder = new TextEncoder();
         var heartbeatInterval;
         function connect() {
-            var ws = new WebSocket('ws://127.0.0.1:8090/sub');
+            var ws = new WebSocket('ws://127.0.0.1:8002/sub');
             ws.binaryType = 'arraybuffer';
             ws.onopen = function() {
                 auth();
@@ -84,7 +84,7 @@
             }
 
             function auth() {
-                var token = "1" // userID
+                var token = '{"mid":123, "room_id":"live://1000", "platform":"web", "accepts":[1000]}'
                 var headerBuf = new ArrayBuffer(rawHeaderLen);
                 var headerView = new DataView(headerBuf, 0);
                 var bodyBuf = textEncoder.encode(token);

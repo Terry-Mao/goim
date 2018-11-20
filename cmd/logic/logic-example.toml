@@ -23,25 +23,25 @@ perf = "0.0.0.0:8010"
     jitter = 0.3
 
 [env]
-    region = "sh"
-	zone = "sh001"
+    region = "hk"
+	zone = "hk001"
 	env = "dev"
 	host = "test"
-	weight = 10
-	ipAddrs = ["127.0.0.1"]
 
 [discovery]
-	nodes = ["127.0.0.1:7171"]
+	nodes = ["hk001.tony.wiki:7171"]
 
 [rpcServer]
-	dial = "100ms"
-	timeout = "500ms"
-
-[rpcClient]
+    network = "tcp"
     addr = "0.0.0.0:8019"
     timeout = "1s"
 
+[rpcClient]
+    dial = "1s"
+    timeout = "1s"
+
 [httpServer]
+    network = "tcp"
     addr = "0.0.0.0:8011"
 	readTimeout = "1s"
 	writeTimeout = "1s"

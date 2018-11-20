@@ -2,33 +2,31 @@ package logic
 
 import (
 	"context"
-	"fmt"
-	"strconv"
-	"strings"
+	"encoding/json"
 	"time"
 
 	"github.com/Terry-Mao/goim/internal/logic/model"
-	xstr "github.com/Terry-Mao/goim/pkg/strings"
 	log "github.com/golang/glog"
 )
 
 // Connect connected a conn.
 func (l *Logic) Connect(c context.Context, server, serverKey, cookie string, token []byte) (mid int64, key, roomID string, paltform string, accepts []int32, err error) {
-	// TODO test example: mid|key|roomid|platform|accepts
-	params := strings.Split(string(token), "|")
-	if len(params) != 5 {
-		err = fmt.Errorf("invalid token:%s", token)
+	var params struct {
+		Mid      int64
+		Key      string
+		RoomID   string
+		Platform string
+		Accepts  []int32
+	}
+	if err = json.Unmarshal(token, &params); err != nil {
+		log.Errorf("json.Unmarshal(%s) error(%v)", token, err)
 		return
 	}
-	if mid, err = strconv.ParseInt(params[0], 10, 64); err != nil {
-		return
-	}
-	key = params[1]
-	roomID = params[2]
-	paltform = params[3]
-	if accepts, err = xstr.SplitInt32s(params[4], ","); err != nil {
-		return
-	}
+	mid = params.Mid
+	key = params.Key
+	roomID = params.RoomID
+	paltform = params.Platform
+	accepts = params.Accepts
 	log.Infof("conn connected key:%s server:%s mid:%d token:%s", key, server, mid, token)
 	return
 }
