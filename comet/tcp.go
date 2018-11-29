@@ -106,7 +106,7 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		wr    = &ch.Writer
 	)
 		
-	def func(){
+	defer func(){
 		conn.Close()
 		rp.Put(rb)
 		wp.Put(wb)
