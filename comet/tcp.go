@@ -105,6 +105,18 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		rr    = &ch.Reader
 		wr    = &ch.Writer
 	)
+		
+	def func(){
+		conn.Close()
+		rp.Put(rb)
+		wp.Put(wb)
+		tr.Del(trd)
+		ch.Close()
+		if b!=nil && ""!=key{
+			b.Del(key)
+		}
+	}()
+	
 	ch.Reader.ResetBuffer(conn, rb.Bytes())
 	ch.Writer.ResetBuffer(conn, wb.Bytes())
 	// handshake
@@ -119,10 +131,6 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 		}
 	}
 	if err != nil {
-		conn.Close()
-		rp.Put(rb)
-		wp.Put(wb)
-		tr.Del(trd)
 		log.Error("key: %s handshake failed error(%v)", key, err)
 		return
 	}
@@ -176,11 +184,6 @@ func (server *Server) serveTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *itime.
 	if err != nil && err != io.EOF {
 		log.Error("key: %s server tcp failed error(%v)", key, err)
 	}
-	b.Del(key)
-	tr.Del(trd)
-	rp.Put(rb)
-	conn.Close()
-	ch.Close()
 	if err = server.operator.Disconnect(key, rid); err != nil {
 		log.Error("key: %s operator do disconnect error(%v)", key, err)
 	}
