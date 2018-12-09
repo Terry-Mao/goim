@@ -13,9 +13,9 @@ var (
 )
 
 // OnlineTop get the top online.
-func (l *Logic) OnlineTop(c context.Context, business string, n int) (tops []*model.Top, err error) {
+func (l *Logic) OnlineTop(c context.Context, typ string, n int) (tops []*model.Top, err error) {
 	for roomKey, cnt := range l.roomCount {
-		if strings.HasPrefix(roomKey, business) {
+		if strings.HasPrefix(roomKey, typ) {
 			_, roomID, err := model.DecodeRoomKey(roomKey)
 			if err != nil {
 				continue

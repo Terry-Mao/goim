@@ -20,7 +20,7 @@ type Channel struct {
 	Mid      int64
 	Key      string
 	IP       string
-	Platform string
+	Tags     []string
 	watchOps map[int32]struct{}
 	mutex    sync.RWMutex
 }
@@ -55,9 +55,18 @@ func (c *Channel) UnWatch(accepts ...int32) {
 }
 
 // NeedPush verify if in watch.
-func (c *Channel) NeedPush(op int32, platform string) bool {
-	if c.Platform != platform && platform != "" {
-		return false
+func (c *Channel) NeedPush(op int32, tag string) bool {
+	if len(c.Tags) > 0 {
+		var has bool
+		for _, t := range c.Tags {
+			if t == tag {
+				has = true
+				break
+			}
+		}
+		if !has {
+			return false
+		}
 	}
 	if op >= 0 && op < grpc.MinBusinessOp {
 		return true

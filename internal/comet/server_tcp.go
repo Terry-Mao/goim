@@ -22,12 +22,12 @@ func InitTCP(server *Server, addrs []string, accept int) (err error) {
 		addr     *net.TCPAddr
 	)
 	for _, bind = range addrs {
-		if addr, err = net.ResolveTCPAddr("tcp4", bind); err != nil {
-			log.Errorf("net.ResolveTCPAddr(tcp4, %s) error(%v)", bind, err)
+		if addr, err = net.ResolveTCPAddr("tcp", bind); err != nil {
+			log.Errorf("net.ResolveTCPAddr(tcp, %s) error(%v)", bind, err)
 			return
 		}
-		if listener, err = net.ListenTCP("tcp4", addr); err != nil {
-			log.Errorf("net.ListenTCP(tcp4, %s) error(%v)", bind, err)
+		if listener, err = net.ListenTCP("tcp", addr); err != nil {
+			log.Errorf("net.ListenTCP(tcp, %s) error(%v)", bind, err)
 			return
 		}
 		log.Infof("start tcp listen: %s", bind)
@@ -118,7 +118,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 	// must not setadv, only used in auth
 	step = 1
 	if p, err = ch.CliProto.Set(); err == nil {
-		if ch.Mid, ch.Key, rid, ch.Platform, accepts, err = s.authTCP(rr, wr, p); err == nil {
+		if ch.Mid, ch.Key, rid, ch.Tags, accepts, err = s.authTCP(rr, wr, p); err == nil {
 			ch.Watch(accepts...)
 			b = s.Bucket(ch.Key)
 			err = b.Put(rid, ch)
@@ -318,7 +318,7 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (s *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *grpc.Proto) (mid int64, key string, rid string, platform string, accepts []int32, err error) {
+func (s *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *grpc.Proto) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
 	for {
 		if err = p.ReadTCP(rr); err != nil {
 			return
@@ -329,7 +329,7 @@ func (s *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *grpc.Proto) (mid
 			log.Errorf("tcp request operation(%d) not auth", p.Op)
 		}
 	}
-	if mid, key, rid, platform, accepts, err = s.Connect(p, ""); err != nil {
+	if mid, key, rid, tags, accepts, err = s.Connect(p, ""); err != nil {
 		log.Errorf("authTCP.Connect(key:%v).err(%v)", key, err)
 		return
 	}

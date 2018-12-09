@@ -17,7 +17,7 @@ func (j *Job) push(ctx context.Context, pushMsg *pb.PushMsg) (err error) {
 	case pb.PushMsg_ROOM:
 		err = j.getRoom(pushMsg.Room).Push(pushMsg.Operation, pushMsg.Msg)
 	case pb.PushMsg_BROADCAST:
-		err = j.broadcast(pushMsg.Operation, pushMsg.Msg, pushMsg.Speed, pushMsg.Platform)
+		err = j.broadcast(pushMsg.Operation, pushMsg.Msg, pushMsg.Speed, pushMsg.Tag)
 	default:
 		err = fmt.Errorf("no match push type: %s", pushMsg.Type)
 	}
@@ -49,7 +49,7 @@ func (j *Job) pushKeys(operation int32, serverID string, subKeys []string, body 
 }
 
 // broadcast broadcast a message to all.
-func (j *Job) broadcast(operation int32, body []byte, speed int32, platform string) (err error) {
+func (j *Job) broadcast(operation int32, body []byte, speed int32, tag string) (err error) {
 	buf := bytes.NewWriterSize(len(body) + 64)
 	p := &comet.Proto{
 		Ver:  1,
@@ -62,10 +62,10 @@ func (j *Job) broadcast(operation int32, body []byte, speed int32, platform stri
 	comets := j.cometServers
 	speed /= int32(len(comets))
 	var args = comet.BroadcastReq{
-		ProtoOp:  operation,
-		Proto:    p,
-		Speed:    speed,
-		Platform: platform,
+		ProtoOp: operation,
+		Proto:   p,
+		Speed:   speed,
+		Tag:     tag,
 	}
 	for serverID, c := range comets {
 		if err = c.Broadcast(&args); err != nil {

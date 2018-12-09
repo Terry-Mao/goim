@@ -54,11 +54,11 @@ func (s *server) Close(ctx context.Context, req *pb.CloseReq) (*pb.CloseReply, e
 
 // Connect connect a conn.
 func (s *server) Connect(ctx context.Context, req *pb.ConnectReq) (*pb.ConnectReply, error) {
-	mid, key, room, platform, accepts, err := s.srv.Connect(ctx, req.Server, req.ServerKey, req.Cookie, req.Token)
+	mid, key, room, tags, accepts, err := s.srv.Connect(ctx, req.Server, req.ServerKey, req.Cookie, req.Token)
 	if err != nil {
 		return &pb.ConnectReply{}, err
 	}
-	return &pb.ConnectReply{Mid: mid, Key: key, RoomID: room, Accepts: accepts, Platform: platform}, nil
+	return &pb.ConnectReply{Mid: mid, Key: key, RoomID: room, Accepts: accepts, Tags: tags}, nil
 }
 
 // Disconnect disconnect a conn.

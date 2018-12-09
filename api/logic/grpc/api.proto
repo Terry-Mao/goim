@@ -14,11 +14,11 @@ message PushMsg {
     }
     Type type = 1;
     int32 operation = 2;
-    string server = 3;
-    repeated string keys = 4;
+    int32 speed = 3;
+    string server = 4;
     string room = 5;
-    int32 speed = 6;
-    string platform = 7;
+    string tag = 6;
+    repeated string keys = 7;
     bytes msg = 8;
 }
 
@@ -46,7 +46,7 @@ message ConnectReply {
     int64 mid = 1;
     string key = 2;
     string roomID = 3;
-    string platform = 4;
+    repeated string tags = 4;
     repeated int32 accepts = 5;
 }
 

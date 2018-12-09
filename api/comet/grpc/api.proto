@@ -30,7 +30,7 @@ message BroadcastReq{
     int32 protoOp = 1;
     Proto proto = 2;
     int32 speed = 3;
-    string platform = 4;
+    string tag = 4;
 }
 
 message BroadcastReply{}

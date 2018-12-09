@@ -79,7 +79,7 @@ func (s *server) Broadcast(ctx context.Context, req *pb.BroadcastReq) (*pb.Broad
 	}
 	go func() {
 		for _, bucket := range s.srv.Buckets() {
-			bucket.Broadcast(req.GetProto(), req.ProtoOp, req.Platform)
+			bucket.Broadcast(req.GetProto(), req.ProtoOp, req.Tag)
 			if req.Speed > 0 {
 				t := bucket.ChannelCount() / int(req.Speed)
 				time.Sleep(time.Duration(t) * time.Second)

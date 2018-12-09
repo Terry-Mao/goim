@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"strconv"
 
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
 	"github.com/gogo/protobuf/proto"
@@ -57,20 +58,20 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []b
 }
 
 // BroadcastMsg push a message to databus.
-func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, platform string, msg []byte) (err error) {
+func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, tag string, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_BROADCAST,
 		Operation: op,
 		Speed:     speed,
 		Msg:       msg,
-		Platform:  platform,
+		Tag:       tag,
 	}
 	b, err := proto.Marshal(pushMsg)
 	if err != nil {
 		return
 	}
 	m := &sarama.ProducerMessage{
-		Key:   sarama.StringEncoder(platform),
+		Key:   sarama.StringEncoder(strconv.FormatInt(int64(op), 10)),
 		Topic: d.c.Kafka.Topic,
 		Value: sarama.ByteEncoder(b),
 	}

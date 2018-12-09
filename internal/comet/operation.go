@@ -11,7 +11,7 @@ import (
 )
 
 // Connect .
-func (s *Server) Connect(p *model.Proto, cookie string) (mid int64, key, rid, platform string, accepts []int32, err error) {
+func (s *Server) Connect(p *model.Proto, cookie string) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
 	var (
 		reply *logic.ConnectReply
 	)
@@ -23,7 +23,7 @@ func (s *Server) Connect(p *model.Proto, cookie string) (mid int64, key, rid, pl
 	}); err != nil {
 		return
 	}
-	return reply.Mid, reply.Key, reply.RoomID, reply.Platform, reply.Accepts, nil
+	return reply.Mid, reply.Key, reply.RoomID, reply.Tags, reply.Accepts, nil
 }
 
 // Disconnect .

@@ -158,11 +158,11 @@ func (b *Bucket) Channel(key string) (ch *Channel) {
 }
 
 // Broadcast push msgs to all channels in the bucket.
-func (b *Bucket) Broadcast(p *grpc.Proto, op int32, platform string) {
+func (b *Bucket) Broadcast(p *grpc.Proto, op int32, tag string) {
 	var ch *Channel
 	b.cLock.RLock()
 	for _, ch = range b.chs {
-		if !ch.NeedPush(op, platform) {
+		if !ch.NeedPush(op, tag) {
 			continue
 		}
 		ch.Push(p)

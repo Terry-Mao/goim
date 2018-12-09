@@ -12,7 +12,7 @@ import (
 
 func (s *Server) pushKeys(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	opStr := query.Get("op")
+	opStr := query.Get("operation")
 	keysStr := query.Get("keys")
 	// read message
 	msg, err := ioutil.ReadAll(r.Body)
@@ -34,7 +34,7 @@ func (s *Server) pushKeys(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) pushMids(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	opStr := query.Get("op")
+	opStr := query.Get("operation")
 	midsStr := query.Get("mids")
 	// read message
 	msg, err := ioutil.ReadAll(r.Body)
@@ -83,9 +83,9 @@ func (s *Server) pushRoom(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) pushAll(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	opStr := query.Get("op")
+	opStr := query.Get("operation")
 	speedStr := query.Get("speed")
-	platStr := query.Get("plat")
+	tagStr := query.Get("tag")
 	// read message
 	msg, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -102,7 +102,7 @@ func (s *Server) pushAll(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, RequestErr, nil)
 		return
 	}
-	if err = s.logic.PushAll(context.TODO(), int32(op), int32(speed), platStr, msg); err != nil {
+	if err = s.logic.PushAll(context.TODO(), int32(op), int32(speed), tagStr, msg); err != nil {
 		writeJSON(w, RequestErr, nil)
 		return
 	}

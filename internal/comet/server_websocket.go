@@ -23,12 +23,12 @@ func InitWebsocket(server *Server, addrs []string, accept int) (err error) {
 		addr     *net.TCPAddr
 	)
 	for _, bind = range addrs {
-		if addr, err = net.ResolveTCPAddr("tcp4", bind); err != nil {
-			log.Errorf("net.ResolveTCPAddr(tcp4, %s) error(%v)", bind, err)
+		if addr, err = net.ResolveTCPAddr("tcp", bind); err != nil {
+			log.Errorf("net.ResolveTCPAddr(tcp, %s) error(%v)", bind, err)
 			return
 		}
-		if listener, err = net.ListenTCP("tcp4", addr); err != nil {
-			log.Errorf("net.ListenTCP(tcp4, %s) error(%v)", bind, err)
+		if listener, err = net.ListenTCP("tcp", addr); err != nil {
+			log.Errorf("net.ListenTCP(tcp, %s) error(%v)", bind, err)
 			return
 		}
 		log.Infof("start ws listen: %s", bind)
@@ -53,7 +53,7 @@ func InitWebsocketWithTLS(server *Server, addrs []string, certFile, privateFile 
 	for i := range certFiles {
 		cert, err = tls.LoadX509KeyPair(certFiles[i], privateFiles[i])
 		if err != nil {
-			log.Errorf("Error loading certificate. ", err)
+			log.Errorf("Error loading certificate. error(%v)", err)
 			return
 		}
 		certs = append(certs, cert)
@@ -61,11 +61,11 @@ func InitWebsocketWithTLS(server *Server, addrs []string, certFile, privateFile 
 	tlsCfg := &tls.Config{Certificates: certs}
 	tlsCfg.BuildNameToCertificate()
 	for _, bind = range addrs {
-		if listener, err = tls.Listen("tcp4", bind, tlsCfg); err != nil {
-			log.Errorf("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
+		if listener, err = tls.Listen("tcp", bind, tlsCfg); err != nil {
+			log.Errorf("net.ListenTCP(tcp, %s) error(%v)", bind, err)
 			return
 		}
-		log.Infof("start wss listen: \"%s\"", bind)
+		log.Infof("start wss listen: %s", bind)
 		// split N core accept
 		for i := 0; i < accept; i++ {
 			go acceptWebsocketWithTLS(server, listener)
@@ -202,7 +202,7 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 	// must not setadv, only used in auth
 	step = 3
 	if p, err = ch.CliProto.Set(); err == nil {
-		if ch.Mid, ch.Key, rid, ch.Platform, accepts, err = s.authWebsocket(ws, p, req.Header.Get("Cookie")); err == nil {
+		if ch.Mid, ch.Key, rid, ch.Tags, accepts, err = s.authWebsocket(ws, p, req.Header.Get("Cookie")); err == nil {
 			ch.Watch(accepts...)
 			b = s.Bucket(ch.Key)
 			err = b.Put(rid, ch)
@@ -403,7 +403,7 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (s *Server) authWebsocket(ws *websocket.Conn, p *grpc.Proto, cookie string) (mid int64, key string, rid string, platform string, accepts []int32, err error) {
+func (s *Server) authWebsocket(ws *websocket.Conn, p *grpc.Proto, cookie string) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
 	for {
 		if err = p.ReadWebsocket(ws); err != nil {
 			return
@@ -414,7 +414,7 @@ func (s *Server) authWebsocket(ws *websocket.Conn, p *grpc.Proto, cookie string)
 			log.Errorf("ws request operation(%d) not auth", p.Op)
 		}
 	}
-	if mid, key, rid, platform, accepts, err = s.Connect(p, cookie); err != nil {
+	if mid, key, rid, tags, accepts, err = s.Connect(p, cookie); err != nil {
 		return
 	}
 	p.Op = grpc.OpAuthReply

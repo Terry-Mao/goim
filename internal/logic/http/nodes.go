@@ -7,7 +7,7 @@ import (
 
 func (s *Server) nodesWeighted(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	platStr := query.Get("plat")
+	platStr := query.Get("platform")
 	res := s.logic.NodesWeighted(context.TODO(), platStr, r.RemoteAddr)
 	writeJSON(w, OK, res)
 }

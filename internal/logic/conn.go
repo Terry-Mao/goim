@@ -10,7 +10,7 @@ import (
 )
 
 // Connect connected a conn.
-func (l *Logic) Connect(c context.Context, server, serverKey, cookie string, token []byte) (mid int64, key, roomID string, paltform string, accepts []int32, err error) {
+func (l *Logic) Connect(c context.Context, server, serverKey, cookie string, token []byte) (mid int64, key, roomID string, tags []string, accepts []int32, err error) {
 	var params struct {
 		Mid      int64
 		Key      string
@@ -25,7 +25,7 @@ func (l *Logic) Connect(c context.Context, server, serverKey, cookie string, tok
 	mid = params.Mid
 	key = params.Key
 	roomID = params.RoomID
-	paltform = params.Platform
+	tags = []string{params.Platform}
 	accepts = params.Accepts
 	log.Infof("conn connected key:%s server:%s mid:%d token:%s", key, server, mid, token)
 	return
