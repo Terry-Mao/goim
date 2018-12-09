@@ -1,24 +1,23 @@
 # This is a TOML document. Boom
 debug = true
-perf = "0.0.0.0:7820"
 maxproc = 32
 serverTick = "5s"
 onlineTick = "10s"
 
 [env]
-    region = "hk"
-	zone = "hk001"
+    region = "sh"
+	zone = "sh001"
 	env = "dev"
 	host = "test"
 	weight = 10
-	ipAddrs = ["hk001.tony.wiki"]
+	ipAddrs = ["127.0.0.1"]
 
 [discovery]
-	nodes = ["hk001.tony.wiki:7171"]
+	nodes = ["sh.tony.wiki:7171"]
 
 [rpcServer]
     network = "tcp"
-    addr = "0.0.0.0:8009"
+    addr = "0.0.0.0:3109"
     timeout = "1s"
 
 [rpcClient]
@@ -26,7 +25,7 @@ onlineTick = "10s"
     timeout = "1s"
 
 [tcp]
-    bind = ["0.0.0.0:8001"]
+    bind = [":3101"]
     sndbuf = 4096
     rcvbuf = 4096
     keepalive = false
@@ -38,9 +37,9 @@ onlineTick = "10s"
     writeBufSize = 2048
 
 [webSocket]
-    bind = ["0.0.0.0:8002"]
+    bind = [":3102"]
     tlsOpen = false
-    tlsBind = ["0.0.0.0:8003"]
+    tlsBind = [":3103"]
     certFile = "../../cert.pem"
     privateFile = "../../private.pem"
 
