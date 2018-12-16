@@ -1,51 +1,51 @@
 package http
 
 import (
-	"net/http"
-	"time"
-
 	"github.com/Terry-Mao/goim/internal/logic"
 	"github.com/Terry-Mao/goim/internal/logic/conf"
+
+	"github.com/gin-gonic/gin"
 )
 
 // Server is http server.
 type Server struct {
-	conf  *conf.HTTPServer
-	logic *logic.Logic
+	engine *gin.Engine
+	logic  *logic.Logic
 }
 
 // New new a http server.
-func New(c *conf.HTTPServer, l *logic.Logic) *http.Server {
-	s := &Server{
-		conf:  c,
-		logic: l,
-	}
-	srv := &http.Server{
-		Addr:           c.Addr,
-		Handler:        s.newHTTPServeMux(),
-		ReadTimeout:    time.Duration(c.ReadTimeout),
-		WriteTimeout:   time.Duration(c.WriteTimeout),
-		MaxHeaderBytes: 1 << 20,
-	}
+func New(c *conf.HTTPServer, l *logic.Logic) *Server {
+	engine := gin.New()
+	engine.Use(loggerHandler, recoverHandler)
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := engine.Run(c.Addr); err != nil {
 			panic(err)
 		}
 	}()
-	return srv
+	s := &Server{
+		engine: engine,
+		logic:  l,
+	}
+	s.initRouter()
+	return s
 }
 
-func (s *Server) newHTTPServeMux() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/goim/push/keys", s.pushKeys)
-	mux.HandleFunc("/goim/push/mids", s.pushMids)
-	mux.HandleFunc("/goim/push/room", s.pushRoom)
-	mux.HandleFunc("/goim/push/all", s.pushAll)
-	mux.HandleFunc("/goim/online/top", s.onlineTop)
-	mux.HandleFunc("/goim/online/room", s.onlineRoom)
-	mux.HandleFunc("/goim/online/total", s.onlineTotal)
-	mux.HandleFunc("/goim/nodes/weighted", s.nodesWeighted)
-	mux.HandleFunc("/goim/nodes/debug", s.nodesDebug)
-	mux.HandleFunc("/goim/nodes/infos", s.nodesInfos)
-	return mux
+func (s *Server) initRouter() {
+	group := s.engine.Group("/goim")
+	group.POST("/goim/push/keys", s.pushKeys)
+	group.POST("/goim/push/mids", s.pushMids)
+	group.POST("/goim/push/room", s.pushRoom)
+	group.POST("/goim/push/all", s.pushAll)
+	group.GET("/goim/online/top", s.onlineTop)
+	group.GET("/goim/online/room", s.onlineRoom)
+	group.GET("/goim/online/total", s.onlineTotal)
+	group.GET("/goim/nodes/weighted", s.nodesWeighted)
+	group.GET("/goim/nodes/debug", s.nodesDebug)
+	group.GET("/goim/nodes/infos", s.nodesInfos)
+	return
+}
+
+// Close close the server.
+func (s *Server) Close() {
+
 }

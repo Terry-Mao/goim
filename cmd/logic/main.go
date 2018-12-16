@@ -51,7 +51,7 @@ func main() {
 				cancel()
 			}
 			srv.Close()
-			httpSrv.Shutdown(context.TODO())
+			httpSrv.Close()
 			rpcSrv.GracefulStop()
 			log.Infof("goim-logic [version: %s] exit", ver)
 			log.Flush()

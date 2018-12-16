@@ -1,8 +1,7 @@
 package http
 
 import (
-	"encoding/json"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -12,6 +11,8 @@ const (
 	RequestErr = -400
 	// ServerErr server error
 	ServerErr = -500
+
+	contextErrCode = "context/err/code"
 )
 
 // Ret ret.
@@ -20,19 +21,11 @@ type ret struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
-func writeJSON(w http.ResponseWriter, code int, data interface{}) (err error) {
-	// write header
-	header := w.Header()
-	header["Content-Type"] = []string{"application/json; charset=utf-8"}
-	// write body
-	ret := ret{
+func writeJSON(c *gin.Context, data interface{}, code int) (err error) {
+	c.Set(contextErrCode, code)
+	c.JSON(200, ret{
 		Code: code,
 		Data: data,
-	}
-	b, err := json.Marshal(ret)
-	if err != nil {
-		return
-	}
-	_, err = w.Write(b)
+	})
 	return
 }

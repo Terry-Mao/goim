@@ -2,36 +2,40 @@ package http
 
 import (
 	"context"
-	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func (s *Server) nodesWeighted(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	platStr := query.Get("platform")
-	res := s.logic.NodesWeighted(context.TODO(), platStr, r.RemoteAddr)
-	writeJSON(w, OK, res)
+func (s *Server) nodesWeighted(c *gin.Context) {
+	var arg struct {
+		Platform string `form:"platform"`
+	}
+	if err := c.Bind(arg); err != nil {
+		writeJSON(c, nil, RequestErr)
+		return
+	}
+	res := s.logic.NodesWeighted(c, arg.Platform, c.ClientIP())
+	writeJSON(c, res, OK)
 }
 
-func (s *Server) nodesDebug(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	ipStr := query.Get("ip")
-	nodes, region, province, err := s.logic.NodesDebug(context.TODO(), ipStr)
+func (s *Server) nodesDebug(c *gin.Context) {
+	nodes, region, province, err := s.logic.NodesDebug(c, c.ClientIP())
 	if err != nil {
-		writeJSON(w, ServerErr, nil)
+		writeJSON(c, nil, ServerErr)
 		return
 	}
 	res := make(map[string]interface{})
 	res["nodes"] = nodes
 	res["region"] = region
 	res["province"] = province
-	writeJSON(w, OK, res)
+	writeJSON(c, res, OK)
 }
 
-func (s *Server) nodesInfos(w http.ResponseWriter, r *http.Request) {
+func (s *Server) nodesInfos(c *gin.Context) {
 	res, err := s.logic.NodesInfos(context.TODO())
 	if err != nil {
-		writeJSON(w, ServerErr, nil)
+		writeJSON(c, nil, ServerErr)
 		return
 	}
-	writeJSON(w, OK, res)
+	writeJSON(c, res, OK)
 }

@@ -3,108 +3,95 @@ package http
 import (
 	"context"
 	"io/ioutil"
-	"net/http"
-	"strconv"
-	"strings"
 
-	xstrings "github.com/Terry-Mao/goim/pkg/strings"
+	"github.com/gin-gonic/gin"
 )
 
-func (s *Server) pushKeys(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	opStr := query.Get("operation")
-	keysStr := query.Get("keys")
+func (s *Server) pushKeys(c *gin.Context) {
+	var arg struct {
+		Op   int32    `form:"operation"`
+		Keys []string `form:"keys"`
+	}
+	if err := c.Bind(arg); err != nil {
+		writeJSON(c, nil, RequestErr)
+		return
+	}
 	// read message
-	msg, err := ioutil.ReadAll(r.Body)
+	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		writeJSON(w, RequestErr, nil)
+		writeJSON(c, nil, RequestErr)
 		return
 	}
-	op, err := strconv.ParseInt(opStr, 10, 32)
-	if err != nil {
-		writeJSON(w, RequestErr, nil)
+	if err = s.logic.PushKeys(context.TODO(), arg.Op, arg.Keys, msg); err != nil {
+		writeJSON(c, nil, RequestErr)
 		return
 	}
-	if err = s.logic.PushKeys(context.TODO(), int32(op), strings.Split(keysStr, ","), msg); err != nil {
-		writeJSON(w, RequestErr, nil)
-		return
-	}
-	writeJSON(w, OK, nil)
+	writeJSON(c, nil, OK)
 }
 
-func (s *Server) pushMids(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	opStr := query.Get("operation")
-	midsStr := query.Get("mids")
+func (s *Server) pushMids(c *gin.Context) {
+	var arg struct {
+		Op   int32   `form:"operation"`
+		Mids []int64 `form:"mids"`
+	}
+	if err := c.Bind(arg); err != nil {
+		writeJSON(c, nil, RequestErr)
+		return
+	}
 	// read message
-	msg, err := ioutil.ReadAll(r.Body)
+	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		writeJSON(w, RequestErr, nil)
+		writeJSON(c, nil, RequestErr)
 		return
 	}
-	op, err := strconv.ParseInt(opStr, 10, 32)
-	if err != nil {
-		writeJSON(w, RequestErr, nil)
+	if err = s.logic.PushMids(context.TODO(), arg.Op, arg.Mids, msg); err != nil {
+		writeJSON(c, nil, RequestErr)
 		return
 	}
-	mids, err := xstrings.SplitInt64s(midsStr, ",")
-	if err != nil {
-		writeJSON(w, RequestErr, nil)
-		return
-	}
-	if err = s.logic.PushMids(context.TODO(), int32(op), mids, msg); err != nil {
-		writeJSON(w, RequestErr, nil)
-		return
-	}
-	writeJSON(w, OK, nil)
+	writeJSON(c, nil, OK)
 }
 
-func (s *Server) pushRoom(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	opStr := query.Get("op")
-	room := query.Get("room")
+func (s *Server) pushRoom(c *gin.Context) {
+	var arg struct {
+		Op   int32  `form:"operation"`
+		Room string `form:"room"`
+	}
+	if err := c.Bind(arg); err != nil {
+		writeJSON(c, nil, RequestErr)
+		return
+	}
 	// read message
-	msg, err := ioutil.ReadAll(r.Body)
+	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		writeJSON(w, RequestErr, nil)
+		writeJSON(c, nil, RequestErr)
 		return
 	}
-	op, err := strconv.ParseInt(opStr, 10, 32)
-	if err != nil {
-		writeJSON(w, RequestErr, nil)
+	if err = s.logic.PushRoom(context.TODO(), arg.Op, arg.Room, msg); err != nil {
+		writeJSON(c, nil, RequestErr)
 		return
 	}
-	if err = s.logic.PushRoom(context.TODO(), int32(op), room, msg); err != nil {
-		writeJSON(w, RequestErr, nil)
-		return
-	}
-	writeJSON(w, OK, nil)
+	writeJSON(c, nil, OK)
 }
 
-func (s *Server) pushAll(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	opStr := query.Get("operation")
-	speedStr := query.Get("speed")
-	tagStr := query.Get("tag")
+func (s *Server) pushAll(c *gin.Context) {
+	var arg struct {
+		Op    int32  `form:"operation"`
+		Speed int32  `form:"speed"`
+		Tag   string `form:"tag"`
+	}
+	if err := c.Bind(arg); err != nil {
+		writeJSON(c, nil, RequestErr)
+		return
+	}
 	// read message
-	msg, err := ioutil.ReadAll(r.Body)
+	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		writeJSON(w, RequestErr, nil)
+		writeJSON(c, nil, RequestErr)
 		return
 	}
-	op, err := strconv.ParseInt(opStr, 10, 32)
-	if err != nil {
-		writeJSON(w, RequestErr, nil)
+	if err = s.logic.PushAll(c, arg.Op, arg.Speed, arg.Tag, msg); err != nil {
+		writeJSON(c, nil, RequestErr)
 		return
 	}
-	speed, err := strconv.ParseInt(speedStr, 10, 32)
-	if err != nil {
-		writeJSON(w, RequestErr, nil)
-		return
-	}
-	if err = s.logic.PushAll(context.TODO(), int32(op), int32(speed), tagStr, msg); err != nil {
-		writeJSON(w, RequestErr, nil)
-		return
-	}
-	writeJSON(w, OK, nil)
+	writeJSON(c, nil, OK)
 }
