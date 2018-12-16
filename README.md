@@ -34,7 +34,7 @@ Protocol:
 
     make run-logic # target/logic -conf=target/logic.toml -region=sh -zone=sh001 deploy.env=dev weight=10
 
-    make run-job # target/job -conf=target/job.toml -region=sh -zone=sh001 deploy.env=dev
+    make run-job   # target/job -conf=target/job.toml -region=sh -zone=sh001 deploy.env=dev
 ```
 ### Configuration
 You can view the comments in target/comet.toml|logic.toml|job.toml to understand the meaning of the config.
