@@ -4,20 +4,12 @@ maxproc = 32
 serverTick = "5s"
 onlineTick = "10s"
 
-[env]
-    region = "sh"
-	zone = "sh001"
-	env = "dev"
-	host = "test"
-	weight = 10
-	ipAddrs = ["127.0.0.1"]
-
 [discovery]
-	nodes = ["sh.tony.wiki:7171"]
+	nodes = ["127.0.0.1:7171"]
 
 [rpcServer]
     network = "tcp"
-    addr = "0.0.0.0:3109"
+    addr = ":3109"
     timeout = "1s"
 
 [rpcClient]

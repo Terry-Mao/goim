@@ -5,8 +5,8 @@ const (
 	MetaWeight = "weight"
 	// MetaOffline meta offline
 	MetaOffline = "offline"
-	// MetaIPAddrs meta public ip addrs
-	MetaIPAddrs = "ip_addrs"
+	// MetaAddrs meta public ip addrs
+	MetaAddrs = "addrs"
 	// MetaIPCount meta ip count
 	MetaIPCount = "ip_count"
 	// MetaConnCount meta conn count

@@ -13,13 +13,27 @@ import (
 )
 
 var (
-	confPath string
+	confPath  string
+	region    string
+	zone      string
+	deployEnv string
+	host      string
+	weight    int64
 	// Conf config
 	Conf = &Config{}
 )
 
 func init() {
-	flag.StringVar(&confPath, "conf", "logic-example.toml", "default config path")
+	var (
+		defHost, _   = os.Hostname()
+		defWeight, _ = strconv.ParseInt(os.Getenv("WEIGHT"), 10, 32)
+	)
+	flag.StringVar(&confPath, "conf", "logic.toml", "default config path")
+	flag.StringVar(&region, "region", os.Getenv("REGION"), "distribution region, likes bj/sh/gz/hk/jp/sv/de")
+	flag.StringVar(&zone, "zone", os.Getenv("ZONE"), "deployment zone, likes sh001/sh002/sh003")
+	flag.StringVar(&deployEnv, "deploy.env", os.Getenv("DEPLOY_ENV"), "deployment environment, likes dev/fat/uat/pre/prod")
+	flag.StringVar(&host, "host", defHost, "unique hostname")
+	flag.Int64Var(&weight, "weight", defWeight, "server weight for load balancer")
 }
 
 // Config .
@@ -38,28 +52,28 @@ type Config struct {
 
 // Env is env config.
 type Env struct {
-	Region string
-	Zone   string
-	Env    string
-	Host   string
-	Weight int64
+	Region    string
+	Zone      string
+	DeployEnv string
+	Host      string
+	Weight    int64
 }
 
 func (e *Env) fix() {
 	if e.Region == "" {
-		e.Region = os.Getenv("REGION")
+		e.Region = region
 	}
 	if e.Zone == "" {
-		e.Zone = os.Getenv("ZONE")
+		e.Zone = zone
 	}
-	if e.Env == "" {
-		e.Env = os.Getenv("DEPLOY_ENV")
+	if e.DeployEnv == "" {
+		e.DeployEnv = deployEnv
 	}
 	if e.Host == "" {
-		e.Host, _ = os.Hostname()
+		e.Host = host
 	}
 	if e.Weight <= 0 {
-		e.Weight, _ = strconv.ParseInt(os.Getenv("WEIGHT"), 10, 32)
+		e.Weight = weight
 	}
 }
 
@@ -192,7 +206,7 @@ func (c *Config) fix() {
 		c.Discovery.Zone = c.Env.Zone
 	}
 	if c.Discovery.Env == "" {
-		c.Discovery.Env = c.Env.Env
+		c.Discovery.Env = c.Env.DeployEnv
 	}
 	if c.Discovery.Host == "" {
 		c.Discovery.Host = c.Env.Host

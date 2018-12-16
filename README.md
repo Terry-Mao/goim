@@ -21,6 +21,22 @@ Protocol:
 
 [proto](./docs/protocol.png)
 
+## Quick Start
+
+### Build
+```
+    make build
+```
+
+### Run
+```
+    make run-comet
+    make run-logic
+    make run-job
+```
+### Configuration
+You can view the comments in target/comet.toml|logic.toml|job.toml to understand the meaning of the config.
+
 ## Document
 [English](./README_en.md)
 

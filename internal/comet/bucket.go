@@ -107,7 +107,7 @@ func (b *Bucket) Put(rid string, ch *Channel) (err error) {
 		dch.Close()
 	}
 	b.chs[ch.Key] = ch
-	if rid != "" && rid != "" {
+	if rid != "" {
 		if room, ok = b.rooms[rid]; !ok {
 			room = NewRoom(rid)
 			b.rooms[rid] = room

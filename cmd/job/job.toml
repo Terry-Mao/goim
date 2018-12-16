@@ -1,12 +1,6 @@
 # This is a TOML document. Boom
-[env]
-    region = "sh"
-	zone = "sh001"
-	env = "dev"
-	host = "test"
-
 [discovery]
-	nodes = ["goim.tony.wiki:7171"]
+	nodes = ["127.0.0.1:7171"]
 
 [kafka]
     topic = "goim-push-topic"

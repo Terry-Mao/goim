@@ -12,7 +12,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	flag.Set("conf", "../../cmd/logic/logic-example.toml")
+	flag.Set("conf", "../../cmd/logic/logic.toml")
 	flag.Parse()
 	if err := conf.Init(); err != nil {
 		panic(err)

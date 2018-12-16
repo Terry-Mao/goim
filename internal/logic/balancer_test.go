@@ -39,7 +39,7 @@ func TestLoadBalancer(t *testing.T) {
 				model.MetaWeight:    "10",
 				model.MetaConnCount: "240590",
 				model.MetaIPCount:   "10",
-				model.MetaIPAddrs:   "ip_bj",
+				model.MetaAddrs:     "ip_bj",
 			},
 		},
 		&naming.Instance{
@@ -49,7 +49,7 @@ func TestLoadBalancer(t *testing.T) {
 				model.MetaWeight:    "10",
 				model.MetaConnCount: "375420",
 				model.MetaIPCount:   "10",
-				model.MetaIPAddrs:   "ip_sh",
+				model.MetaAddrs:     "ip_sh",
 			},
 		},
 		&naming.Instance{
@@ -59,7 +59,7 @@ func TestLoadBalancer(t *testing.T) {
 				model.MetaWeight:    "10",
 				model.MetaConnCount: "293430",
 				model.MetaIPCount:   "10",
-				model.MetaIPAddrs:   "ip_gz",
+				model.MetaAddrs:     "ip_gz",
 			},
 		},
 	}

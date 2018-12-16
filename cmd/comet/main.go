@@ -88,7 +88,7 @@ func register(dis *naming.Discovery, srv *comet.Server) context.CancelFunc {
 	ins := &naming.Instance{
 		Region:   env.Region,
 		Zone:     env.Zone,
-		Env:      env.Env,
+		Env:      env.DeployEnv,
 		Hostname: env.Host,
 		AppID:    appid,
 		Addrs: []string{
@@ -97,7 +97,7 @@ func register(dis *naming.Discovery, srv *comet.Server) context.CancelFunc {
 		Metadata: map[string]string{
 			md.MetaWeight:  strconv.FormatInt(env.Weight, 10),
 			md.MetaOffline: strconv.FormatBool(env.Offline),
-			md.MetaIPAddrs: strings.Join(env.IPAddrs, ","),
+			md.MetaAddrs:   strings.Join(env.Addrs, ","),
 		},
 	}
 	cancel, err := dis.Register(ins)

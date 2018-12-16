@@ -70,7 +70,7 @@ func register(dis *naming.Discovery, srv *logic.Logic) context.CancelFunc {
 	ins := &naming.Instance{
 		Region:   env.Region,
 		Zone:     env.Zone,
-		Env:      env.Env,
+		Env:      env.DeployEnv,
 		Hostname: env.Host,
 		AppID:    appid,
 		Addrs: []string{

@@ -42,5 +42,5 @@ func (w *Whitelist) Contains(mid int64) (ok bool) {
 
 // Printf calls l.Output to print to the logger.
 func (w *Whitelist) Printf(format string, v ...interface{}) {
-	w.log.Printf(format, v)
+	w.log.Printf(format, v...)
 }

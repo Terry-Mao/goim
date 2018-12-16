@@ -1,12 +1,6 @@
 # This is a TOML document. Boom
-[env]
-    region = "sh"
-	zone = "sh001"
-	env = "dev"
-	host = "test"
-
 [discovery]
-	nodes = ["sh.tony.wiki:7171"]
+	nodes = ["127.0.0.1:7171"]
 
 [regions]
     "bj" = ["北京","天津","河北","山东","山西","内蒙古","辽宁","吉林","黑龙江","甘肃","宁夏","新疆"]
@@ -14,8 +8,8 @@
     "gz" = ["广东","福建","广西","海南","湖南","四川","贵州","云南","西藏","香港","澳门"]
     
 [node]
-    defaultDomain = "sh.tony.wiki"
-    hostDomain = ".sh.tony.wiki"
+    defaultDomain = "connector.goim.io"
+    hostDomain = ".goim.io"
     heartbeat = "30s"
 	heartbeatMax = 3
     tcpPort = 3101
@@ -31,7 +25,7 @@
 
 [rpcServer]
     network = "tcp"
-    addr = "0.0.0.0:3119"
+    addr = ":3119"
     timeout = "1s"
 
 [rpcClient]
@@ -40,7 +34,7 @@
 
 [httpServer]
     network = "tcp"
-    addr = "0.0.0.0:3111"
+    addr = ":3111"
 	readTimeout = "1s"
 	writeTimeout = "1s"
 

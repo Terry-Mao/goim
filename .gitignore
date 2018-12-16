@@ -19,7 +19,8 @@
 .DS_Store
 Thumbs.db
 
-# cmd
+# build
 /cmd/comet/comet
 /cmd/logic/logic
 /cmd/job/job
+/target

@@ -47,13 +47,13 @@ func run(addr string, delay time.Duration) {
 func post(addr string, i int64) {
 	resp, err := http.Post("http://"+addr+"/1/push/room?rid="+os.Args[1], "application/json", bytes.NewBufferString(fmt.Sprintf("{\"test\":%d}", i)))
 	if err != nil {
-		fmt.Println("Error: http.post() error(%s)", err)
+		fmt.Printf("Error: http.post() error(%v)\n", err)
 		return
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error: http.post() error(%s)", err)
+		fmt.Printf("Error: http.post() error(%v)\n", err)
 		return
 	}
 

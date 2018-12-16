@@ -10,21 +10,21 @@ import (
 func TestDaoPushMsg(t *testing.T) {
 	var (
 		c      = context.Background()
-		op     = int32(0)
-		server = ""
-		msg    = ""
+		op     = int32(100)
+		server = "test"
+		msg    = []byte("msg")
 		keys   = []string{"key"}
 	)
-	err := d.PushMsg(c, op, server, msg, keys)
+	err := d.PushMsg(c, op, server, keys, msg)
 	assert.Nil(t, err)
 }
 
 func TestDaoBroadcastRoomMsg(t *testing.T) {
 	var (
 		c    = context.Background()
-		op   = int32(0)
-		room = ""
-		msg  = ""
+		op   = int32(100)
+		room = "test://1"
+		msg  = []byte("msg")
 	)
 	err := d.BroadcastRoomMsg(c, op, room, msg)
 	assert.Nil(t, err)
@@ -32,12 +32,12 @@ func TestDaoBroadcastRoomMsg(t *testing.T) {
 
 func TestDaoBroadcastMsg(t *testing.T) {
 	var (
-		c        = context.Background()
-		op       = int32(0)
-		speed    = int32(0)
-		msg      = ""
-		platform = ""
+		c     = context.Background()
+		op    = int32(100)
+		speed = int32(0)
+		msg   = []byte("")
+		tag   = ""
 	)
-	err := d.BroadcastMsg(c, op, speed, msg, platform)
+	err := d.BroadcastMsg(c, op, speed, tag, msg)
 	assert.Nil(t, err)
 }

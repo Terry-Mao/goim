@@ -201,13 +201,13 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 	conn.Close()
 	ch.Close()
 	if err = s.Disconnect(ch.Mid, ch.Key); err != nil {
-		log.Error("key: %s operator do disconnect error(%v)", ch.Key, err)
+		log.Errorf("key: %s mid: %d operator do disconnect error(%v)", ch.Key, ch.Mid, err)
 	}
 	if white {
-		whitelist.Printf("key: %s disconnect error(%v)\n", ch.Key, err)
+		whitelist.Printf("key: %s mid: %d disconnect error(%v)\n", ch.Key, ch.Mid, err)
 	}
 	if conf.Conf.Debug {
-		log.Infof("tcp disconnected key: %s mid:%d", ch.Key, ch.Mid)
+		log.Infof("tcp disconnected key: %s mid: %d", ch.Key, ch.Mid)
 	}
 }
 

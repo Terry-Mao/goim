@@ -184,7 +184,7 @@ func (lb *LoadBalancer) Update(ins []*naming.Instance) {
 				hostname:     in.Hostname,
 				fixedWeight:  weight,
 				currentConns: conns,
-				addrs:        strings.Split(meta[model.MetaIPAddrs], ","),
+				addrs:        strings.Split(meta[model.MetaAddrs], ","),
 				updated:      in.LastTs,
 			}
 			totalConns += conns
