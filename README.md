@@ -17,10 +17,6 @@ goim is a im server writen by golang.
 ## Architecture
 ![arch](./docs/arch.png)
 
-Protocol:
-
-[proto](./docs/protocol.png)
-
 ## Quick Start
 
 ### Build
@@ -30,16 +26,37 @@ Protocol:
 
 ### Run
 ```
-    make run-comet # target/comet -conf=target/comet.toml -region=sh -zone=sh001 deploy.env=dev weight=10 addrs=127.0.0.1
+    make run
+    // or
+    nohup target/logic -conf=target/logic.toml -region=sh -zone=sh001 deploy.env=dev weight=10 2>&1 > target/logic.log &
+	nohup target/comet -conf=target/comet.toml -region=sh -zone=sh001 deploy.env=dev weight=10 addrs=127.0.0.1 2>&1 > target/logic.log &
+	nohup target/job -conf=target/job.toml -region=sh -zone=sh001 deploy.env=dev 2>&1 > target/logic.log &
 
-    make run-logic # target/logic -conf=target/logic.toml -region=sh -zone=sh001 deploy.env=dev weight=10
+```
+### Environment
+```
+    env:
+    export REGION=sh
+    export ZONE=sh001
+    export DEPLOY_ENV=dev
 
-    make run-job   # target/job -conf=target/job.toml -region=sh -zone=sh001 deploy.env=dev
+    supervisor:
+    environment=REGION=sh,ZONE=sh001,DEPLOY_ENV=dev
+
+    go flag:
+    -region=sh -zone=sh001 deploy.env=dev
 ```
 ### Configuration
-You can view the comments in target/comet.toml|logic.toml|job.toml to understand the meaning of the config.
+You can view the comments in target/comet.toml,logic.toml,job.toml to understand the meaning of the config.
+
+### Dependencies
+[Discovery](https://github.com/Bilibili/discovery)
+
+[Kafka](https://kafka.apache.org/quickstart)
 
 ## Document
+[Protocol](./docs/protocol.png)
+
 [English](./README_en.md)
 
 [中文](./README_cn.md)
