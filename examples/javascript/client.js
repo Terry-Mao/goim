@@ -13,6 +13,13 @@
         this.createConnect(MAX_CONNECT_TIMES, DELAY);
     }
 
+    var appendMsg = function(text) {
+        var span = document.createElement("SPAN");
+        var text = document.createTextNode(text);
+        span.appendChild(text);
+        document.getElementById("box").appendChild(span);
+    }
+
     Client.prototype.createConnect = function(max, delay) {
         var self = this;
         if (max === 0) {
@@ -50,8 +57,9 @@
                     case 3:
                         // heartbeat reply
                         console.log("receive: heartbeat");
+                        appendMsg("receive: heartbeat from server");
                     break;
-                    case 5:
+                    default:
                         // batch message
                         for (var offset=0; offset<data.byteLength; offset+=packetLen) {
                             // parse
@@ -81,6 +89,7 @@
                 headerView.setInt32(seqOffset, 1);
                 ws.send(headerBuf);
                 console.log("send: heartbeat");
+                appendMsg("send: heartbeat to server");
             }
 
             function auth() {
@@ -100,6 +109,7 @@
                 var notify = self.options.notify;
                 if(notify) notify(body);
                 console.log("messageReceived:", "ver=" + ver, "body=" + body);
+                appendMsg("receive: ver=" + ver + " op=" + op + "seq=" + seq + " data:" + msgBody);
             }
 
             function mergeArrayBuffer(ab1, ab2) {

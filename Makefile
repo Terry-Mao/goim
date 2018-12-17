@@ -5,6 +5,8 @@ GOTEST=$(GOCMD) test
 
 all: test build
 build:
+	rm -rf target/
+	mkdir target/
 	cp cmd/comet/comet.toml target/comet.toml
 	cp cmd/logic/logic.toml target/logic.toml
 	cp cmd/job/job.toml target/job.toml
@@ -16,13 +18,14 @@ test:
 	$(GOTEST) -v ./...
 
 clean:
-	rm -rf target
+	rm -rf target/
 
-run-comet:
-	target/comet -conf=target/comet.toml -region=sh -zone=sh001 deploy.env=dev weight=10 addrs=127.0.0.1
+run:
+	nohup target/logic -conf=target/logic.toml -region=sh -zone=sh001 deploy.env=dev weight=10 2>&1 > target/logic.log &
+	nohup target/comet -conf=target/comet.toml -region=sh -zone=sh001 deploy.env=dev weight=10 addrs=127.0.0.1 2>&1 > target/logic.log &
+	nohup target/job -conf=target/job.toml -region=sh -zone=sh001 deploy.env=dev 2>&1 > target/logic.log &
 
-run-logic:
-	target/logic -conf=target/logic.toml -region=sh -zone=sh001 deploy.env=dev weight=10
-
-run-job:
-	target/job -conf=target/job.toml -region=sh -zone=sh001 deploy.env=dev
+stop:
+	pkill -f target/logic
+	pkill -f target/job
+	pkill -f target/comet
