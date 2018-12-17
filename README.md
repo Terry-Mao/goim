@@ -21,12 +21,13 @@ goim is a im server writen by golang.
 
 ### Build
 ```
-    make build # output target
+    make build
 ```
 
 ### Run
 ```
     make run
+    
     // or
     nohup target/logic -conf=target/logic.toml -region=sh -zone=sh001 deploy.env=dev weight=10 2>&1 > target/logic.log &
     nohup target/comet -conf=target/comet.toml -region=sh -zone=sh001 deploy.env=dev weight=10 addrs=127.0.0.1 2>&1 > target/logic.log &
