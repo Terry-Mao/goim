@@ -12,10 +12,6 @@ const (
 	infiniteDuration = itime.Duration(1<<63 - 1)
 )
 
-var (
-	timerLazyDelay = 300 * itime.Millisecond
-)
-
 // TimerData timer data.
 type TimerData struct {
 	Key    string
@@ -27,7 +23,7 @@ type TimerData struct {
 
 // Delay delay duration.
 func (td *TimerData) Delay() itime.Duration {
-	return td.expire.Sub(itime.Now())
+	return itime.Until(td.expire)
 }
 
 // ExpireString expire string.

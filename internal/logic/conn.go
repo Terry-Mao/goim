@@ -12,11 +12,11 @@ import (
 // Connect connected a conn.
 func (l *Logic) Connect(c context.Context, server, serverKey, cookie string, token []byte) (mid int64, key, roomID string, tags []string, accepts []int32, err error) {
 	var params struct {
-		Mid      int64
-		Key      string
-		RoomID   string
-		Platform string
-		Accepts  []int32
+		Mid      int64   `json:"mid"`
+		Key      string  `json:"key"`
+		RoomID   string  `json:"room_id"`
+		Platform string  `json:"platform"`
+		Accepts  []int32 `json:"accepts"`
 	}
 	if err = json.Unmarshal(token, &params); err != nil {
 		log.Errorf("json.Unmarshal(%s) error(%v)", token, err)
@@ -55,25 +55,6 @@ func (l *Logic) Heartbeat(c context.Context, mid int64, key, server string) (err
 		}
 	}
 	log.Infof("conn heartbeat key:%s server:%s mid:%d", key, server, mid)
-	return
-}
-
-// RenewServer renew a server info.
-func (l *Logic) RenewServer(c context.Context, server string, ipAddrs []string, ipCount, connCount int32, shutdown bool) (err error) {
-	if shutdown {
-		l.dao.DelServerInfo(c, server)
-		return
-	}
-	serverInfo := &model.ServerInfo{
-		Server:    server,
-		IPAddrs:   ipAddrs,
-		IPCount:   ipCount,
-		ConnCount: connCount,
-		Updated:   time.Now().Unix(),
-	}
-	if err = l.dao.AddServerInfo(c, server, serverInfo); err != nil {
-		return
-	}
 	return
 }
 

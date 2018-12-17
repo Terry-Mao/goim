@@ -8,9 +8,7 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -26,12 +24,7 @@ var (
 	httpClient *http.Client
 )
 
-const TestContent = "{\"test\":1}"
-
-type pushBodyMsg struct {
-	Msg    json.RawMessage `json:"m"`
-	UserId int64           `json:"u"`
-}
+const testContent = "{\"test\":1}"
 
 func init() {
 	httpTransport := &http.Transport{
@@ -42,7 +35,7 @@ func init() {
 				return nil, err
 			}
 
-			c.SetDeadline(deadline)
+			_ = c.SetDeadline(deadline)
 			return c, nil
 		},
 		DisableKeepAlives: false,
@@ -92,16 +85,12 @@ func main() {
 	time.Sleep(9999 * time.Hour)
 }
 
-func stop() {
-	os.Exit(-1)
-}
-
 func startPush(b, e int, delay time.Duration) {
 	lg.Printf("start Push from %d to %d", b, e)
 
 	for {
 		for i := b; i < e; i++ {
-			resp, err := http.Post(fmt.Sprintf("http://%s/1/push/room?rid=%d", os.Args[3], i), "application/json", bytes.NewBufferString(TestContent))
+			resp, err := http.Post(fmt.Sprintf("http://%s/1/push/room?rid=%d", os.Args[3], i), "application/json", bytes.NewBufferString(testContent))
 			if err != nil {
 				lg.Printf("post error (%v)", err)
 				continue
@@ -118,19 +107,4 @@ func startPush(b, e int, delay time.Duration) {
 			time.Sleep(delay)
 		}
 	}
-}
-
-func httpPost(url string, contentType string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", contentType)
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
 }

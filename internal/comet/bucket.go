@@ -165,7 +165,7 @@ func (b *Bucket) Broadcast(p *grpc.Proto, op int32, tag string) {
 		if !ch.NeedPush(op, tag) {
 			continue
 		}
-		ch.Push(p)
+		_ = ch.Push(p)
 	}
 	b.cLock.RUnlock()
 }

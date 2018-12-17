@@ -38,9 +38,7 @@ type Server struct {
 
 func newLogicClient(c *conf.RPCClient) logic.LogicClient {
 	opts := []grpc.DialOption{
-		// grpc.WithBlock(),
 		grpc.WithInsecure(),
-		grpc.WithTimeout(time.Second),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.Dial))
 	defer cancel()

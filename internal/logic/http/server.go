@@ -42,7 +42,6 @@ func (s *Server) initRouter() {
 	group.GET("/goim/nodes/weighted", s.nodesWeighted)
 	group.GET("/goim/nodes/debug", s.nodesDebug)
 	group.GET("/goim/nodes/infos", s.nodesInfos)
-	return
 }
 
 // Close close the server.

@@ -477,9 +477,9 @@ func TestUnreadRuneError(t *testing.T) {
 func TestUnreadRuneAtEOF(t *testing.T) {
 	// UnreadRune/ReadRune should error at EOF (was a bug; used to panic)
 	r := NewReader(strings.NewReader("x"))
-	r.ReadRune()
-	r.ReadRune()
-	r.UnreadRune()
+	_, _, _ = r.ReadRune()
+	_, _, _ = r.ReadRune()
+	_ = r.UnreadRune()
 	_, _, err := r.ReadRune()
 	if err == nil {
 		t.Error("expected error at EOF")
@@ -633,17 +633,17 @@ func TestWriteString(t *testing.T) {
 	const BufSize = 8
 	buf := new(bytes.Buffer)
 	b := NewWriterSize(buf, BufSize)
-	b.WriteString("0")                         // easy
-	b.WriteString("123456")                    // still easy
-	b.WriteString("7890")                      // easy after flush
-	b.WriteString("abcdefghijklmnopqrstuvwxy") // hard
-	b.WriteString("z")
+	_, _ = b.WriteString("0")                         // easy
+	_, _ = b.WriteString("123456")                    // still easy
+	_, _ = b.WriteString("7890")                      // easy after flush
+	_, _ = b.WriteString("abcdefghijklmnopqrstuvwxy") // hard
+	_, _ = b.WriteString("z")
 	if err := b.Flush(); err != nil {
 		t.Error("WriteString", err)
 	}
 	s := "01234567890abcdefghijklmnopqrstuvwxyz"
-	if string(buf.Bytes()) != s {
-		t.Errorf("WriteString wants %q gets %q", s, string(buf.Bytes()))
+	if buf.String() != s {
+		t.Errorf("WriteString wants %q gets %q", s, buf.String())
 	}
 }
 
@@ -726,10 +726,10 @@ func (r dataAndEOFReader) Read(p []byte) (int, error) {
 func TestPeekThenUnreadRune(t *testing.T) {
 	// This sequence used to cause a crash.
 	r := NewReader(strings.NewReader("x"))
-	r.ReadRune()
-	r.Peek(1)
-	r.UnreadRune()
-	r.ReadRune() // Used to panic here
+	_, _, _ = r.ReadRune()
+	_, _ = r.Peek(1)
+	_ = r.UnreadRune()
+	_, _, _ = r.ReadRune() // Used to panic here
 }
 
 var testOutput = []byte("0123456789abcdefghijklmnopqrstuvwxy")
@@ -1053,43 +1053,43 @@ func TestWriterReadFromErrors(t *testing.T) {
 func TestWriterReadFromCounts(t *testing.T) {
 	var w0 writeCountingDiscard
 	b0 := NewWriterSize(&w0, 1234)
-	b0.WriteString(strings.Repeat("x", 1000))
+	_, _ = b0.WriteString(strings.Repeat("x", 1000))
 	if w0 != 0 {
 		t.Fatalf("write 1000 'x's: got %d writes, want 0", w0)
 	}
-	b0.WriteString(strings.Repeat("x", 200))
+	_, _ = b0.WriteString(strings.Repeat("x", 200))
 	if w0 != 0 {
 		t.Fatalf("write 1200 'x's: got %d writes, want 0", w0)
 	}
-	io.Copy(b0, onlyReader{strings.NewReader(strings.Repeat("x", 30))})
+	_, _ = io.Copy(b0, onlyReader{strings.NewReader(strings.Repeat("x", 30))})
 	if w0 != 0 {
 		t.Fatalf("write 1230 'x's: got %d writes, want 0", w0)
 	}
-	io.Copy(b0, onlyReader{strings.NewReader(strings.Repeat("x", 9))})
+	_, _ = io.Copy(b0, onlyReader{strings.NewReader(strings.Repeat("x", 9))})
 	if w0 != 1 {
 		t.Fatalf("write 1239 'x's: got %d writes, want 1", w0)
 	}
 
 	var w1 writeCountingDiscard
 	b1 := NewWriterSize(&w1, 1234)
-	b1.WriteString(strings.Repeat("x", 1200))
-	b1.Flush()
+	_, _ = b1.WriteString(strings.Repeat("x", 1200))
+	_ = b1.Flush()
 	if w1 != 1 {
 		t.Fatalf("flush 1200 'x's: got %d writes, want 1", w1)
 	}
-	b1.WriteString(strings.Repeat("x", 89))
+	_, _ = b1.WriteString(strings.Repeat("x", 89))
 	if w1 != 1 {
 		t.Fatalf("write 1200 + 89 'x's: got %d writes, want 1", w1)
 	}
-	io.Copy(b1, onlyReader{strings.NewReader(strings.Repeat("x", 700))})
+	_, _ = io.Copy(b1, onlyReader{strings.NewReader(strings.Repeat("x", 700))})
 	if w1 != 1 {
 		t.Fatalf("write 1200 + 789 'x's: got %d writes, want 1", w1)
 	}
-	io.Copy(b1, onlyReader{strings.NewReader(strings.Repeat("x", 600))})
+	_, _ = io.Copy(b1, onlyReader{strings.NewReader(strings.Repeat("x", 600))})
 	if w1 != 2 {
 		t.Fatalf("write 1200 + 1389 'x's: got %d writes, want 2", w1)
 	}
-	b1.Flush()
+	_ = b1.Flush()
 	if w1 != 3 {
 		t.Fatalf("flush 1200 + 1389 'x's: got %d writes, want 3", w1)
 	}
@@ -1124,7 +1124,7 @@ func TestNegativeRead(t *testing.T) {
 			t.Fatalf("unexpected panic value: %T(%v)", err, err)
 		}
 	}()
-	b.Read(make([]byte, 100))
+	_, _ = b.Read(make([]byte, 100))
 }
 
 var errFake = errors.New("fake error")
@@ -1213,7 +1213,7 @@ func TestWriterReadFromUntilEOF(t *testing.T) {
 		t.Fatalf("ReadFrom returned (%v, %v), want (4, nil)", n2, err)
 	}
 	w.Flush()
-	if got, want := string(buf.Bytes()), "0123abcd"; got != want {
+	if got, want := buf.String(), "0123abcd"; got != want {
 		t.Fatalf("buf.Bytes() returned %q, want %q", got, want)
 	}
 }
@@ -1239,7 +1239,7 @@ func TestWriterReadFromErrNoProgress(t *testing.T) {
 func TestReaderReset(t *testing.T) {
 	r := NewReader(strings.NewReader("foo foo"))
 	buf := make([]byte, 3)
-	r.Read(buf)
+	_, _ = r.Read(buf)
 	if string(buf) != "foo" {
 		t.Errorf("buf = %q; want foo", buf)
 	}
@@ -1256,10 +1256,10 @@ func TestReaderReset(t *testing.T) {
 func TestWriterReset(t *testing.T) {
 	var buf1, buf2 bytes.Buffer
 	w := NewWriter(&buf1)
-	w.WriteString("foo")
+	_, _ = w.WriteString("foo")
 	w.Reset(&buf2) // and not flushed
-	w.WriteString("bar")
-	w.Flush()
+	_, _ = w.WriteString("bar")
+	_ = w.Flush()
 	if buf1.String() != "" {
 		t.Errorf("buf1 = %q; want empty", buf1.String())
 	}
@@ -1434,7 +1434,7 @@ func BenchmarkReaderCopyOptimal(b *testing.B) {
 		srcBuf.Reset()
 		src.Reset(srcBuf)
 		dstBuf.Reset()
-		io.Copy(dst, src)
+		_, _ = io.Copy(dst, src)
 	}
 }
 
@@ -1448,7 +1448,7 @@ func BenchmarkReaderCopyUnoptimal(b *testing.B) {
 		srcBuf.Reset()
 		src.Reset(onlyReader{srcBuf})
 		dstBuf.Reset()
-		io.Copy(dst, src)
+		_, _ = io.Copy(dst, src)
 	}
 }
 
@@ -1462,7 +1462,7 @@ func BenchmarkReaderCopyNoWriteTo(b *testing.B) {
 		srcBuf.Reset()
 		srcReader.Reset(srcBuf)
 		dstBuf.Reset()
-		io.Copy(dst, src)
+		_, _ = io.Copy(dst, src)
 	}
 }
 
@@ -1475,7 +1475,7 @@ func BenchmarkReaderWriteToOptimal(b *testing.B) {
 		b.Fatal("ioutil.Discard doesn't support ReaderFrom")
 	}
 	for i := 0; i < b.N; i++ {
-		r.Seek(0, 0)
+		_, _ = r.Seek(0, 0)
 		srcReader.Reset(onlyReader{r})
 		n, err := srcReader.WriteTo(ioutil.Discard)
 		if err != nil {
@@ -1497,7 +1497,7 @@ func BenchmarkWriterCopyOptimal(b *testing.B) {
 		srcBuf.Reset()
 		dstBuf.Reset()
 		dst.Reset(dstBuf)
-		io.Copy(dst, src)
+		_, _ = io.Copy(dst, src)
 	}
 }
 
@@ -1510,7 +1510,7 @@ func BenchmarkWriterCopyUnoptimal(b *testing.B) {
 		srcBuf.Reset()
 		dstBuf.Reset()
 		dst.Reset(onlyWriter{dstBuf})
-		io.Copy(dst, src)
+		_, _ = io.Copy(dst, src)
 	}
 }
 
@@ -1524,7 +1524,7 @@ func BenchmarkWriterCopyNoReadFrom(b *testing.B) {
 		srcBuf.Reset()
 		dstBuf.Reset()
 		dstWriter.Reset(dstBuf)
-		io.Copy(dst, src)
+		_, _ = io.Copy(dst, src)
 	}
 }
 
@@ -1549,15 +1549,15 @@ func BenchmarkWriterEmpty(b *testing.B) {
 	bs := []byte(str)
 	for i := 0; i < b.N; i++ {
 		bw := NewWriter(ioutil.Discard)
-		bw.Flush()
-		bw.WriteByte('a')
-		bw.Flush()
-		bw.WriteRune('B')
-		bw.Flush()
-		bw.Write(bs)
-		bw.Flush()
-		bw.WriteString(str)
-		bw.Flush()
+		_ = bw.Flush()
+		_ = bw.WriteByte('a')
+		_ = bw.Flush()
+		_, _ = bw.WriteRune('B')
+		_ = bw.Flush()
+		_, _ = bw.Write(bs)
+		_ = bw.Flush()
+		_, _ = bw.WriteString(str)
+		_ = bw.Flush()
 	}
 }
 
@@ -1566,7 +1566,7 @@ func BenchmarkWriterFlush(b *testing.B) {
 	bw := NewWriter(ioutil.Discard)
 	str := strings.Repeat("x", 50)
 	for i := 0; i < b.N; i++ {
-		bw.WriteString(str)
-		bw.Flush()
+		_, _ = bw.WriteString(str)
+		_ = bw.Flush()
 	}
 }

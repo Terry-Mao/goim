@@ -43,7 +43,7 @@ func New(c *conf.Config) (l *Logic) {
 	}
 	l.initRegions()
 	l.initNodes()
-	l.loadOnline()
+	_ = l.loadOnline()
 	go l.onlineproc()
 	return l
 }
@@ -149,7 +149,7 @@ func (l *Logic) loadOnline() (err error) {
 			return
 		}
 		if time.Since(time.Unix(online.Updated, 0)) > _onlineDeadline {
-			l.dao.DelServerOnline(context.Background(), server.Hostname)
+			_ = l.dao.DelServerOnline(context.Background(), server.Hostname)
 			continue
 		}
 		for roomID, count := range online.RoomCount {

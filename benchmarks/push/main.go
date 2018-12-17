@@ -23,11 +23,11 @@ var (
 	t          int
 )
 
-const TestContent = "{\"test\":1}"
+const testContent = "{\"test\":1}"
 
 type pushBodyMsg struct {
 	Msg    json.RawMessage `json:"m"`
-	UserId int64           `json:"u"`
+	UserID int64           `json:"u"`
 }
 
 func init() {
@@ -39,7 +39,7 @@ func init() {
 				return nil, err
 			}
 
-			c.SetDeadline(deadline)
+			_ = c.SetDeadline(deadline)
 			return c, nil
 		},
 		DisableKeepAlives: false,
@@ -97,7 +97,7 @@ func startPush(b, e int) {
 	lg.Printf("start Push from %d to %d", b, e)
 	bodys := make([][]byte, e-b)
 	for i := 0; i < e-b; i++ {
-		msg := &pushBodyMsg{Msg: json.RawMessage(TestContent), UserId: int64(b)}
+		msg := &pushBodyMsg{Msg: json.RawMessage(testContent), UserID: int64(b)}
 		body, err := json.Marshal(msg)
 		if err != nil {
 			panic(err)

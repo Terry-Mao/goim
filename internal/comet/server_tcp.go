@@ -249,7 +249,6 @@ func (s *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool
 			// fetch message from svrbox(client send)
 			for {
 				if p, err = ch.CliProto.Get(); err != nil {
-					err = nil // must be empty error
 					break
 				}
 				if white {

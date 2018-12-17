@@ -40,8 +40,8 @@ func Upgrade(rwc io.ReadWriteCloser, rr *bufio.Reader, wr *bufio.Writer, req *Re
 	if challengeKey == "" {
 		return nil, ErrChallengeResponse
 	}
-	wr.WriteString("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n")
-	wr.WriteString("Sec-WebSocket-Accept: " + computeAcceptKey(challengeKey) + "\r\n\r\n")
+	_, _ = wr.WriteString("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n")
+	_, _ = wr.WriteString("Sec-WebSocket-Accept: " + computeAcceptKey(challengeKey) + "\r\n\r\n")
 	if err = wr.Flush(); err != nil {
 		return
 	}
@@ -50,7 +50,7 @@ func Upgrade(rwc io.ReadWriteCloser, rr *bufio.Reader, wr *bufio.Writer, req *Re
 
 func computeAcceptKey(challengeKey string) string {
 	h := sha1.New()
-	h.Write([]byte(challengeKey))
-	h.Write(keyGUID)
+	_, _ = h.Write([]byte(challengeKey))
+	_, _ = h.Write(keyGUID)
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }

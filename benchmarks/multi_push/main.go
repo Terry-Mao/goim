@@ -23,7 +23,7 @@ var (
 	t          int
 )
 
-const TestContent = "{\"test\":1}"
+const testContent = "{\"test\":1}"
 
 type pushsBodyMsg struct {
 	Msg     json.RawMessage `json:"m"`
@@ -39,7 +39,7 @@ func init() {
 				return nil, err
 			}
 
-			c.SetDeadline(deadline)
+			_ = c.SetDeadline(deadline)
 			return c, nil
 		},
 		DisableKeepAlives: false,
@@ -97,7 +97,7 @@ func startPush(b, e int) {
 	for i := b; i < e; i++ {
 		l = append(l, int64(i))
 	}
-	msg := &pushsBodyMsg{Msg: json.RawMessage(TestContent), UserIds: l}
+	msg := &pushsBodyMsg{Msg: json.RawMessage(testContent), UserIds: l}
 	body, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)

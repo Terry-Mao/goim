@@ -21,11 +21,10 @@ type ret struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
-func writeJSON(c *gin.Context, data interface{}, code int) (err error) {
+func writeJSON(c *gin.Context, data interface{}, code int) {
 	c.Set(contextErrCode, code)
 	c.JSON(200, ret{
 		Code: code,
 		Data: data,
 	})
-	return
 }

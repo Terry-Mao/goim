@@ -68,7 +68,7 @@ func (r *Room) Del(ch *Channel) bool {
 func (r *Room) Push(p *grpc.Proto) {
 	r.rLock.RLock()
 	for ch := r.next; ch != nil; ch = ch.Next {
-		ch.Push(p)
+		_ = ch.Push(p)
 	}
 	r.rLock.RUnlock()
 }

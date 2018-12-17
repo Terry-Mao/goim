@@ -8,9 +8,9 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
+	"encoding/json"
 	"flag"
 	"fmt"
-	//mrand "math/rand"
 	"net"
 	"os"
 	"runtime"
@@ -18,35 +18,38 @@ import (
 	"sync/atomic"
 	"time"
 
-	log "github.com/thinkboy/log4go"
+	log "github.com/golang/glog"
 )
 
 const (
-	OP_HANDSHARE        = int32(0)
-	OP_HANDSHARE_REPLY  = int32(1)
-	OP_HEARTBEAT        = int32(2)
-	OP_HEARTBEAT_REPLY  = int32(3)
-	OP_SEND_SMS         = int32(4)
-	OP_SEND_SMS_REPLY   = int32(5)
-	OP_DISCONNECT_REPLY = int32(6)
-	OP_AUTH             = int32(7)
-	OP_AUTH_REPLY       = int32(8)
-	OP_TEST             = int32(254)
-	OP_TEST_REPLY       = int32(255)
+	opHeartbeat      = int32(2)
+	opHeartbeatReply = int32(3)
+	opAuth           = int32(7)
+	opAuthReply      = int32(8)
 )
 
 const (
 	rawHeaderLen = uint16(16)
-	heart        = 240 * time.Second //s
+	heart        = 30 * time.Second
 )
 
+// Proto proto.
 type Proto struct {
 	PackLen   int32  // package length
 	HeaderLen int16  // header length
 	Ver       int16  // protocol version
 	Operation int32  // operation for request
-	SeqId     int32  // sequence number chosen by client
+	Seq       int32  // sequence number chosen by client
 	Body      []byte // body
+}
+
+// AuthToken auth token.
+type AuthToken struct {
+	Mid      int64
+	Key      string
+	RoomID   string
+	Platform string
+	Accepts  []int32
 }
 
 var (
@@ -55,9 +58,7 @@ var (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	log.Global = log.NewDefaultLogger(log.DEBUG)
 	flag.Parse()
-	defer log.Close()
 	begin, err := strconv.Atoi(os.Args[1])
 	if err != nil {
 		panic(err)
@@ -109,46 +110,49 @@ func startClient(key string) {
 
 	conn, err := net.Dial("tcp", os.Args[3])
 	if err != nil {
-		log.Error("net.Dial(\"%s\") error(%v)", os.Args[3], err)
+		log.Errorf("net.Dial(%s) error(%v)", os.Args[3], err)
 		return
 	}
-	seqId := int32(0)
+	seq := int32(0)
 	wr := bufio.NewWriter(conn)
 	rd := bufio.NewReader(conn)
+	authToken := &AuthToken{
+		123,
+		"test_key",
+		"test://1000",
+		"ios",
+		[]int32{1000, 1001, 1002},
+	}
 	proto := new(Proto)
 	proto.Ver = 1
-	// auth
-	// test handshake timeout
-	// time.Sleep(time.Second * 31)
-	proto.Operation = OP_AUTH
-	proto.SeqId = seqId
-	proto.Body = []byte(key)
+	proto.Operation = opAuth
+	proto.Seq = seq
+	proto.Body, _ = json.Marshal(authToken)
 	if err = tcpWriteProto(wr, proto); err != nil {
-		log.Error("tcpWriteProto() error(%v)", err)
+		log.Errorf("tcpWriteProto() error(%v)", err)
 		return
 	}
 	if err = tcpReadProto(rd, proto); err != nil {
-		log.Error("tcpReadProto() error(%v)", err)
+		log.Errorf("tcpReadProto() error(%v)", err)
 		return
 	}
-	log.Debug("key:%s auth ok, proto: %v", key, proto)
-	seqId++
+	log.Infof("key:%s auth ok, proto: %v", key, proto)
+	seq++
 	// writer
 	go func() {
-		proto1 := new(Proto)
+		hbProto := new(Proto)
 		for {
 			// heartbeat
-			proto1.Operation = OP_HEARTBEAT
-			proto1.SeqId = seqId
-			proto1.Body = nil
-			if err = tcpWriteProto(wr, proto1); err != nil {
-				log.Error("key:%s tcpWriteProto() error(%v)", key, err)
+			hbProto.Operation = opHeartbeat
+			hbProto.Seq = seq
+			hbProto.Body = nil
+			if err = tcpWriteProto(wr, hbProto); err != nil {
+				log.Errorf("key:%s tcpWriteProto() error(%v)", key, err)
 				return
 			}
-			log.Debug("key:%s Write heartbeat", key)
-			// test heartbeat
+			log.Infof("key:%s Write heartbeat", key)
 			time.Sleep(heart)
-			seqId++
+			seq++
 			select {
 			case <-quit:
 				return
@@ -159,21 +163,21 @@ func startClient(key string) {
 	// reader
 	for {
 		if err = tcpReadProto(rd, proto); err != nil {
-			log.Error("key:%s tcpReadProto() error(%v)", key, err)
+			log.Errorf("key:%s tcpReadProto() error(%v)", key, err)
 			quit <- true
 			return
 		}
-		if proto.Operation == OP_HEARTBEAT_REPLY {
-			log.Debug("key:%s receive heartbeat", key)
+		if proto.Operation == opAuthReply {
+			log.Infof("key:%s auth success", key)
+		} else if proto.Operation == opHeartbeatReply {
+			log.Infof("key:%s receive heartbeat", key)
 			if err = conn.SetReadDeadline(time.Now().Add(heart + 60*time.Second)); err != nil {
-				log.Error("conn.SetReadDeadline() error(%v)", err)
+				log.Errorf("conn.SetReadDeadline() error(%v)", err)
 				quit <- true
 				return
 			}
-		} else if proto.Operation == OP_TEST_REPLY {
-			log.Debug("body: %s", string(proto.Body))
-		} else if proto.Operation == OP_SEND_SMS_REPLY {
-			log.Info("key:%s msg: %s", key, string(proto.Body))
+		} else {
+			log.Infof("key:%s op:%d msg: %s", key, proto.Operation, string(proto.Body))
 			atomic.AddInt64(&countDown, 1)
 		}
 	}
@@ -193,11 +197,10 @@ func tcpWriteProto(wr *bufio.Writer, proto *Proto) (err error) {
 	if err = binary.Write(wr, binary.BigEndian, proto.Operation); err != nil {
 		return
 	}
-	if err = binary.Write(wr, binary.BigEndian, proto.SeqId); err != nil {
+	if err = binary.Write(wr, binary.BigEndian, proto.Seq); err != nil {
 		return
 	}
 	if proto.Body != nil {
-		//log.Debug("cipher body: %v", proto.Body)
 		if err = binary.Write(wr, binary.BigEndian, proto.Body); err != nil {
 			return
 		}
@@ -215,29 +218,22 @@ func tcpReadProto(rd *bufio.Reader, proto *Proto) (err error) {
 	if err = binary.Read(rd, binary.BigEndian, &packLen); err != nil {
 		return
 	}
-	//log.Debug("packLen: %d", packLen)
 	if err = binary.Read(rd, binary.BigEndian, &headerLen); err != nil {
 		return
 	}
-	//log.Debug("headerLen: %d", headerLen)
 	if err = binary.Read(rd, binary.BigEndian, &proto.Ver); err != nil {
 		return
 	}
-	//log.Debug("ver: %d", proto.Ver)
 	if err = binary.Read(rd, binary.BigEndian, &proto.Operation); err != nil {
 		return
 	}
-	//log.Debug("operation: %d", proto.Operation)
-	if err = binary.Read(rd, binary.BigEndian, &proto.SeqId); err != nil {
+	if err = binary.Read(rd, binary.BigEndian, &proto.Seq); err != nil {
 		return
 	}
-	//log.Debug("seqId: %d", proto.SeqId)
 	var (
-		n       = int(0)
-		t       = int(0)
+		n, t    int
 		bodyLen = int(packLen - int32(headerLen))
 	)
-	//log.Debug("read body len: %d", bodyLen)
 	if bodyLen > 0 {
 		proto.Body = make([]byte, bodyLen)
 		for {
@@ -246,8 +242,6 @@ func tcpReadProto(rd *bufio.Reader, proto *Proto) (err error) {
 			}
 			if n += t; n == bodyLen {
 				break
-			} else if n < bodyLen {
-			} else {
 			}
 		}
 	} else {
