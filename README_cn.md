@@ -1,4 +1,4 @@
-goim
+goim v2.0
 ==============
 `Terry-Mao/goim` 是一个支持集群的im及实时推送服务。
 
@@ -96,7 +96,7 @@ $ nohup $GOPATH/bin/job -c $GOPATH/bin/job.conf 2>&1 > /data/logs/goim/panic-job
 
 ### 六、测试
 
-推送协议可查看[push http协议文档](https://github.com/Terry-Mao/goim/blob/master/doc/push.md)
+推送协议可查看[push http协议文档](./docs/push.md)
 
 ## 配置
 
@@ -111,7 +111,7 @@ Android: [Android](https://github.com/roamdy/goim-sdk)
 iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 
 ## 文档
-[push http协议文档](https://github.com/Terry-Mao/goim/blob/master/doc/push.md)推送接口
+[push http协议文档](./docs/push.md)推送接口
 
 ## 集群
 
