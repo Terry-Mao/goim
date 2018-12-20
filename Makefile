@@ -7,9 +7,9 @@ all: test build
 build:
 	rm -rf target/
 	mkdir target/
-	cp cmd/comet/comet.toml target/comet.toml
-	cp cmd/logic/logic.toml target/logic.toml
-	cp cmd/job/job.toml target/job.toml
+	cp cmd/comet/comet-example.toml target/comet.toml
+	cp cmd/logic/logic-example.toml target/logic.toml
+	cp cmd/job/job-example.toml target/job.toml
 	$(GOBUILD) -o target/comet cmd/comet/main.go
 	$(GOBUILD) -o target/logic cmd/logic/main.go
 	$(GOBUILD) -o target/job cmd/job/main.go

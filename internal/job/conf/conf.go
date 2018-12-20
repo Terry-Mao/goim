@@ -24,7 +24,7 @@ func init() {
 	var (
 		defHost, _ = os.Hostname()
 	)
-	flag.StringVar(&confPath, "conf", "job.toml", "default config path")
+	flag.StringVar(&confPath, "conf", "job-example.toml", "default config path")
 	flag.StringVar(&region, "region", os.Getenv("REGION"), "distribution region, likes bj/sh/gz/hk/jp/sv/de")
 	flag.StringVar(&zone, "zone", os.Getenv("ZONE"), "deployment zone, likes sh001/sh002/sh003")
 	flag.StringVar(&deployEnv, "deploy.env", os.Getenv("DEPLOY_ENV"), "deployment environment, likes dev/fat/uat/pre/prod")

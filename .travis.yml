@@ -7,6 +7,11 @@ language: go
 # Force-enable Go modules. This will be unnecessary when Go 1.12 lands.
 env:
   - GO111MODULE=on
+  - REGION=sh
+  - ZONE=sh001
+  - DEPLOY_ENV=test
+  - WEIGHT=10
+  - ADDRS=127.0.0.1
 
 # You don't need to test on very old version of the Go compiler. It's the user's
 # responsibility to keep their compilers up to date.
