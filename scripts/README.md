@@ -1,11 +1,11 @@
 #  Installing
 
-## Install JDK
+### Install JDK
 ```
     ./jdk.sh
 ```
 
-## Install Zookeeper
+### Install Zookeeper
 ```
     ./zk.sh
 ```
