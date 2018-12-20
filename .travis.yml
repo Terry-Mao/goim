@@ -10,7 +10,7 @@ env:
     - GO111MODULE=on
     - REGION=sh
     - ZONE=sh001
-    - DEPLOY_ENV=test
+    - DEPLOY_ENV=dev
     - WEIGHT=10
     - ADDRS=127.0.0.1
 
