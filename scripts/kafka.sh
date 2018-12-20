@@ -6,21 +6,22 @@ KAFKA_CONF=/data/app/kafka/config/server.properties
 KAFKA_DATA=/data/kafka_data/
 KAFKA_SUPERVISOR=/etc/supervisor/conf.d/kafka.conf
 
+USAGE="./kafka.sh {broker.id} {current.addr} {zk.addr1,zk.addr2,zk.addr3}\r\neg: ./kafka.sh 1 127.0.0.1 127.0.0.1:2181,127.0.0.2:2181,127.0.0.3:2181"
 # check parammeters
 BROKER_ID=$1
 CURRENT_ADDR=$2
 ZK_ADDRS=$3
 if [ ! "$BROKER_ID" ]; then
 echo "kafka {broker.id} can not be null"
-echo -e "./kafka.sh {broker.id} {current.addr} {zk.addr1,zk.addr2,zk.addr3}\r\neg: ./kafka.sh 1 10.1.0.10 10.1.0.10:2181,10.1.0.11:2181,10.1.0.12:2181"
+echo -e  $USAGE
 exit 1
 fi
 if [ ! "$CURRENT_ADDR" ]; then
-echo "zookeeper path can not be null"
+echo "current addr can not be null"
 exit 1
 fi
 if [ ! "$ZK_ADDRS" ]; then
-echo "zookeeper path can not be null"
+echo "zookeeper addrs can not be null"
 exit 1
 fi
 if [ ! -d "$JDK_HOME" ]; then
@@ -67,12 +68,13 @@ mkdir -p /data/log/kafka/
 echo "[program:kafka]
 command=$KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_CONF
 user=root
-autostart=false
+autostart=true
 autorestart=true
-startretries=10
 exitcodes=0
-stopsignal=KILL
+startsecs=10
+startretries=10
 stopwaitsecs=10
+stopsignal=KILL
 stdout_logfile=/data/log/kafka/stdout.log
 stderr_logfile=/data/log/kafka/stderr.log
 stdout_logfile_maxbytes=100MB
