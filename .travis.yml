@@ -42,7 +42,7 @@ before_script:
   - curl -sfL https://raw.githubusercontent.com/Bilibili/discovery/master/install.sh | sh -s -- -b $GOPATH/bin
   - curl -sfL https://raw.githubusercontent.com/Bilibili/discovery/master/cmd/discovery/discovery-example.toml -o $GOPATH/bin/discovery.toml
   - nohup bash -c "$GOPATH/bin/discovery -conf $GOPATH/bin/discovery.toml &"
-  - wget https://www-us.apache.org/dist/kafka/2.1.0/kafka_2.12-2.1.0.tgz -O kafka.tgz
+  - curl -L https://www-us.apache.org/dist/kafka/2.1.0/kafka_2.12-2.1.0.tgz -o kafka.tgz
   - mkdir -p kafka && tar xzf kafka.tgz -C kafka --strip-components 1
   - nohup bash -c "cd kafka && bin/zookeeper-server-start.sh config/zookeeper.properties &"
   - nohup bash -c "cd kafka && bin/kafka-server-start.sh config/server.properties &"
