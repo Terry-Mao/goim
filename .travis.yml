@@ -47,7 +47,7 @@ before_script:
   - nohup bash -c "cd kafka && bin/zookeeper-server-start.sh config/zookeeper.properties &"
   - nohup bash -c "cd kafka && bin/kafka-server-start.sh config/server.properties &"
   - sleep 5
-  - $KAFKA_HOME/bin/kafka-topics.sh --create --partitions 1 --replication-factor 1 --topic goim-push-topic --zookeeper localhost:2181
+  - kafka/bin/kafka-topics.sh --create --partitions 1 --replication-factor 1 --topic goim-push-topic --zookeeper localhost:2181
 
 # script always runs to completion (set +e). If we have linter issues AND a
 # failing test, we want to see both. Configure golangci-lint with a
