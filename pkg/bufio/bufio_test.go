@@ -182,34 +182,6 @@ func TestZeroReader(t *testing.T) {
 	}
 }
 
-// A StringReader delivers its data one string segment at a time via Read.
-type StringReader struct {
-	data []string
-	step int
-}
-
-func (r *StringReader) Read(p []byte) (n int, err error) {
-	if r.step < len(r.data) {
-		s := r.data[r.step]
-		n = copy(p, s)
-		r.step++
-	} else {
-		err = io.EOF
-	}
-	return
-}
-
-var segmentList = [][]string{
-	{},
-	{""},
-	{"日", "本語"},
-	{"\u65e5", "\u672c", "\u8a9e"},
-	{"\U000065e5", "\U0000672c", "\U00008a9e"},
-	{"\xe6", "\x97\xa5\xe6", "\x9c\xac\xe8\xaa\x9e"},
-	{"Hello", ", ", "World", "!"},
-	{"Hello", ", ", "", "World", "!"},
-}
-
 func TestWriter(t *testing.T) {
 	var data [8192]byte
 
@@ -608,63 +580,6 @@ func testReadLineNewlines(t *testing.T, input string, expect []readLineResult) {
 	}
 }
 
-func createTestInput(n int) []byte {
-	input := make([]byte, n)
-	for i := range input {
-		// 101 and 251 are arbitrary prime numbers.
-		// The idea is to create an input sequence
-		// which doesn't repeat too frequently.
-		input[i] = byte(i % 251)
-		if i%101 == 0 {
-			input[i] ^= byte(i / 101)
-		}
-	}
-	return input
-}
-
-type errorWriterToTest struct {
-	rn, wn     int
-	rerr, werr error
-	expected   error
-}
-
-func (r errorWriterToTest) Read(p []byte) (int, error) {
-	return len(p) * r.rn, r.rerr
-}
-
-func (w errorWriterToTest) Write(p []byte) (int, error) {
-	return len(p) * w.wn, w.werr
-}
-
-var errorWriterToTests = []errorWriterToTest{
-	{1, 0, nil, io.ErrClosedPipe, io.ErrClosedPipe},
-	{0, 1, io.ErrClosedPipe, nil, io.ErrClosedPipe},
-	{0, 0, io.ErrUnexpectedEOF, io.ErrClosedPipe, io.ErrClosedPipe},
-	{0, 1, io.EOF, nil, nil},
-}
-
-type errorReaderFromTest struct {
-	rn, wn     int
-	rerr, werr error
-	expected   error
-}
-
-func (r errorReaderFromTest) Read(p []byte) (int, error) {
-	return len(p) * r.rn, r.rerr
-}
-
-func (w errorReaderFromTest) Write(p []byte) (int, error) {
-	return len(p) * w.wn, w.werr
-}
-
-var errorReaderFromTests = []errorReaderFromTest{
-	{0, 1, io.EOF, nil, nil},
-	{1, 1, io.EOF, nil, nil},
-	{0, 1, io.ErrClosedPipe, nil, io.ErrClosedPipe},
-	{0, 0, io.ErrClosedPipe, io.ErrShortWrite, io.ErrClosedPipe},
-	{1, 0, nil, io.ErrShortWrite, io.ErrShortWrite},
-}
-
 // TestWriterReadFromCounts tests that using io.Copy to copy into a
 // bufio.Writer does not prematurely flush the buffer. For example, when
 // buffering writes to a network socket, excessive network writes should be
@@ -781,19 +696,6 @@ func TestReaderClearError(t *testing.T) {
 	if r.nread != 2 {
 		t.Errorf("num reads = %d; want 2", r.nread)
 	}
-}
-
-type emptyThenNonEmptyReader struct {
-	r io.Reader
-	n int
-}
-
-func (r *emptyThenNonEmptyReader) Read(p []byte) (int, error) {
-	if r.n <= 0 {
-		return r.r.Read(p)
-	}
-	r.n--
-	return 0, nil
 }
 
 func TestReaderReset(t *testing.T) {
