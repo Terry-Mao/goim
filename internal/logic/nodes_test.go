@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Bilibili/discovery/naming"
 	"github.com/Terry-Mao/goim/internal/logic/model"
 
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,7 @@ func TestNodes(t *testing.T) {
 		c        = context.TODO()
 		clientIP = "127.0.0.1"
 	)
+	lg.nodes = make([]*naming.Instance, 0)
 	ins, err := lg.NodesInstances(c)
 	assert.Nil(t, err)
 	assert.NotNil(t, ins)
