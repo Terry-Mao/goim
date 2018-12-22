@@ -8,6 +8,9 @@ import (
 	"github.com/Terry-Mao/goim/internal/comet/errors"
 	"github.com/Terry-Mao/goim/pkg/strings"
 	log "github.com/golang/glog"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/encoding/gzip"
 )
 
 // Connect connected a connection.
@@ -49,7 +52,7 @@ func (s *Server) RenewOnline(ctx context.Context, serverID string, rommCount map
 	reply, err := s.rpcClient.RenewOnline(ctx, &logic.OnlineReq{
 		Server:    s.serverID,
 		RoomCount: rommCount,
-	})
+	}, grpc.UseCompressor(gzip.Name))
 	if err != nil {
 		return
 	}

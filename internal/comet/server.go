@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"os"
 	"time"
 
 	logic "github.com/Terry-Mao/goim/api/logic/grpc"
@@ -28,8 +27,8 @@ var (
 
 const (
 	clientHeartbeat       = time.Second * 90
-	minSrvHeartbeatSecond = 600  // 10m
-	maxSrvHeartbeatSecond = 1800 // 30m
+	minSrvHeartbeatSecond = time.Minute * 10
+	maxSrvHeartbeatSecond = time.Minute * 30
 	// grpc options
 	grpcInitialWindowSize     = 1 << 24
 	grpcInitialConnWindowSize = 1 << 24
@@ -82,11 +81,7 @@ func NewServer(c *conf.Config) *Server {
 	for i := 0; i < c.Bucket.Size; i++ {
 		s.buckets[i] = NewBucket(c.Bucket)
 	}
-	var err error
-	if s.serverID, err = os.Hostname(); err != nil {
-		u, _ := uuid.NewRandom()
-		s.serverID = u.String()
-	}
+	s.serverID = c.Env.Host
 	go s.onlineproc()
 	return s
 }
@@ -116,7 +111,7 @@ func (s *Server) NextKey() string {
 
 // RandServerHearbeat rand server heartbeat.
 func (s *Server) RandServerHearbeat() time.Duration {
-	return time.Duration(minSrvHeartbeatSecond+rand.Intn(maxSrvHeartbeatSecond-minSrvHeartbeatSecond)) * time.Second
+	return (minSrvHeartbeatSecond + time.Duration(rand.Intn(int(maxSrvHeartbeatSecond-minSrvHeartbeatSecond))))
 }
 
 // Close close the server.

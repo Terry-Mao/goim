@@ -24,10 +24,15 @@ func (l *Logic) Connect(c context.Context, server, serverKey, cookie string, tok
 		return
 	}
 	mid = params.Mid
-	key = params.Key
 	roomID = params.RoomID
 	accepts = params.Accepts
 	tags = []string{params.Platform}
+	if key = params.Key; key == "" {
+		key = serverKey
+	}
+	if err = l.dao.AddMapping(c, mid, key, server); err != nil {
+		log.Errorf("l.dao.AddMapping(%d,%s,%s) error(%v)", mid, key, server, err)
+	}
 	log.Infof("conn connected key:%s server:%s mid:%d token:%s tags:%v", key, server, mid, token, tags)
 	return
 }

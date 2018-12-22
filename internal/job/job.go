@@ -30,6 +30,7 @@ func New(c *conf.Config) *Job {
 	j := &Job{
 		c:        c,
 		consumer: newKafkaSub(c.Kafka),
+		rooms:    make(map[string]*Room),
 	}
 	j.watchComet(c.Discovery)
 	return j
