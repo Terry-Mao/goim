@@ -22,31 +22,30 @@ func TestServer(t *testing.T) {
 	go func() {
 		conn, err := ln.Accept()
 		if err != nil {
-			t.FailNow()
+			t.Error(err)
 		}
-		println("Accept conn")
 		rd := bufio.NewReader(conn)
 		wr := bufio.NewWriter(conn)
 		req, err := ReadRequest(rd)
 		if err != nil {
-			t.FailNow()
+			t.Error(err)
 		}
 		if req.RequestURI != "/sub" {
-			t.FailNow()
+			t.Error(err)
 		}
 		ws, err := Upgrade(conn, rd, wr, req)
 		if err != nil {
-			t.FailNow()
+			t.Error(err)
 		}
 		if err = ws.WriteMessage(BinaryMessage, data); err != nil {
-			t.FailNow()
+			t.Error(err)
 		}
 		if err = ws.Flush(); err != nil {
-			t.FailNow()
+			t.Error(err)
 		}
 		op, b, err := ws.ReadMessage()
 		if err != nil || op != BinaryMessage || !reflect.DeepEqual(b, data) {
-			t.FailNow()
+			t.Error(err)
 		}
 	}()
 	time.Sleep(time.Millisecond * 100)

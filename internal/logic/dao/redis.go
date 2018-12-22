@@ -14,10 +14,9 @@ import (
 )
 
 const (
-	_prefixMidServer    = "mid_%d"  // mid -> key:server
-	_prefixKeyServer    = "key_%s"  // key -> server
-	_prefixServerOnline = "ol_%s"   // server -> online
-	_keyServerInfo      = "servers" // key -> server:info
+	_prefixMidServer    = "mid_%d" // mid -> key:server
+	_prefixKeyServer    = "key_%s" // key -> server
+	_prefixServerOnline = "ol_%s"  // server -> online
 )
 
 func keyMidServer(mid int64) string {
