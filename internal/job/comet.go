@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/Bilibili/discovery/naming"
-	pb "github.com/Terry-Mao/goim/api/comet/grpc"
+	comet "github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/job/conf"
 
 	log "github.com/golang/glog"
 	"google.golang.org/grpc"
 )
 
-func newCometClient(addr string) (pb.CometClient, error) {
+func newCometClient(addr string) (comet.CometClient, error) {
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
 	}
@@ -25,16 +25,16 @@ func newCometClient(addr string) (pb.CometClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pb.NewCometClient(conn), err
+	return comet.NewCometClient(conn), err
 }
 
 // Comet is a comet.
 type Comet struct {
 	serverID      string
-	client        pb.CometClient
-	pushChan      []chan *pb.PushMsgReq
-	roomChan      []chan *pb.BroadcastRoomReq
-	broadcastChan chan *pb.BroadcastReq
+	client        comet.CometClient
+	pushChan      []chan *comet.PushMsgReq
+	roomChan      []chan *comet.BroadcastRoomReq
+	broadcastChan chan *comet.BroadcastReq
 	pushChanNum   uint64
 	roomChanNum   uint64
 	routineSize   uint64
@@ -47,9 +47,9 @@ type Comet struct {
 func NewComet(in *naming.Instance, c *conf.Comet) (*Comet, error) {
 	cmt := &Comet{
 		serverID:      in.Hostname,
-		pushChan:      make([]chan *pb.PushMsgReq, c.RoutineSize),
-		roomChan:      make([]chan *pb.BroadcastRoomReq, c.RoutineSize),
-		broadcastChan: make(chan *pb.BroadcastReq, c.RoutineSize),
+		pushChan:      make([]chan *comet.PushMsgReq, c.RoutineSize),
+		roomChan:      make([]chan *comet.BroadcastRoomReq, c.RoutineSize),
+		broadcastChan: make(chan *comet.BroadcastReq, c.RoutineSize),
 		routineSize:   uint64(c.RoutineSize),
 	}
 	var grpcAddr string
@@ -69,39 +69,39 @@ func NewComet(in *naming.Instance, c *conf.Comet) (*Comet, error) {
 	cmt.ctx, cmt.cancel = context.WithCancel(context.Background())
 
 	for i := 0; i < c.RoutineSize; i++ {
-		cmt.pushChan[i] = make(chan *pb.PushMsgReq, c.RoutineChan)
-		cmt.roomChan[i] = make(chan *pb.BroadcastRoomReq, c.RoutineChan)
+		cmt.pushChan[i] = make(chan *comet.PushMsgReq, c.RoutineChan)
+		cmt.roomChan[i] = make(chan *comet.BroadcastRoomReq, c.RoutineChan)
 		go cmt.process(cmt.pushChan[i], cmt.roomChan[i], cmt.broadcastChan)
 	}
 	return cmt, nil
 }
 
 // Push push a user message.
-func (c *Comet) Push(arg *pb.PushMsgReq) (err error) {
+func (c *Comet) Push(arg *comet.PushMsgReq) (err error) {
 	idx := atomic.AddUint64(&c.pushChanNum, 1) % c.routineSize
 	c.pushChan[idx] <- arg
 	return
 }
 
 // BroadcastRoom broadcast a room message.
-func (c *Comet) BroadcastRoom(arg *pb.BroadcastRoomReq) (err error) {
+func (c *Comet) BroadcastRoom(arg *comet.BroadcastRoomReq) (err error) {
 	idx := atomic.AddUint64(&c.roomChanNum, 1) % c.routineSize
 	c.roomChan[idx] <- arg
 	return
 }
 
 // Broadcast broadcast a message.
-func (c *Comet) Broadcast(arg *pb.BroadcastReq) (err error) {
+func (c *Comet) Broadcast(arg *comet.BroadcastReq) (err error) {
 	c.broadcastChan <- arg
 	return
 }
 
-func (c *Comet) process(pushChan chan *pb.PushMsgReq, roomChan chan *pb.BroadcastRoomReq, broadcastChan chan *pb.BroadcastReq) {
+func (c *Comet) process(pushChan chan *comet.PushMsgReq, roomChan chan *comet.BroadcastRoomReq, broadcastChan chan *comet.BroadcastReq) {
 	var err error
 	for {
 		select {
 		case broadcastArg := <-broadcastChan:
-			_, err = c.client.Broadcast(context.Background(), &pb.BroadcastReq{
+			_, err = c.client.Broadcast(context.Background(), &comet.BroadcastReq{
 				Proto:   broadcastArg.Proto,
 				ProtoOp: broadcastArg.ProtoOp,
 				Speed:   broadcastArg.Speed,
@@ -111,7 +111,7 @@ func (c *Comet) process(pushChan chan *pb.PushMsgReq, roomChan chan *pb.Broadcas
 				log.Errorf("c.client.Broadcast(%s, reply) serverId:%s error(%v)", broadcastArg, c.serverID, err)
 			}
 		case roomArg := <-roomChan:
-			_, err = c.client.BroadcastRoom(context.Background(), &pb.BroadcastRoomReq{
+			_, err = c.client.BroadcastRoom(context.Background(), &comet.BroadcastRoomReq{
 				RoomID: roomArg.RoomID,
 				Proto:  roomArg.Proto,
 			})
@@ -119,7 +119,7 @@ func (c *Comet) process(pushChan chan *pb.PushMsgReq, roomChan chan *pb.Broadcas
 				log.Errorf("c.client.BroadcastRoom(%s, reply) serverId:%s error(%v)", roomArg, c.serverID, err)
 			}
 		case pushArg := <-pushChan:
-			_, err = c.client.PushMsg(context.Background(), &pb.PushMsgReq{
+			_, err = c.client.PushMsg(context.Background(), &comet.PushMsgReq{
 				Keys:    pushArg.Keys,
 				Proto:   pushArg.Proto,
 				ProtoOp: pushArg.ProtoOp,
