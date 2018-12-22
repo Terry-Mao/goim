@@ -7,7 +7,7 @@ import (
 	"github.com/Terry-Mao/goim/internal/comet/errors"
 )
 
-// Room is a room.
+// Room is a room and store channel room info.
 type Room struct {
 	ID        string
 	rLock     sync.RWMutex

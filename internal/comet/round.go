@@ -6,7 +6,7 @@ import (
 	"github.com/Terry-Mao/goim/pkg/time"
 )
 
-// RoundOptions .
+// RoundOptions round options.
 type RoundOptions struct {
 	Timer        int
 	TimerSize    int
@@ -29,32 +29,31 @@ type Round struct {
 // NewRound new a round struct.
 func NewRound(c *conf.Config) (r *Round) {
 	var i int
-	r = new(Round)
-	options := RoundOptions{
-		Reader:       c.TCP.Reader,
-		ReadBuf:      c.TCP.ReadBuf,
-		ReadBufSize:  c.TCP.ReadBufSize,
-		Writer:       c.TCP.Writer,
-		WriteBuf:     c.TCP.WriteBuf,
-		WriteBufSize: c.TCP.WriteBufSize,
-		Timer:        c.Timer.Timer,
-		TimerSize:    c.Timer.TimerSize,
-	}
-	r.options = options
+	r = &Round{
+		options: RoundOptions{
+			Reader:       c.TCP.Reader,
+			ReadBuf:      c.TCP.ReadBuf,
+			ReadBufSize:  c.TCP.ReadBufSize,
+			Writer:       c.TCP.Writer,
+			WriteBuf:     c.TCP.WriteBuf,
+			WriteBufSize: c.TCP.WriteBufSize,
+			Timer:        c.Timer.Timer,
+			TimerSize:    c.Timer.TimerSize,
+		}}
 	// reader
-	r.readers = make([]bytes.Pool, options.Reader)
-	for i = 0; i < options.Reader; i++ {
-		r.readers[i].Init(options.ReadBuf, options.ReadBufSize)
+	r.readers = make([]bytes.Pool, r.options.Reader)
+	for i = 0; i < r.options.Reader; i++ {
+		r.readers[i].Init(r.options.ReadBuf, r.options.ReadBufSize)
 	}
 	// writer
-	r.writers = make([]bytes.Pool, options.Writer)
-	for i = 0; i < options.Writer; i++ {
-		r.writers[i].Init(options.WriteBuf, options.WriteBufSize)
+	r.writers = make([]bytes.Pool, r.options.Writer)
+	for i = 0; i < r.options.Writer; i++ {
+		r.writers[i].Init(r.options.WriteBuf, r.options.WriteBufSize)
 	}
 	// timer
-	r.timers = make([]time.Timer, options.Timer)
-	for i = 0; i < options.Timer; i++ {
-		r.timers[i].Init(options.TimerSize)
+	r.timers = make([]time.Timer, r.options.Timer)
+	for i = 0; i < r.options.Timer; i++ {
+		r.timers[i].Init(r.options.TimerSize)
 	}
 	return
 }

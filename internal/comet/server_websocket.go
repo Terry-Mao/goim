@@ -1,6 +1,7 @@
 package comet
 
 import (
+	"context"
 	"crypto/tls"
 	"io"
 	"net"
@@ -146,7 +147,7 @@ func serveWebsocket(s *Server, conn net.Conn, r int) {
 	s.ServeWebsocket(conn, rp, wp, tr)
 }
 
-// ServeWebsocket .
+// ServeWebsocket serve a websocket connection.
 func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Timer) {
 	var (
 		err     error
@@ -166,6 +167,8 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 	)
 	// reader
 	ch.Reader.ResetBuffer(conn, rb.Bytes())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// handshake
 	step := 0
 	trd = tr.Add(time.Duration(s.c.ProtoSection.HandshakeTimeout), func() {
@@ -202,7 +205,7 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 	// must not setadv, only used in auth
 	step = 3
 	if p, err = ch.CliProto.Set(); err == nil {
-		if ch.Mid, ch.Key, rid, ch.Tags, accepts, err = s.authWebsocket(ws, p, req.Header.Get("Cookie")); err == nil {
+		if ch.Mid, ch.Key, rid, ch.Tags, accepts, err = s.authWebsocket(ctx, ws, p, req.Header.Get("Cookie")); err == nil {
 			ch.Watch(accepts...)
 			b = s.Bucket(ch.Key)
 			err = b.Put(rid, ch)
@@ -251,10 +254,8 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 			p.Op = grpc.OpHeartbeatReply
 			// last server heartbeat
 			if now := time.Now(); now.Sub(lastHB) > serverHeartbeat {
-				if err = s.Heartbeat(ch.Mid, ch.Key); err == nil {
+				if err1 := s.Heartbeat(ctx, ch.Mid, ch.Key); err1 == nil {
 					lastHB = now
-				} else {
-					err = nil
 				}
 			}
 			if conf.Conf.Debug {
@@ -262,7 +263,7 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 			}
 			step++
 		} else {
-			if err = s.Operate(p, ch, b); err != nil {
+			if err = s.Operate(ctx, p, ch, b); err != nil {
 				break
 			}
 		}
@@ -286,7 +287,7 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 	ws.Close()
 	ch.Close()
 	rp.Put(rb)
-	if err = s.Disconnect(ch.Mid, ch.Key); err != nil {
+	if err = s.Disconnect(ctx, ch.Mid, ch.Key); err != nil {
 		log.Errorf("key: %s operator do disconnect error(%v)", ch.Key, err)
 	}
 	if white {
@@ -402,7 +403,7 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (s *Server) authWebsocket(ws *websocket.Conn, p *grpc.Proto, cookie string) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
+func (s *Server) authWebsocket(ctx context.Context, ws *websocket.Conn, p *grpc.Proto, cookie string) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
 	for {
 		if err = p.ReadWebsocket(ws); err != nil {
 			return
@@ -413,7 +414,7 @@ func (s *Server) authWebsocket(ws *websocket.Conn, p *grpc.Proto, cookie string)
 			log.Errorf("ws request operation(%d) not auth", p.Op)
 		}
 	}
-	if mid, key, rid, tags, accepts, err = s.Connect(p, cookie); err != nil {
+	if mid, key, rid, tags, accepts, err = s.Connect(ctx, p, cookie); err != nil {
 		return
 	}
 	p.Op = grpc.OpAuthReply

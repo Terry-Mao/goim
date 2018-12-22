@@ -1,6 +1,7 @@
 package comet
 
 import (
+	"context"
 	"io"
 	"net"
 	"strings"
@@ -89,7 +90,7 @@ func serveTCP(s *Server, conn *net.TCPConn, r int) {
 	s.ServeTCP(conn, rp, wp, tr)
 }
 
-// ServeTCP .
+// ServeTCP serve a tcp connection.
 func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer) {
 	var (
 		err     error
@@ -108,6 +109,8 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 	)
 	ch.Reader.ResetBuffer(conn, rb.Bytes())
 	ch.Writer.ResetBuffer(conn, wb.Bytes())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// handshake
 	step := 0
 	trd = tr.Add(time.Duration(s.c.ProtoSection.HandshakeTimeout), func() {
@@ -118,7 +121,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 	// must not setadv, only used in auth
 	step = 1
 	if p, err = ch.CliProto.Set(); err == nil {
-		if ch.Mid, ch.Key, rid, ch.Tags, accepts, err = s.authTCP(rr, wr, p); err == nil {
+		if ch.Mid, ch.Key, rid, ch.Tags, accepts, err = s.authTCP(ctx, rr, wr, p); err == nil {
 			ch.Watch(accepts...)
 			b = s.Bucket(ch.Key)
 			err = b.Put(rid, ch)
@@ -165,10 +168,8 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 			p.Op = grpc.OpHeartbeatReply
 			// last server heartbeat
 			if now := time.Now(); now.Sub(lastHb) > serverHeartbeat {
-				if err = s.Heartbeat(ch.Mid, ch.Key); err == nil {
+				if err1 := s.Heartbeat(ctx, ch.Mid, ch.Key); err1 == nil {
 					lastHb = now
-				} else {
-					err = nil
 				}
 			}
 			if conf.Conf.Debug {
@@ -176,7 +177,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 			}
 			step++
 		} else {
-			if err = s.Operate(p, ch, b); err != nil {
+			if err = s.Operate(ctx, p, ch, b); err != nil {
 				break
 			}
 		}
@@ -200,7 +201,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 	rp.Put(rb)
 	conn.Close()
 	ch.Close()
-	if err = s.Disconnect(ch.Mid, ch.Key); err != nil {
+	if err = s.Disconnect(ctx, ch.Mid, ch.Key); err != nil {
 		log.Errorf("key: %s mid: %d operator do disconnect error(%v)", ch.Key, ch.Mid, err)
 	}
 	if white {
@@ -317,7 +318,7 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (s *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *grpc.Proto) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
+func (s *Server) authTCP(ctx context.Context, rr *bufio.Reader, wr *bufio.Writer, p *grpc.Proto) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
 	for {
 		if err = p.ReadTCP(rr); err != nil {
 			return
@@ -328,7 +329,7 @@ func (s *Server) authTCP(rr *bufio.Reader, wr *bufio.Writer, p *grpc.Proto) (mid
 			log.Errorf("tcp request operation(%d) not auth", p.Op)
 		}
 	}
-	if mid, key, rid, tags, accepts, err = s.Connect(p, ""); err != nil {
+	if mid, key, rid, tags, accepts, err = s.Connect(ctx, p, ""); err != nil {
 		log.Errorf("authTCP.Connect(key:%v).err(%v)", key, err)
 		return
 	}

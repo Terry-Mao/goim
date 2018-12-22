@@ -10,71 +10,62 @@ import (
 	log "github.com/golang/glog"
 )
 
-// Connect .
-func (s *Server) Connect(p *model.Proto, cookie string) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
-	var (
-		reply *logic.ConnectReply
-	)
-	if reply, err = s.rpcClient.Connect(context.Background(), &logic.ConnectReq{
+// Connect connected a connection.
+func (s *Server) Connect(c context.Context, p *model.Proto, cookie string) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
+	reply, err := s.rpcClient.Connect(c, &logic.ConnectReq{
 		Server:    s.serverID,
 		ServerKey: s.NextKey(),
 		Cookie:    cookie,
 		Token:     p.Body,
-	}); err != nil {
+	})
+	if err != nil {
 		return
 	}
 	return reply.Mid, reply.Key, reply.RoomID, reply.Tags, reply.Accepts, nil
 }
 
-// Disconnect .
-func (s *Server) Disconnect(mid int64, key string) (err error) {
+// Disconnect disconnected a connection.
+func (s *Server) Disconnect(c context.Context, mid int64, key string) (err error) {
 	_, err = s.rpcClient.Disconnect(context.Background(), &logic.DisconnectReq{
-		Mid:    mid,
 		Server: s.serverID,
+		Mid:    mid,
 		Key:    key,
 	})
 	return
 }
 
-// Heartbeat .
-func (s *Server) Heartbeat(mid int64, key string) (err error) {
-	_, err = s.rpcClient.Heartbeat(context.Background(), &logic.HeartbeatReq{
-		Mid:    mid,
+// Heartbeat heartbeat a connection session.
+func (s *Server) Heartbeat(ctx context.Context, mid int64, key string) (err error) {
+	_, err = s.rpcClient.Heartbeat(ctx, &logic.HeartbeatReq{
 		Server: s.serverID,
+		Mid:    mid,
 		Key:    key,
 	})
 	return
 }
 
-// RenewOnline .
-func (s *Server) RenewOnline(serverID string, rommCount map[string]int32) (allRoom map[string]int32, err error) {
-	var (
-		reply *logic.OnlineReply
-	)
-	if reply, err = s.rpcClient.RenewOnline(context.Background(), &logic.OnlineReq{
+// RenewOnline renew room online.
+func (s *Server) RenewOnline(ctx context.Context, serverID string, rommCount map[string]int32) (allRoom map[string]int32, err error) {
+	reply, err := s.rpcClient.RenewOnline(ctx, &logic.OnlineReq{
 		Server:    s.serverID,
 		RoomCount: rommCount,
-	}); err != nil {
+	})
+	if err != nil {
 		return
 	}
 	return reply.AllRoomCount, nil
 }
 
-// Report .
-func (s *Server) Report(mid int64, proto *model.Proto) (rp *model.Proto, err error) {
-	if _, err = s.rpcClient.Receive(context.Background(), &logic.ReceiveReq{
-		Mid: mid,
-	}); err != nil {
-		return
-	}
-	return nil, nil
-}
-
-// Operate .
-func (s *Server) Operate(p *model.Proto, ch *Channel, b *Bucket) (err error) {
+// Operate operate.
+func (s *Server) Operate(c context.Context, p *model.Proto, ch *Channel, b *Bucket) (err error) {
 	switch {
 	case p.Op >= model.MinBusinessOp && p.Op <= model.MaxBusinessOp:
-		// TODO report a message
+		_, err1 := s.rpcClient.Receive(c, &logic.ReceiveReq{Mid: ch.Mid, Proto: p})
+		if err1 != nil {
+			// TODO ack failed
+			log.Errorf("s.rpcClient.Receive operation:%d error(%v)", p.Op, err)
+		}
+		// TODO ack ok
 		p.Body = nil
 	case p.Op == model.OpChangeRoom:
 		err = b.ChangeRoom(string(p.Body), ch)

@@ -7,7 +7,7 @@ import (
 	log "github.com/golang/glog"
 )
 
-// Ring .
+// Ring ring proto buffer.
 type Ring struct {
 	// read
 	rp   uint64
@@ -20,14 +20,14 @@ type Ring struct {
 	data []grpc.Proto
 }
 
-// NewRing .
+// NewRing new a ring buffer.
 func NewRing(num int) *Ring {
 	r := new(Ring)
 	r.init(uint64(num))
 	return r
 }
 
-// Init .
+// Init init ring.
 func (r *Ring) Init(num int) {
 	r.init(uint64(num))
 }
@@ -45,7 +45,7 @@ func (r *Ring) init(num uint64) {
 	r.mask = r.num - 1
 }
 
-// Get .
+// Get get a proto from ring.
 func (r *Ring) Get() (proto *grpc.Proto, err error) {
 	if r.rp == r.wp {
 		return nil, errors.ErrRingEmpty
@@ -54,7 +54,7 @@ func (r *Ring) Get() (proto *grpc.Proto, err error) {
 	return
 }
 
-// GetAdv .
+// GetAdv incr read index.
 func (r *Ring) GetAdv() {
 	r.rp++
 	if conf.Conf.Debug {
@@ -62,7 +62,7 @@ func (r *Ring) GetAdv() {
 	}
 }
 
-// Set .
+// Set get a proto to write.
 func (r *Ring) Set() (proto *grpc.Proto, err error) {
 	if r.wp-r.rp >= r.num {
 		return nil, errors.ErrRingFull
@@ -71,7 +71,7 @@ func (r *Ring) Set() (proto *grpc.Proto, err error) {
 	return
 }
 
-// SetAdv .
+// SetAdv incr write index.
 func (r *Ring) SetAdv() {
 	r.wp++
 	if conf.Conf.Debug {
@@ -79,7 +79,7 @@ func (r *Ring) SetAdv() {
 	}
 }
 
-// Reset .
+// Reset reset ring.
 func (r *Ring) Reset() {
 	r.rp = 0
 	r.wp = 0

@@ -13,19 +13,29 @@ import (
 	"github.com/google/uuid"
 	"github.com/zhenjl/cityhash"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 var (
 	_maxInt = 1<<31 - 1
+	// grpc options
+	grpcKeepAliveTime    = time.Duration(10) * time.Second
+	grpcKeepAliveTimeout = time.Duration(3) * time.Second
+	grpcBackoffMaxDelay  = time.Duration(3) * time.Second
+	grpcMaxSendMsgSize   = 1 << 24
+	grpcMaxCallMsgSize   = 1 << 24
 )
 
 const (
 	_clientHeartbeat       = time.Second * 90
 	_minSrvHeartbeatSecond = 600  // 10m
-	_maxSrvHeartbeatSecond = 1200 // 20m
+	_maxSrvHeartbeatSecond = 1800 // 30m
+	// grpc options
+	grpcInitialWindowSize     = 1 << 24
+	grpcInitialConnWindowSize = 1 << 24
 )
 
-// Server .
+// Server is comet server.
 type Server struct {
 	c         *conf.Config
 	round     *Round    // accept round store
@@ -37,12 +47,22 @@ type Server struct {
 }
 
 func newLogicClient(c *conf.RPCClient) logic.LogicClient {
-	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.Dial))
 	defer cancel()
-	conn, err := grpc.DialContext(ctx, "discovery://default/goim.logic", opts...)
+	conn, err := grpc.DialContext(ctx, "discovery://default/goim.logic",
+		[]grpc.DialOption{
+			grpc.WithInsecure(),
+			grpc.WithInitialWindowSize(grpcInitialWindowSize),
+			grpc.WithInitialConnWindowSize(grpcInitialConnWindowSize),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(grpcMaxCallMsgSize)),
+			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(grpcMaxSendMsgSize)),
+			grpc.WithBackoffMaxDelay(grpcBackoffMaxDelay),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                grpcKeepAliveTime,
+				Timeout:             grpcKeepAliveTimeout,
+				PermitWithoutStream: true,
+			}),
+		}...)
 	if err != nil {
 		panic(err)
 	}
@@ -116,7 +136,7 @@ func (s *Server) onlineproc() {
 				roomCount[roomID] += count
 			}
 		}
-		if allRoomsCount, err = s.RenewOnline(s.serverID, roomCount); err != nil {
+		if allRoomsCount, err = s.RenewOnline(context.Background(), s.serverID, roomCount); err != nil {
 			time.Sleep(time.Duration(s.c.OnlineTick))
 			continue
 		}
