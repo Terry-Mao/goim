@@ -32,15 +32,15 @@ func New(c *conf.HTTPServer, l *logic.Logic) *Server {
 
 func (s *Server) initRouter() {
 	group := s.engine.Group("/goim")
-	group.POST("/goim/push/keys", s.pushKeys)
-	group.POST("/goim/push/mids", s.pushMids)
-	group.POST("/goim/push/room", s.pushRoom)
-	group.POST("/goim/push/all", s.pushAll)
-	group.GET("/goim/online/top", s.onlineTop)
-	group.GET("/goim/online/room", s.onlineRoom)
-	group.GET("/goim/online/total", s.onlineTotal)
-	group.GET("/goim/nodes/weighted", s.nodesWeighted)
-	group.GET("/goim/nodes/instances", s.nodesInstances)
+	group.POST("/push/keys", s.pushKeys)
+	group.POST("/push/mids", s.pushMids)
+	group.POST("/push/room", s.pushRoom)
+	group.POST("/push/all", s.pushAll)
+	group.GET("/online/top", s.onlineTop)
+	group.GET("/online/room", s.onlineRoom)
+	group.GET("/online/total", s.onlineTotal)
+	group.GET("/nodes/weighted", s.nodesWeighted)
+	group.GET("/nodes/instances", s.nodesInstances)
 }
 
 // Close close the server.
