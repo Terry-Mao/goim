@@ -16,8 +16,7 @@ func TestNodes(t *testing.T) {
 		clientIP = "127.0.0.1"
 	)
 	lg.nodes = make([]*naming.Instance, 0)
-	ins, err := lg.NodesInstances(c)
-	assert.Nil(t, err)
+	ins := lg.NodesInstances(c)
 	assert.NotNil(t, ins)
 	nodes := lg.NodesWeighted(c, model.PlatformWeb, clientIP)
 	assert.NotNil(t, nodes)

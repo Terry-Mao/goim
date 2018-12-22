@@ -11,8 +11,8 @@ import (
 )
 
 // NodesInstances get servers info.
-func (l *Logic) NodesInstances(c context.Context) (res []*naming.Instance, err error) {
-	return l.nodes, nil
+func (l *Logic) NodesInstances(c context.Context) (res []*naming.Instance) {
+	return l.nodes
 }
 
 // NodesWeighted get node list.

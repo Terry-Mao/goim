@@ -13,13 +13,13 @@ func (s *Server) pushKeys(c *gin.Context) {
 		Keys []string `form:"keys"`
 	}
 	if err := c.BindQuery(&arg); err != nil {
-		result(c, nil, RequestErr)
+		errors(c, RequestErr, err.Error())
 		return
 	}
 	// read message
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		result(c, nil, RequestErr)
+		errors(c, RequestErr, err.Error())
 		return
 	}
 	if err = s.logic.PushKeys(context.TODO(), arg.Op, arg.Keys, msg); err != nil {
@@ -35,17 +35,17 @@ func (s *Server) pushMids(c *gin.Context) {
 		Mids []int64 `form:"mids"`
 	}
 	if err := c.BindQuery(&arg); err != nil {
-		result(c, nil, RequestErr)
+		errors(c, RequestErr, err.Error())
 		return
 	}
 	// read message
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		result(c, nil, RequestErr)
+		errors(c, RequestErr, err.Error())
 		return
 	}
 	if err = s.logic.PushMids(context.TODO(), arg.Op, arg.Mids, msg); err != nil {
-		result(c, nil, RequestErr)
+		errors(c, ServerErr, err.Error())
 		return
 	}
 	result(c, nil, OK)
@@ -57,17 +57,17 @@ func (s *Server) pushRoom(c *gin.Context) {
 		Room string `form:"room" binding:"required"`
 	}
 	if err := c.BindQuery(&arg); err != nil {
-		result(c, nil, RequestErr)
+		errors(c, RequestErr, err.Error())
 		return
 	}
 	// read message
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		result(c, nil, RequestErr)
+		errors(c, RequestErr, err.Error())
 		return
 	}
 	if err = s.logic.PushRoom(context.TODO(), arg.Op, arg.Room, msg); err != nil {
-		result(c, nil, RequestErr)
+		errors(c, ServerErr, err.Error())
 		return
 	}
 	result(c, nil, OK)
@@ -80,16 +80,16 @@ func (s *Server) pushAll(c *gin.Context) {
 		Tag   string `form:"tag"`
 	}
 	if err := c.BindQuery(&arg); err != nil {
-		result(c, nil, RequestErr)
+		errors(c, RequestErr, err.Error())
 		return
 	}
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		result(c, nil, RequestErr)
+		errors(c, RequestErr, err.Error())
 		return
 	}
 	if err = s.logic.PushAll(c, arg.Op, arg.Speed, arg.Tag, msg); err != nil {
-		result(c, nil, RequestErr)
+		errors(c, ServerErr, err.Error())
 		return
 	}
 	result(c, nil, OK)

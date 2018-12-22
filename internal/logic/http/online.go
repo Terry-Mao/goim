@@ -12,7 +12,7 @@ func (s *Server) onlineTop(c *gin.Context) {
 		Limit int    `form:"limit" binding:"required"`
 	}
 	if err := c.BindQuery(&arg); err != nil {
-		result(c, nil, RequestErr)
+		errors(c, RequestErr, err.Error())
 		return
 	}
 	res, err := s.logic.OnlineTop(c, arg.Type, arg.Limit)
@@ -28,7 +28,7 @@ func (s *Server) onlineRoom(c *gin.Context) {
 		Rooms []string `form:"rooms" binding:"required"`
 	}
 	if err := c.BindQuery(&arg); err != nil {
-		result(c, nil, RequestErr)
+		errors(c, RequestErr, err.Error())
 		return
 	}
 	res, err := s.logic.OnlineRoom(c, arg.Rooms)
