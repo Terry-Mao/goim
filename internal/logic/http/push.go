@@ -67,6 +67,10 @@ func (s *Server) pushRoom(c *gin.Context) {
 		return
 	}
 	room := c.Query("room")
+	if room == "" {
+		writeJSON(c, nil, RequestErr)
+		return
+	}
 	// read message
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -88,8 +92,7 @@ func (s *Server) pushAll(c *gin.Context) {
 	}
 	speed, err := strconv.ParseInt(c.Query("speed"), 10, 32)
 	if err != nil {
-		writeJSON(c, nil, RequestErr)
-		return
+		speed = 0
 	}
 	tag := c.Query("tag")
 	msg, err := ioutil.ReadAll(c.Request.Body)

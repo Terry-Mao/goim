@@ -9,7 +9,7 @@
       var client = new MyClient({
         notify: function(data) {
 		  console.log(data);
-          alert(JSON.stringify(data));
+          // alert(JSON.stringify(data));
         }
       });
     </script>
@@ -18,7 +18,9 @@
     </style>
   </head>
   <body>
-    <h1>client demo</h1>
+    <h1>websocket demo</h1>
+    <h2>status:</h2>
+    <span id="status"></span>
     <h2>message:</h2>
     <div id="box"></div>
   </body>

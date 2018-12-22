@@ -32,6 +32,7 @@
         var heartbeatInterval;
         function connect() {
             var ws = new WebSocket('ws://sh.tony.wiki:3102/sub');
+            // var ws = new WebSocket('ws://127.0.0.1:3102/sub');
             ws.binaryType = 'arraybuffer';
             ws.onopen = function() {
                 auth();
@@ -50,12 +51,14 @@
 
                 switch(op) {
                     case 8:
-                        // heartbeat
+                        // auth reply ok
+                        document.getElementById("status").innerHTML = "<color style='color:green'>ok<color>";
+                        // send a heartbeat to server
                         heartbeat();
                         heartbeatInterval = setInterval(heartbeat, 30 * 1000);
                     break;
                     case 3:
-                        // heartbeat reply
+                        // receive a heartbeat from server
                         console.log("receive: heartbeat");
                         appendMsg("receive: heartbeat from server");
                     break;
@@ -69,6 +72,7 @@
                             var msgBody = textDecoder.decode(data.slice(offset+headerLen, offset+packetLen));
                             // callback
                             messageReceived(ver, msgBody);
+                            appendMsg("receive: ver=" + ver + " op=" + op + " seq=" + seq + " message=" + msgBody);
                         }
                     break;
                 }
@@ -77,6 +81,8 @@
             ws.onclose = function() {
                 if (heartbeatInterval) clearInterval(heartbeatInterval);
                 setTimeout(reConnect, delay);
+
+                document.getElementById("status").innerHTML =  "<color style='color:red'>failed<color>";
             }
 
             function heartbeat() {
@@ -93,7 +99,7 @@
             }
 
             function auth() {
-                var token = '{"mid":123, "room_id":"live://1000", "platform":"web", "accepts":[1000]}'
+                var token = '{"mid":123, "room_id":"live://1000", "platform":"web", "accepts":[1000,1001,1002]}'
                 var headerBuf = new ArrayBuffer(rawHeaderLen);
                 var headerView = new DataView(headerBuf, 0);
                 var bodyBuf = textEncoder.encode(token);
@@ -109,7 +115,6 @@
                 var notify = self.options.notify;
                 if(notify) notify(body);
                 console.log("messageReceived:", "ver=" + ver, "body=" + body);
-                appendMsg("receive: ver=" + ver + " op=" + op + "seq=" + seq + " data:" + msgBody);
             }
 
             function mergeArrayBuffer(ab1, ab2) {
