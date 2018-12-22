@@ -76,7 +76,7 @@ func (j *Job) Consume() {
 			if err := j.push(context.Background(), pushMsg); err != nil {
 				log.Errorf("j.push(%v) error(%v)", pushMsg, err)
 			}
-			log.Infof("consume: %s/%d/%d\t%s\t%s", msg.Topic, msg.Partition, msg.Offset, msg.Key, msg.Value)
+			log.Infof("consume: %s/%d/%d\t%s\t%+v", msg.Topic, msg.Partition, msg.Offset, msg.Key, pushMsg)
 		}
 	}
 }

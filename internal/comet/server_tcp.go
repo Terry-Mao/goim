@@ -68,7 +68,7 @@ func acceptTCP(server *Server, lis *net.TCPListener) {
 			return
 		}
 		go serveTCP(server, conn, r)
-		if r++; r == _maxInt {
+		if r++; r == maxInt {
 			r = 0
 		}
 	}
@@ -140,7 +140,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 		return
 	}
 	trd.Key = ch.Key
-	tr.Set(trd, _clientHeartbeat)
+	tr.Set(trd, clientHeartbeat)
 	white = whitelist.Contains(ch.Mid)
 	if white {
 		whitelist.Printf("key: %s[%s] auth\n", ch.Key, rid)
@@ -163,10 +163,10 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 			whitelist.Printf("key: %s read proto:%v\n", ch.Key, p)
 		}
 		if p.Op == grpc.OpHeartbeat {
-			tr.Set(trd, _clientHeartbeat)
+			tr.Set(trd, clientHeartbeat)
 			p.Body = nil
 			p.Op = grpc.OpHeartbeatReply
-			// last server heartbeat
+			// NOTE: send server heartbeat for a long time
 			if now := time.Now(); now.Sub(lastHb) > serverHeartbeat {
 				if err1 := s.Heartbeat(ctx, ch.Mid, ch.Key); err1 == nil {
 					lastHb = now

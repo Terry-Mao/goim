@@ -97,11 +97,10 @@ func (c *Comet) Broadcast(arg *comet.BroadcastReq) (err error) {
 }
 
 func (c *Comet) process(pushChan chan *comet.PushMsgReq, roomChan chan *comet.BroadcastRoomReq, broadcastChan chan *comet.BroadcastReq) {
-	var err error
 	for {
 		select {
 		case broadcastArg := <-broadcastChan:
-			_, err = c.client.Broadcast(context.Background(), &comet.BroadcastReq{
+			_, err := c.client.Broadcast(context.Background(), &comet.BroadcastReq{
 				Proto:   broadcastArg.Proto,
 				ProtoOp: broadcastArg.ProtoOp,
 				Speed:   broadcastArg.Speed,
@@ -111,7 +110,7 @@ func (c *Comet) process(pushChan chan *comet.PushMsgReq, roomChan chan *comet.Br
 				log.Errorf("c.client.Broadcast(%s, reply) serverId:%s error(%v)", broadcastArg, c.serverID, err)
 			}
 		case roomArg := <-roomChan:
-			_, err = c.client.BroadcastRoom(context.Background(), &comet.BroadcastRoomReq{
+			_, err := c.client.BroadcastRoom(context.Background(), &comet.BroadcastRoomReq{
 				RoomID: roomArg.RoomID,
 				Proto:  roomArg.Proto,
 			})
@@ -119,7 +118,7 @@ func (c *Comet) process(pushChan chan *comet.PushMsgReq, roomChan chan *comet.Br
 				log.Errorf("c.client.BroadcastRoom(%s, reply) serverId:%s error(%v)", roomArg, c.serverID, err)
 			}
 		case pushArg := <-pushChan:
-			_, err = c.client.PushMsg(context.Background(), &comet.PushMsgReq{
+			_, err := c.client.PushMsg(context.Background(), &comet.PushMsgReq{
 				Keys:    pushArg.Keys,
 				Proto:   pushArg.Proto,
 				ProtoOp: pushArg.ProtoOp,

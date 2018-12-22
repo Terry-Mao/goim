@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	_maxInt = 1<<31 - 1
+	maxInt = 1<<31 - 1
 	// grpc options
 	grpcKeepAliveTime    = time.Duration(10) * time.Second
 	grpcKeepAliveTimeout = time.Duration(3) * time.Second
@@ -27,9 +27,9 @@ var (
 )
 
 const (
-	_clientHeartbeat       = time.Second * 90
-	_minSrvHeartbeatSecond = 600  // 10m
-	_maxSrvHeartbeatSecond = 1800 // 30m
+	clientHeartbeat       = time.Second * 90
+	minSrvHeartbeatSecond = 600  // 10m
+	maxSrvHeartbeatSecond = 1800 // 30m
 	// grpc options
 	grpcInitialWindowSize     = 1 << 24
 	grpcInitialConnWindowSize = 1 << 24
@@ -116,7 +116,7 @@ func (s *Server) NextKey() string {
 
 // RandServerHearbeat rand server heartbeat.
 func (s *Server) RandServerHearbeat() time.Duration {
-	return time.Duration(_minSrvHeartbeatSecond+rand.Intn(_maxSrvHeartbeatSecond-_minSrvHeartbeatSecond)) * time.Second
+	return time.Duration(minSrvHeartbeatSecond+rand.Intn(maxSrvHeartbeatSecond-minSrvHeartbeatSecond)) * time.Second
 }
 
 // Close close the server.

@@ -38,9 +38,7 @@ func NewChannel(cli, svr int) *Channel {
 func (c *Channel) Watch(accepts ...int32) {
 	c.mutex.Lock()
 	for _, op := range accepts {
-		if op >= grpc.MaxBusinessOp {
-			c.watchOps[op] = struct{}{}
-		}
+		c.watchOps[op] = struct{}{}
 	}
 	c.mutex.Unlock()
 }
@@ -56,7 +54,7 @@ func (c *Channel) UnWatch(accepts ...int32) {
 
 // NeedPush verify if in watch.
 func (c *Channel) NeedPush(op int32, tag string) bool {
-	if len(c.Tags) > 0 {
+	if tag != "" {
 		var has bool
 		for _, t := range c.Tags {
 			if t == tag {

@@ -8,8 +8,8 @@ import (
 
 func (s *Server) onlineTop(c *gin.Context) {
 	var arg struct {
-		Type  string `form:"type"`
-		Limit int    `form:"limit"`
+		Type  string `form:"type" binding:"required"`
+		Limit int    `form:"limit" binding:"required"`
 	}
 	if err := c.Bind(arg); err != nil {
 		writeJSON(c, nil, RequestErr)
@@ -25,7 +25,7 @@ func (s *Server) onlineTop(c *gin.Context) {
 
 func (s *Server) onlineRoom(c *gin.Context) {
 	var arg struct {
-		Rooms []string `form:"rooms"`
+		Rooms []string `form:"rooms" binding:"required"`
 	}
 	res, err := s.logic.OnlineRoom(c, arg.Rooms)
 	if err != nil {

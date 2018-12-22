@@ -48,7 +48,7 @@ const (
 	OpUnregisterReply = int32(17)
 
 	// MinBusinessOp min business operation
-	MinBusinessOp = 100
+	MinBusinessOp = 1000
 	// MaxBusinessOp max business operation
-	MaxBusinessOp = 1000
+	MaxBusinessOp = 10000
 )

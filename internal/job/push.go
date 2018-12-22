@@ -44,6 +44,7 @@ func (j *Job) pushKeys(operation int32, serverID string, subKeys []string, body 
 		if err = c.Push(&args); err != nil {
 			log.Errorf("c.Push(%v) serverID:%s error(%v)", args, serverID, err)
 		}
+		log.Infof("pushKey:%s comets:%d", serverID, len(j.cometServers))
 	}
 	return
 }
@@ -72,6 +73,7 @@ func (j *Job) broadcast(operation int32, body []byte, speed int32, tag string) (
 			log.Errorf("c.Broadcast(%v) serverID:%s error(%v)", args, serverID, err)
 		}
 	}
+	log.Infof("broadcast comets:%d", len(comets))
 	return
 }
 
@@ -91,5 +93,6 @@ func (j *Job) broadcastRoomRawBytes(roomID string, body []byte) (err error) {
 			log.Errorf("c.BroadcastRoom(%v) roomID:%s serverID:%s error(%v)", args, roomID, serverID, err)
 		}
 	}
+	log.Infof("broadcastRoom comets:%d", len(comets))
 	return
 }

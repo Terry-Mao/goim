@@ -77,6 +77,7 @@ func (s *server) Broadcast(ctx context.Context, req *pb.BroadcastReq) (*pb.Broad
 	if req.Proto == nil {
 		return nil, errors.ErrBroadCastArg
 	}
+	// TODO use broadcast queue
 	go func() {
 		for _, bucket := range s.srv.Buckets() {
 			bucket.Broadcast(req.GetProto(), req.ProtoOp, req.Tag)
@@ -86,7 +87,6 @@ func (s *server) Broadcast(ctx context.Context, req *pb.BroadcastReq) (*pb.Broad
 			}
 		}
 	}()
-
 	return &pb.BroadcastReply{}, nil
 }
 
