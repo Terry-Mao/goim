@@ -62,7 +62,7 @@ func TestDaoAddServerOnline(t *testing.T) {
 
 	r, err := d.ServerOnline(c, server)
 	assert.Nil(t, err)
-	assert.Equal(t, online, r)
+	assert.Equal(t, online.RoomCount["room"], r.RoomCount["room"])
 
 	err = d.DelServerOnline(c, server)
 	assert.Nil(t, err)
