@@ -10,19 +10,19 @@ func (s *Server) nodesWeighted(c *gin.Context) {
 	var arg struct {
 		Platform string `form:"platform"`
 	}
-	if err := c.Bind(arg); err != nil {
-		writeJSON(c, nil, RequestErr)
+	if err := c.BindQuery(&arg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
 	res := s.logic.NodesWeighted(c, arg.Platform, c.ClientIP())
-	writeJSON(c, res, OK)
+	result(c, res, OK)
 }
 
 func (s *Server) nodesInstances(c *gin.Context) {
 	res, err := s.logic.NodesInstances(context.TODO())
 	if err != nil {
-		writeJSON(c, nil, ServerErr)
+		result(c, nil, ServerErr)
 		return
 	}
-	writeJSON(c, res, OK)
+	result(c, res, OK)
 }

@@ -42,8 +42,8 @@ func (l *Logic) OnlineTop(c context.Context, typ string, n int) (tops []*model.T
 // OnlineRoom get rooms online.
 func (l *Logic) OnlineRoom(c context.Context, rooms []string) (res map[string]int32, err error) {
 	res = make(map[string]int32, len(rooms))
-	for _, roomID := range rooms {
-		res[roomID] = l.roomCount[roomID]
+	for _, room := range rooms {
+		res[room] = l.roomCount[room]
 	}
 	return
 }

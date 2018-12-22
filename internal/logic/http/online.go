@@ -11,28 +11,32 @@ func (s *Server) onlineTop(c *gin.Context) {
 		Type  string `form:"type" binding:"required"`
 		Limit int    `form:"limit" binding:"required"`
 	}
-	if err := c.Bind(arg); err != nil {
-		writeJSON(c, nil, RequestErr)
+	if err := c.BindQuery(&arg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
 	res, err := s.logic.OnlineTop(c, arg.Type, arg.Limit)
 	if err != nil {
-		writeJSON(c, nil, RequestErr)
+		result(c, nil, RequestErr)
 		return
 	}
-	writeJSON(c, res, OK)
+	result(c, res, OK)
 }
 
 func (s *Server) onlineRoom(c *gin.Context) {
 	var arg struct {
 		Rooms []string `form:"rooms" binding:"required"`
 	}
-	res, err := s.logic.OnlineRoom(c, arg.Rooms)
-	if err != nil {
-		writeJSON(c, nil, RequestErr)
+	if err := c.BindQuery(&arg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
-	writeJSON(c, res, OK)
+	res, err := s.logic.OnlineRoom(c, arg.Rooms)
+	if err != nil {
+		result(c, nil, RequestErr)
+		return
+	}
+	result(c, res, OK)
 }
 
 func (s *Server) onlineTotal(c *gin.Context) {
@@ -41,5 +45,5 @@ func (s *Server) onlineTotal(c *gin.Context) {
 		"ip_count":   ipCount,
 		"conn_count": connCount,
 	}
-	writeJSON(c, res, OK)
+	result(c, res, OK)
 }

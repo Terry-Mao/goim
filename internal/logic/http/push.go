@@ -3,106 +3,94 @@ package http
 import (
 	"context"
 	"io/ioutil"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (s *Server) pushKeys(c *gin.Context) {
-	op, err := strconv.ParseInt(c.Query("operation"), 10, 32)
-	if err != nil {
-		writeJSON(c, nil, RequestErr)
+	var arg struct {
+		Op   int32    `form:"operation"`
+		Keys []string `form:"keys"`
+	}
+	if err := c.BindQuery(&arg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
-	keys := c.QueryArray("keys")
 	// read message
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		writeJSON(c, nil, RequestErr)
+		result(c, nil, RequestErr)
 		return
 	}
-	if err = s.logic.PushKeys(context.TODO(), int32(op), keys, msg); err != nil {
-		writeJSON(c, nil, RequestErr)
+	if err = s.logic.PushKeys(context.TODO(), arg.Op, arg.Keys, msg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
-	writeJSON(c, nil, OK)
+	result(c, nil, OK)
 }
 
 func (s *Server) pushMids(c *gin.Context) {
-	op, err := strconv.ParseInt(c.Query("operation"), 10, 32)
-	if err != nil {
-		writeJSON(c, nil, RequestErr)
-		return
+	var arg struct {
+		Op   int32   `form:"operation"`
+		Mids []int64 `form:"mids"`
 	}
-	var mids []int64
-	for _, s := range c.QueryArray("mids") {
-		mid, err := strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			writeJSON(c, nil, RequestErr)
-			return
-		}
-		mids = append(mids, mid)
-	}
-	if len(mids) == 0 {
-		writeJSON(c, nil, RequestErr)
+	if err := c.BindQuery(&arg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
 	// read message
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		writeJSON(c, nil, RequestErr)
+		result(c, nil, RequestErr)
 		return
 	}
-	if err = s.logic.PushMids(context.TODO(), int32(op), mids, msg); err != nil {
-		writeJSON(c, nil, RequestErr)
+	if err = s.logic.PushMids(context.TODO(), arg.Op, arg.Mids, msg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
-	writeJSON(c, nil, OK)
+	result(c, nil, OK)
 }
 
 func (s *Server) pushRoom(c *gin.Context) {
-	op, err := strconv.ParseInt(c.Query("operation"), 10, 32)
-	if err != nil {
-		writeJSON(c, nil, RequestErr)
-		return
+	var arg struct {
+		Op   int32  `form:"operation" binding:"required"`
+		Room string `form:"room" binding:"required"`
 	}
-	room := c.Query("room")
-	if room == "" {
-		writeJSON(c, nil, RequestErr)
+	if err := c.BindQuery(&arg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
 	// read message
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		writeJSON(c, nil, RequestErr)
+		result(c, nil, RequestErr)
 		return
 	}
-	if err = s.logic.PushRoom(context.TODO(), int32(op), room, msg); err != nil {
-		writeJSON(c, nil, RequestErr)
+	if err = s.logic.PushRoom(context.TODO(), arg.Op, arg.Room, msg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
-	writeJSON(c, nil, OK)
+	result(c, nil, OK)
 }
 
 func (s *Server) pushAll(c *gin.Context) {
-	op, err := strconv.ParseInt(c.Query("operation"), 10, 32)
-	if err != nil {
-		writeJSON(c, nil, RequestErr)
+	var arg struct {
+		Op    int32  `form:"operation" binding:"required"`
+		Speed int32  `form:"speed"`
+		Tag   string `form:"tag"`
+	}
+	if err := c.BindQuery(&arg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
-	speed, err := strconv.ParseInt(c.Query("speed"), 10, 32)
-	if err != nil {
-		speed = 0
-	}
-	tag := c.Query("tag")
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
-		writeJSON(c, nil, RequestErr)
+		result(c, nil, RequestErr)
 		return
 	}
-	if err = s.logic.PushAll(c, int32(op), int32(speed), tag, msg); err != nil {
-		writeJSON(c, nil, RequestErr)
+	if err = s.logic.PushAll(c, arg.Op, arg.Speed, arg.Tag, msg); err != nil {
+		result(c, nil, RequestErr)
 		return
 	}
-	writeJSON(c, nil, OK)
+	result(c, nil, OK)
 }
