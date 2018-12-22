@@ -66,9 +66,6 @@ func TestLoadBalancer(t *testing.T) {
 	lb := NewLoadBalancer()
 	lb.Update(ss)
 	for i := 0; i < 5; i++ {
-		t.Log(lb.NodeDetails("sh", 1.6))
-	}
-	for i := 0; i < 5; i++ {
 		t.Log(lb.NodeAddrs("sh", ".test", 1.6))
 	}
 }

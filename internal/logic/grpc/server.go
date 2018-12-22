@@ -89,7 +89,7 @@ func (s *server) RenewOnline(ctx context.Context, req *pb.OnlineReq) (*pb.Online
 
 // Receive receive a message.
 func (s *server) Receive(ctx context.Context, req *pb.ReceiveReq) (*pb.ReceiveReply, error) {
-	if err := s.srv.Receive(ctx, req.Mid); err != nil {
+	if err := s.srv.Receive(ctx, req.Mid, req.Proto); err != nil {
 		return &pb.ReceiveReply{}, err
 	}
 	return &pb.ReceiveReply{}, nil

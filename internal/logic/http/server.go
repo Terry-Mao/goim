@@ -40,8 +40,7 @@ func (s *Server) initRouter() {
 	group.GET("/goim/online/room", s.onlineRoom)
 	group.GET("/goim/online/total", s.onlineTotal)
 	group.GET("/goim/nodes/weighted", s.nodesWeighted)
-	group.GET("/goim/nodes/debug", s.nodesDebug)
-	group.GET("/goim/nodes/infos", s.nodesInfos)
+	group.GET("/goim/nodes/instances", s.nodesInstances)
 }
 
 // Close close the server.

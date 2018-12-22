@@ -4,6 +4,7 @@ package goim.logic;
 
 option go_package = "grpc";
 
+import "github.com/Terry-Mao/goim/api/comet/grpc/api.proto";
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message PushMsg {
@@ -82,6 +83,7 @@ message OnlineReply {
 
 message ReceiveReq {
     int64 mid = 1;
+    comet.Proto proto = 2;
 }
 
 message ReceiveReply {

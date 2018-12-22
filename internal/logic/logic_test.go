@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"flag"
 	"os"
 	"testing"
@@ -9,7 +10,7 @@ import (
 )
 
 var (
-	l *Logic
+	lg *Logic
 )
 
 func TestMain(m *testing.M) {
@@ -20,6 +21,9 @@ func TestMain(m *testing.M) {
 	if err := conf.Init(); err != nil {
 		panic(err)
 	}
-	l = New(conf.Conf)
+	lg = New(conf.Conf)
+	if err := lg.Ping(context.TODO()); err != nil {
+		panic(err)
+	}
 	os.Exit(m.Run())
 }

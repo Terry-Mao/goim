@@ -10,8 +10,8 @@ import (
 	log "github.com/golang/glog"
 )
 
-// NodesInfos get servers info.
-func (l *Logic) NodesInfos(c context.Context) (res []*naming.Instance, err error) {
+// NodesInstances get servers info.
+func (l *Logic) NodesInstances(c context.Context) (res []*naming.Instance, err error) {
 	return l.nodes, nil
 }
 
@@ -43,18 +43,6 @@ func (l *Logic) NodesWeighted(c context.Context, platform, clientIP string) *pb.
 	return reply
 }
 
-// NodesDebug debug node weighted.
-func (l *Logic) NodesDebug(c context.Context, clientIP string) (interface{}, string, string, error) {
-	var (
-		region string
-	)
-	province, err := l.location(c, clientIP)
-	if err == nil {
-		region = l.regions[province]
-	}
-	return l.loadBalancer.NodeDetails(region, l.c.Node.RegionWeight), region, province, nil
-}
-
 func (l *Logic) nodeAddrs(c context.Context, clientIP string) (domains, addrs []string) {
 	var (
 		region string
@@ -67,8 +55,8 @@ func (l *Logic) nodeAddrs(c context.Context, clientIP string) (domains, addrs []
 	return l.loadBalancer.NodeAddrs(region, l.c.Node.HostDomain, l.c.Node.RegionWeight)
 }
 
+// location find a geolocation of an IP address including province, region and country.
 func (l *Logic) location(c context.Context, clientIP string) (province string, err error) {
-	// TODO find a geolocation of an IP address including province, region and country.
-	// province: 上海
+	// province: config mapping
 	return
 }

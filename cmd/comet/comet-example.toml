@@ -23,10 +23,10 @@ onlineTick = "10s"
     keepalive = false
     reader = 32
     readBuf = 1024
-    readBufSize = 2048
+    readBufSize = 8192
     writer = 32
     writeBuf = 1024
-    writeBufSize = 2048
+    writeBufSize = 8192
 
 [webSocket]
     bind = [":3102"]

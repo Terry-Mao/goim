@@ -18,21 +18,8 @@ func (s *Server) nodesWeighted(c *gin.Context) {
 	writeJSON(c, res, OK)
 }
 
-func (s *Server) nodesDebug(c *gin.Context) {
-	nodes, region, province, err := s.logic.NodesDebug(c, c.ClientIP())
-	if err != nil {
-		writeJSON(c, nil, ServerErr)
-		return
-	}
-	res := make(map[string]interface{})
-	res["nodes"] = nodes
-	res["region"] = region
-	res["province"] = province
-	writeJSON(c, res, OK)
-}
-
-func (s *Server) nodesInfos(c *gin.Context) {
-	res, err := s.logic.NodesInfos(context.TODO())
+func (s *Server) nodesInstances(c *gin.Context) {
+	res, err := s.logic.NodesInstances(context.TODO())
 	if err != nil {
 		writeJSON(c, nil, ServerErr)
 		return

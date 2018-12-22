@@ -114,27 +114,6 @@ func (lb *LoadBalancer) weightedNodes(region string, regionWeight float64) (node
 	return
 }
 
-// NodeDetails return nodes.
-func (lb *LoadBalancer) NodeDetails(region string, regionWeight float64) (res []map[string]interface{}) {
-	lb.nodesMutex.Lock()
-	nodes := lb.weightedNodes(region, regionWeight)
-	res = make([]map[string]interface{}, 0, len(nodes))
-	for _, n := range nodes {
-		r := map[string]interface{}{
-			"region":        n.region,
-			"hostname":      n.hostname,
-			"fixedWeight":   n.fixedWeight,
-			"currentWeight": n.currentWeight,
-			"currentConns":  n.currentConns,
-			"addrs":         n.addrs,
-			"updated":       n.updated,
-		}
-		res = append(res, r)
-	}
-	lb.nodesMutex.Unlock()
-	return
-}
-
 // NodeAddrs return node addrs.
 func (lb *LoadBalancer) NodeAddrs(region, domain string, regionWeight float64) (domains, addrs []string) {
 	lb.nodesMutex.Lock()

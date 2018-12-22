@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/logic/model"
 	log "github.com/golang/glog"
 )
@@ -25,9 +26,9 @@ func (l *Logic) Connect(c context.Context, server, serverKey, cookie string, tok
 	mid = params.Mid
 	key = params.Key
 	roomID = params.RoomID
-	tags = []string{params.Platform}
 	accepts = params.Accepts
-	log.Infof("conn connected key:%s server:%s mid:%d token:%s", key, server, mid, token)
+	tags = []string{params.Platform}
+	log.Infof("conn connected key:%s server:%s mid:%d token:%s tags:%v", key, server, mid, token, tags)
 	return
 }
 
@@ -59,21 +60,20 @@ func (l *Logic) Heartbeat(c context.Context, mid int64, key, server string) (err
 }
 
 // RenewOnline renew a server online.
-func (l *Logic) RenewOnline(c context.Context, server string, roomCount map[string]int32) (allRoomCount map[string]int32, err error) {
+func (l *Logic) RenewOnline(c context.Context, server string, roomCount map[string]int32) (map[string]int32, error) {
 	online := &model.Online{
 		Server:    server,
 		RoomCount: roomCount,
 		Updated:   time.Now().Unix(),
 	}
-	if err = l.dao.AddServerOnline(context.Background(), server, online); err != nil {
-		return
+	if err := l.dao.AddServerOnline(context.Background(), server, online); err != nil {
+		return nil, err
 	}
 	return l.roomCount, nil
 }
 
 // Receive receive a message.
-func (l *Logic) Receive(c context.Context, mid int64) (err error) {
-	// TODO upstream message
-	log.Infof("conn receive a message mid:%d", mid)
+func (l *Logic) Receive(c context.Context, mid int64, proto *grpc.Proto) (err error) {
+	log.Infof("receive mid:%d message:%+v", mid, proto)
 	return
 }
