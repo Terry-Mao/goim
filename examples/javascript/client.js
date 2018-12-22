@@ -32,7 +32,7 @@
         var heartbeatInterval;
         function connect() {
             var ws = new WebSocket('ws://sh.tony.wiki:3102/sub');
-            // var ws = new WebSocket('ws://127.0.0.1:3102/sub');
+            //var ws = new WebSocket('ws://127.0.0.1:3102/sub');
             ws.binaryType = 'arraybuffer';
             ws.onopen = function() {
                 auth();
@@ -109,6 +109,8 @@
                 headerView.setInt32(opOffset, 7);
                 headerView.setInt32(seqOffset, 1);
                 ws.send(mergeArrayBuffer(headerBuf, bodyBuf));
+
+                document.getElementById("session").innerHTML = "auth: " + token;
             }
 
             function messageReceived(ver, body) {
