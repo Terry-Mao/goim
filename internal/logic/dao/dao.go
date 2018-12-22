@@ -62,8 +62,8 @@ func newRedis(c *conf.Redis) *redis.Pool {
 }
 
 // Close close the resource.
-func (d *Dao) Close() {
-	d.redis.Close()
+func (d *Dao) Close() error {
+	return d.redis.Close()
 }
 
 // Ping dao ping.

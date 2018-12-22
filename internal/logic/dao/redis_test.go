@@ -20,10 +20,15 @@ func TestDaoAddMapping(t *testing.T) {
 		key    = "test_key"
 		server = "test_server"
 	)
-	err := d.AddMapping(c, mid, key, server)
+	err := d.AddMapping(c, 0, "test", server)
+	assert.Nil(t, err)
+	err = d.AddMapping(c, mid, key, server)
 	assert.Nil(t, err)
 
-	has, err := d.ExpireMapping(c, mid, key)
+	has, err := d.ExpireMapping(c, 0, "test")
+	assert.Nil(t, err)
+	assert.NotEqual(t, false, has)
+	has, err = d.ExpireMapping(c, mid, key)
 	assert.Nil(t, err)
 	assert.NotEqual(t, false, has)
 
@@ -36,26 +41,12 @@ func TestDaoAddMapping(t *testing.T) {
 	assert.Equal(t, server, ress[key])
 	assert.Equal(t, mid, mids[0])
 
+	has, err = d.DelMapping(c, 0, "test", server)
+	assert.Nil(t, err)
+	assert.NotEqual(t, false, has)
 	has, err = d.DelMapping(c, mid, key, server)
 	assert.Nil(t, err)
 	assert.NotEqual(t, false, has)
-}
-
-func TestDaoAddServerInfo(t *testing.T) {
-	var (
-		c      = context.Background()
-		server = "test_server"
-		res    = &model.ServerInfo{}
-	)
-	err := d.AddServerInfo(c, server, res)
-	assert.Nil(t, err)
-
-	r, err := d.ServerInfos(c)
-	assert.Nil(t, err)
-	assert.Equal(t, r[0], res)
-
-	err = d.DelServerInfo(c, server)
-	assert.Nil(t, err)
 }
 
 func TestDaoAddServerOnline(t *testing.T) {

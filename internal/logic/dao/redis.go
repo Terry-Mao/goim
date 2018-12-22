@@ -185,62 +185,6 @@ func (d *Dao) KeysByMids(c context.Context, mids []int64) (ress map[string]strin
 	return
 }
 
-// AddServerInfo add a server info.
-func (d *Dao) AddServerInfo(c context.Context, server string, res *model.ServerInfo) (err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
-	b, _ := json.Marshal(res)
-	if err = conn.Send("HSET", _keyServerInfo, server, b); err != nil {
-		log.Errorf("conn.Send(HSET %s,%s) error(%v)", _keyServerInfo, server, err)
-		return
-	}
-	if err = conn.Send("EXPIRE", _keyServerInfo, d.redisExpire); err != nil {
-		log.Errorf("conn.Send(EXPIRE %s) error(%v)", server, err)
-		return
-	}
-	if err = conn.Flush(); err != nil {
-		log.Errorf("conn.Flush() error(%v)", err)
-		return
-	}
-	for i := 0; i < 2; i++ {
-		if _, err = conn.Receive(); err != nil {
-			log.Errorf("conn.Receive() error(%v)", err)
-			return
-		}
-	}
-	return
-}
-
-// ServerInfos get all servers.
-func (d *Dao) ServerInfos(c context.Context) (res []*model.ServerInfo, err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
-	bs, err := redis.ByteSlices(conn.Do("HVALS", _keyServerInfo))
-	if err != nil {
-		log.Errorf("conn.Do(GET %s) error(%v)", _keyServerInfo, err)
-		return
-	}
-	for _, b := range bs {
-		r := new(model.ServerInfo)
-		if err = json.Unmarshal(b, r); err != nil {
-			log.Errorf("serverOnline json.Unmarshal(%s) error(%v)", b, err)
-			return
-		}
-		res = append(res, r)
-	}
-	return
-}
-
-// DelServerInfo del a server online.
-func (d *Dao) DelServerInfo(c context.Context, server string) (err error) {
-	conn := d.redis.Get()
-	defer conn.Close()
-	if _, err = conn.Do("HDEL", _keyServerInfo, server); err != nil {
-		log.Errorf("conn.Do(HDEL %s,%s) error(%v)", _keyServerInfo, server, err)
-	}
-	return
-}
-
 // AddServerOnline add a server online.
 func (d *Dao) AddServerOnline(c context.Context, server string, online *model.Online) (err error) {
 	roomsMap := map[uint32]map[string]int32{}
