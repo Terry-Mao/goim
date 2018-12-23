@@ -2,14 +2,12 @@ package comet
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"time"
 
 	logic "github.com/Terry-Mao/goim/api/logic/grpc"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
 	log "github.com/golang/glog"
-	"github.com/google/uuid"
 	"github.com/zhenjl/cityhash"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -98,15 +96,6 @@ func (s *Server) Bucket(subKey string) *Bucket {
 		log.Infof("%s hit channel bucket index: %d use cityhash", subKey, idx)
 	}
 	return s.buckets[idx]
-}
-
-// NextKey generate a server key.
-func (s *Server) NextKey() string {
-	u, err := uuid.NewRandom()
-	if err == nil {
-		return u.String()
-	}
-	return fmt.Sprintf("%s-%d", s.serverID, time.Now().UnixNano())
 }
 
 // RandServerHearbeat rand server heartbeat.

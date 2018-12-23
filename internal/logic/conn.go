@@ -8,10 +8,11 @@ import (
 	"github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/logic/model"
 	log "github.com/golang/glog"
+	"github.com/google/uuid"
 )
 
 // Connect connected a conn.
-func (l *Logic) Connect(c context.Context, server, serverKey, cookie string, token []byte) (mid int64, key, roomID string, tags []string, accepts []int32, err error) {
+func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) (mid int64, key, roomID string, accepts []int32, err error) {
 	var params struct {
 		Mid      int64   `json:"mid"`
 		Key      string  `json:"key"`
@@ -26,14 +27,13 @@ func (l *Logic) Connect(c context.Context, server, serverKey, cookie string, tok
 	mid = params.Mid
 	roomID = params.RoomID
 	accepts = params.Accepts
-	tags = []string{params.Platform}
 	if key = params.Key; key == "" {
-		key = serverKey
+		key = uuid.New().String()
 	}
 	if err = l.dao.AddMapping(c, mid, key, server); err != nil {
 		log.Errorf("l.dao.AddMapping(%d,%s,%s) error(%v)", mid, key, server, err)
 	}
-	log.Infof("conn connected key:%s server:%s mid:%d token:%s tags:%v", key, server, mid, token, tags)
+	log.Infof("conn connected key:%s server:%s mid:%d token:%s", key, server, mid, token)
 	return
 }
 

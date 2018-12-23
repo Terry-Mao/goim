@@ -5,7 +5,7 @@ import (
 )
 
 func (m *ConnectReq) String() string {
-	return fmt.Sprintf("server:%s serverKey:%s token:%s", m.Server, m.ServerKey, m.Token)
+	return fmt.Sprintf("server:%s token:%s", m.Server, m.Token)
 }
 
 func (m *OnlineReq) String() string {

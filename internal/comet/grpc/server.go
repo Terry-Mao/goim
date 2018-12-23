@@ -61,7 +61,7 @@ func (s *server) PushMsg(ctx context.Context, req *pb.PushMsgReq) (reply *pb.Pus
 	}
 	for _, key := range req.Keys {
 		if channel := s.srv.Bucket(key).Channel(key); channel != nil {
-			if !channel.NeedPush(req.ProtoOp, "") {
+			if !channel.NeedPush(req.ProtoOp) {
 				continue
 			}
 			if err = channel.Push(req.Proto); err != nil {
@@ -80,7 +80,7 @@ func (s *server) Broadcast(ctx context.Context, req *pb.BroadcastReq) (*pb.Broad
 	// TODO use broadcast queue
 	go func() {
 		for _, bucket := range s.srv.Buckets() {
-			bucket.Broadcast(req.GetProto(), req.ProtoOp, req.Tag)
+			bucket.Broadcast(req.GetProto(), req.ProtoOp)
 			if req.Speed > 0 {
 				t := bucket.ChannelCount() / int(req.Speed)
 				time.Sleep(time.Duration(t) * time.Second)

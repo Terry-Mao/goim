@@ -12,12 +12,13 @@ func TestConnect(t *testing.T) {
 	var (
 		server    = "test_server"
 		serverKey = "test_server_key"
+		cookie    = ""
 		token     = []byte(`{"mid":1, "key":"test_server_key", "room_id":"test://test_room", "platform":"web", "accepts":[1000,1001,1002]}`)
 		ol        = map[string]int32{"test://test_room": 100}
 		c         = context.Background()
 	)
 	// connect
-	mid, key, roomID, _, accepts, err := lg.Connect(c, server, serverKey, "", token)
+	mid, key, roomID, accepts, err := lg.Connect(c, server, cookie, token)
 	assert.Nil(t, err)
 	assert.Equal(t, serverKey, key)
 	assert.Equal(t, roomID, "test://test_room")

@@ -45,9 +45,8 @@ func TestPushAll(t *testing.T) {
 		c     = context.TODO()
 		op    = int32(100)
 		speed = int32(100)
-		tag   = "web"
 		msg   = []byte("hello")
 	)
-	err := lg.PushAll(c, op, speed, tag, msg)
+	err := lg.PushAll(c, op, speed, msg)
 	assert.Nil(t, err)
 }

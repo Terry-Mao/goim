@@ -36,8 +36,7 @@ func TestDaoBroadcastMsg(t *testing.T) {
 		op    = int32(100)
 		speed = int32(0)
 		msg   = []byte("")
-		tag   = ""
 	)
-	err := d.BroadcastMsg(c, op, speed, tag, msg)
+	err := d.BroadcastMsg(c, op, speed, msg)
 	assert.Nil(t, err)
 }

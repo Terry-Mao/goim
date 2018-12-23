@@ -121,7 +121,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 	// must not setadv, only used in auth
 	step = 1
 	if p, err = ch.CliProto.Set(); err == nil {
-		if ch.Mid, ch.Key, rid, ch.Tags, accepts, err = s.authTCP(ctx, rr, wr, p); err == nil {
+		if ch.Mid, ch.Key, rid, accepts, err = s.authTCP(ctx, rr, wr, p); err == nil {
 			ch.Watch(accepts...)
 			b = s.Bucket(ch.Key)
 			err = b.Put(rid, ch)
@@ -318,7 +318,7 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (s *Server) authTCP(ctx context.Context, rr *bufio.Reader, wr *bufio.Writer, p *grpc.Proto) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
+func (s *Server) authTCP(ctx context.Context, rr *bufio.Reader, wr *bufio.Writer, p *grpc.Proto) (mid int64, key, rid string, accepts []int32, err error) {
 	for {
 		if err = p.ReadTCP(rr); err != nil {
 			return
@@ -329,7 +329,7 @@ func (s *Server) authTCP(ctx context.Context, rr *bufio.Reader, wr *bufio.Writer
 			log.Errorf("tcp request operation(%d) not auth", p.Op)
 		}
 	}
-	if mid, key, rid, tags, accepts, err = s.Connect(ctx, p, ""); err != nil {
+	if mid, key, rid, accepts, err = s.Connect(ctx, p, ""); err != nil {
 		log.Errorf("authTCP.Connect(key:%v).err(%v)", key, err)
 		return
 	}

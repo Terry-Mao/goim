@@ -104,7 +104,6 @@ func (c *Comet) process(pushChan chan *comet.PushMsgReq, roomChan chan *comet.Br
 				Proto:   broadcastArg.Proto,
 				ProtoOp: broadcastArg.ProtoOp,
 				Speed:   broadcastArg.Speed,
-				Tag:     broadcastArg.Tag,
 			})
 			if err != nil {
 				log.Errorf("c.client.Broadcast(%s, reply) serverId:%s error(%v)", broadcastArg, c.serverID, err)

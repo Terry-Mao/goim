@@ -18,9 +18,8 @@ message PushMsg {
     int32 speed = 3;
     string server = 4;
     string room = 5;
-    string tag = 6;
-    repeated string keys = 7;
-    bytes msg = 8;
+    repeated string keys = 6;
+    bytes msg = 7;
 }
 
 message CloseReply {
@@ -38,17 +37,15 @@ message PingReq {
 message ConnectReq {
     option (gogoproto.goproto_stringer) = false;
     string server = 1;
-    string serverKey = 2;
-    string cookie = 3;
-    bytes token = 4;
+    string cookie = 2;
+    bytes token = 3;
 }
 
 message ConnectReply {
     int64 mid = 1;
     string key = 2;
     string roomID = 3;
-    repeated string tags = 4;
-    repeated int32 accepts = 5;
+    repeated int32 accepts = 4;
 }
 
 message DisconnectReq {

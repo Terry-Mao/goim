@@ -205,7 +205,7 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 	// must not setadv, only used in auth
 	step = 3
 	if p, err = ch.CliProto.Set(); err == nil {
-		if ch.Mid, ch.Key, rid, ch.Tags, accepts, err = s.authWebsocket(ctx, ws, p, req.Header.Get("Cookie")); err == nil {
+		if ch.Mid, ch.Key, rid, accepts, err = s.authWebsocket(ctx, ws, p, req.Header.Get("Cookie")); err == nil {
 			ch.Watch(accepts...)
 			b = s.Bucket(ch.Key)
 			err = b.Put(rid, ch)
@@ -403,7 +403,7 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (s *Server) authWebsocket(ctx context.Context, ws *websocket.Conn, p *grpc.Proto, cookie string) (mid int64, key, rid string, tags []string, accepts []int32, err error) {
+func (s *Server) authWebsocket(ctx context.Context, ws *websocket.Conn, p *grpc.Proto, cookie string) (mid int64, key, rid string, accepts []int32, err error) {
 	for {
 		if err = p.ReadWebsocket(ws); err != nil {
 			return
@@ -414,7 +414,7 @@ func (s *Server) authWebsocket(ctx context.Context, ws *websocket.Conn, p *grpc.
 			log.Errorf("ws request operation(%d) not auth", p.Op)
 		}
 	}
-	if mid, key, rid, tags, accepts, err = s.Connect(ctx, p, cookie); err != nil {
+	if mid, key, rid, accepts, err = s.Connect(ctx, p, cookie); err != nil {
 		return
 	}
 	p.Op = grpc.OpAuthReply
