@@ -13,15 +13,42 @@ import (
 
 	log "github.com/golang/glog"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
+)
+
+var (
+	// grpc options
+	grpcKeepAliveTime    = time.Duration(10) * time.Second
+	grpcKeepAliveTimeout = time.Duration(3) * time.Second
+	grpcBackoffMaxDelay  = time.Duration(3) * time.Second
+	grpcMaxSendMsgSize   = 1 << 24
+	grpcMaxCallMsgSize   = 1 << 24
+)
+
+const (
+	// grpc options
+	grpcInitialWindowSize     = 1 << 24
+	grpcInitialConnWindowSize = 1 << 24
 )
 
 func newCometClient(addr string) (comet.CometClient, error) {
-	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second))
 	defer cancel()
-	conn, err := grpc.DialContext(ctx, addr, opts...)
+	conn, err := grpc.DialContext(ctx, addr,
+		[]grpc.DialOption{
+			grpc.WithInsecure(),
+			grpc.WithInitialWindowSize(grpcInitialWindowSize),
+			grpc.WithInitialConnWindowSize(grpcInitialConnWindowSize),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(grpcMaxCallMsgSize)),
+			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(grpcMaxSendMsgSize)),
+			grpc.WithBackoffMaxDelay(grpcBackoffMaxDelay),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                grpcKeepAliveTime,
+				Timeout:             grpcKeepAliveTimeout,
+				PermitWithoutStream: true,
+			}),
+		}...,
+	)
 	if err != nil {
 		return nil, err
 	}

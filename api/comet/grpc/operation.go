@@ -37,15 +37,15 @@ const (
 	// OpChangeRoomReply change room reply
 	OpChangeRoomReply = int32(13)
 
-	// OpRegister register operation
-	OpRegister = int32(14)
-	// OpRegisterReply register operation
-	OpRegisterReply = int32(15)
+	// OpSub subscribe operation
+	OpSub = int32(14)
+	// OpSubReply subscribe operation
+	OpSubReply = int32(15)
 
-	// OpUnregister unregister operation
-	OpUnregister = int32(16)
-	// OpUnregisterReply unregister operation reply
-	OpUnregisterReply = int32(17)
+	// OpUnsub unsubscribe operation
+	OpUnsub = int32(16)
+	// OpUnsubReply unsubscribe operation reply
+	OpUnsubReply = int32(17)
 
 	// MinBusinessOp min business operation
 	MinBusinessOp = 1000

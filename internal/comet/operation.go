@@ -58,35 +58,38 @@ func (s *Server) RenewOnline(ctx context.Context, serverID string, rommCount map
 	return reply.AllRoomCount, nil
 }
 
+// Receive receive a message.
+func (s *Server) Receive(ctx context.Context, mid int64, p *model.Proto) (err error) {
+	_, err = s.rpcClient.Receive(ctx, &logic.ReceiveReq{Mid: mid, Proto: p})
+	return
+}
+
 // Operate operate.
-func (s *Server) Operate(c context.Context, p *model.Proto, ch *Channel, b *Bucket) (err error) {
+func (s *Server) Operate(ctx context.Context, p *model.Proto, ch *Channel, b *Bucket) error {
 	switch {
 	case p.Op >= model.MinBusinessOp && p.Op <= model.MaxBusinessOp:
-		_, err1 := s.rpcClient.Receive(c, &logic.ReceiveReq{Mid: ch.Mid, Proto: p})
-		if err1 != nil {
-			// TODO ack failed
-			log.Errorf("s.rpcClient.Receive operation:%d error(%v)", p.Op, err)
+		// TODO ack ok&failed
+		if err := s.Receive(ctx, ch.Mid, p); err != nil {
+			log.Errorf("s.Report(%d) op:%d error(%v)", ch.Mid, p.Op, err)
 		}
-		// TODO ack ok
 		p.Body = nil
 	case p.Op == model.OpChangeRoom:
-		err = b.ChangeRoom(string(p.Body), ch)
+		if err := b.ChangeRoom(string(p.Body), ch); err != nil {
+			log.Errorf("b.ChangeRoom(%s) error(%v)", p.Body, err)
+		}
 		p.Op = model.OpChangeRoomReply
-	case p.Op == model.OpRegister:
+	case p.Op == model.OpSub:
 		if ops, err := strings.SplitInt32s(string(p.Body), ","); err == nil {
 			ch.Watch(ops...)
 		}
-		p.Op = model.OpRegisterReply
-	case p.Op == model.OpUnregister:
+		p.Op = model.OpSubReply
+	case p.Op == model.OpUnsub:
 		if ops, err := strings.SplitInt32s(string(p.Body), ","); err == nil {
 			ch.UnWatch(ops...)
 		}
-		p.Op = model.OpUnregisterReply
+		p.Op = model.OpUnsubReply
 	default:
-		err = errors.ErrOperation
+		return errors.ErrOperation
 	}
-	if err != nil {
-		log.Errorf("operate(%+v) error(%v)", p, err)
-	}
-	return
+	return nil
 }

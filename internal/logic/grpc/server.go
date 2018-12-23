@@ -11,6 +11,8 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+	// use gzip decoder
+	_ "google.golang.org/grpc/encoding/gzip"
 )
 
 // New logic grpc server
