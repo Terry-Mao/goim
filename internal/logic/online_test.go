@@ -12,7 +12,7 @@ func TestOnline(t *testing.T) {
 		c     = context.TODO()
 		typ   = "test"
 		n     = 2
-		rooms = []string{"test://room_01", "test://room_02", "test://room_03"}
+		rooms = []string{"room_01", "room_02", "room_03"}
 	)
 	lg.totalIPs = 100
 	lg.totalConns = 200
@@ -24,7 +24,7 @@ func TestOnline(t *testing.T) {
 	tops, err := lg.OnlineTop(c, typ, n)
 	assert.Nil(t, err)
 	assert.Equal(t, len(tops), 2)
-	onlines, err := lg.OnlineRoom(c, rooms)
+	onlines, err := lg.OnlineRoom(c, typ, rooms)
 	assert.Nil(t, err)
 	assert.Equal(t, onlines["test://room_01"], int32(100))
 	assert.Equal(t, onlines["test://room_02"], int32(200))
