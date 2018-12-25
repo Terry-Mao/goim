@@ -14,9 +14,9 @@ var (
 
 // OnlineTop get the top online.
 func (l *Logic) OnlineTop(c context.Context, typ string, n int) (tops []*model.Top, err error) {
-	for roomKey, cnt := range l.roomCount {
-		if strings.HasPrefix(roomKey, typ) {
-			_, roomID, err := model.DecodeRoomKey(roomKey)
+	for key, cnt := range l.roomCount {
+		if strings.HasPrefix(key, typ) {
+			_, roomID, err := model.DecodeRoomKey(key)
 			if err != nil {
 				continue
 			}
@@ -40,10 +40,10 @@ func (l *Logic) OnlineTop(c context.Context, typ string, n int) (tops []*model.T
 }
 
 // OnlineRoom get rooms online.
-func (l *Logic) OnlineRoom(c context.Context, rooms []string) (res map[string]int32, err error) {
+func (l *Logic) OnlineRoom(c context.Context, typ string, rooms []string) (res map[string]int32, err error) {
 	res = make(map[string]int32, len(rooms))
 	for _, room := range rooms {
-		res[room] = l.roomCount[room]
+		res[room] = l.roomCount[model.EncodeRoomKey(typ, room)]
 	}
 	return
 }
