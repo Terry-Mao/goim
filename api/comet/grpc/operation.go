@@ -46,9 +46,4 @@ const (
 	OpUnsub = int32(16)
 	// OpUnsubReply unsubscribe operation reply
 	OpUnsubReply = int32(17)
-
-	// MinBusinessOp min business operation
-	MinBusinessOp = 1000
-	// MaxBusinessOp max business operation
-	MaxBusinessOp = 10000
 )

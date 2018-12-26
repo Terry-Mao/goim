@@ -5,7 +5,6 @@ import (
 
 	model "github.com/Terry-Mao/goim/api/comet/grpc"
 	logic "github.com/Terry-Mao/goim/api/logic/grpc"
-	"github.com/Terry-Mao/goim/internal/comet/errors"
 	"github.com/Terry-Mao/goim/pkg/strings"
 	log "github.com/golang/glog"
 
@@ -66,30 +65,28 @@ func (s *Server) Receive(ctx context.Context, mid int64, p *model.Proto) (err er
 
 // Operate operate.
 func (s *Server) Operate(ctx context.Context, p *model.Proto, ch *Channel, b *Bucket) error {
-	switch {
-	case p.Op >= model.MinBusinessOp && p.Op <= model.MaxBusinessOp:
-		// TODO ack ok&failed
-		if err := s.Receive(ctx, ch.Mid, p); err != nil {
-			log.Errorf("s.Report(%d) op:%d error(%v)", ch.Mid, p.Op, err)
-		}
-		p.Body = nil
-	case p.Op == model.OpChangeRoom:
+	switch p.Op {
+	case model.OpChangeRoom:
 		if err := b.ChangeRoom(string(p.Body), ch); err != nil {
 			log.Errorf("b.ChangeRoom(%s) error(%v)", p.Body, err)
 		}
 		p.Op = model.OpChangeRoomReply
-	case p.Op == model.OpSub:
+	case model.OpSub:
 		if ops, err := strings.SplitInt32s(string(p.Body), ","); err == nil {
 			ch.Watch(ops...)
 		}
 		p.Op = model.OpSubReply
-	case p.Op == model.OpUnsub:
+	case model.OpUnsub:
 		if ops, err := strings.SplitInt32s(string(p.Body), ","); err == nil {
 			ch.UnWatch(ops...)
 		}
 		p.Op = model.OpUnsubReply
 	default:
-		return errors.ErrOperation
+		// TODO ack ok&failed
+		if err := s.Receive(ctx, ch.Mid, p); err != nil {
+			log.Errorf("s.Report(%d) op:%d error(%v)", ch.Mid, p.Op, err)
+		}
+		p.Body = nil
 	}
 	return nil
 }
