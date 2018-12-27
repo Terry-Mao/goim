@@ -226,7 +226,7 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 		return
 	}
 	trd.Key = ch.Key
-	tr.Set(trd, clientHeartbeat)
+	tr.Set(trd, clientHeartbeatDeadline)
 	white = whitelist.Contains(ch.Mid)
 	if white {
 		whitelist.Printf("key: %s[%s] auth\n", ch.Key, rid)
@@ -249,7 +249,7 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 			whitelist.Printf("key: %s read proto:%v\n", ch.Key, p)
 		}
 		if p.Op == grpc.OpHeartbeat {
-			tr.Set(trd, clientHeartbeat)
+			tr.Set(trd, clientHeartbeatDeadline)
 			p.Body = nil
 			p.Op = grpc.OpHeartbeatReply
 			// NOTE: send server heartbeat for a long time

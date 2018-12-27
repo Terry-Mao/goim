@@ -125,7 +125,7 @@ func register(dis *naming.Discovery, srv *comet.Server) context.CancelFunc {
 				time.Sleep(time.Second)
 				continue
 			}
-			time.Sleep(time.Duration(conf.Conf.ServerTick))
+			time.Sleep(time.Second * 10)
 		}
 	}()
 	return cancel

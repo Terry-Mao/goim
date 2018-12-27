@@ -15,6 +15,10 @@ import (
 	log "github.com/golang/glog"
 )
 
+const (
+	maxInt = 1<<31 - 1
+)
+
 // InitTCP listen all tcp.bind and start accept connections.
 func InitTCP(server *Server, addrs []string, accept int) (err error) {
 	var (
@@ -140,7 +144,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 		return
 	}
 	trd.Key = ch.Key
-	tr.Set(trd, clientHeartbeat)
+	tr.Set(trd, clientHeartbeatDeadline)
 	white = whitelist.Contains(ch.Mid)
 	if white {
 		whitelist.Printf("key: %s[%s] auth\n", ch.Key, rid)
@@ -163,7 +167,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 			whitelist.Printf("key: %s read proto:%v\n", ch.Key, p)
 		}
 		if p.Op == grpc.OpHeartbeat {
-			tr.Set(trd, clientHeartbeat)
+			tr.Set(trd, clientHeartbeatDeadline)
 			p.Body = nil
 			p.Op = grpc.OpHeartbeatReply
 			// NOTE: send server heartbeat for a long time

@@ -14,35 +14,19 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-var (
-	maxInt = 1<<31 - 1
-	// grpc options
-	grpcKeepAliveTime    = time.Duration(10) * time.Second
-	grpcKeepAliveTimeout = time.Duration(3) * time.Second
-	grpcBackoffMaxDelay  = time.Duration(3) * time.Second
-	grpcMaxSendMsgSize   = 1 << 24
-	grpcMaxCallMsgSize   = 1 << 24
-)
-
 const (
-	clientHeartbeat       = time.Second * 90
-	minSrvHeartbeatSecond = time.Minute * 10
-	maxSrvHeartbeatSecond = time.Minute * 30
+	clientHeartbeatDeadline = time.Second * 70 // NOTE: Configure the client heartbeat expiration time
+	minServerHeartbeat      = time.Minute * 10
+	maxServerHeartbeat      = time.Minute * 30
 	// grpc options
 	grpcInitialWindowSize     = 1 << 24
 	grpcInitialConnWindowSize = 1 << 24
+	grpcMaxSendMsgSize        = 1 << 24
+	grpcMaxCallMsgSize        = 1 << 24
+	grpcKeepAliveTime         = time.Second * 10
+	grpcKeepAliveTimeout      = time.Second * 3
+	grpcBackoffMaxDelay       = time.Second * 3
 )
-
-// Server is comet server.
-type Server struct {
-	c         *conf.Config
-	round     *Round    // accept round store
-	buckets   []*Bucket // subkey bucket
-	bucketIdx uint32
-
-	serverID  string
-	rpcClient logic.LogicClient
-}
 
 func newLogicClient(c *conf.RPCClient) logic.LogicClient {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.Dial))
@@ -66,6 +50,17 @@ func newLogicClient(c *conf.RPCClient) logic.LogicClient {
 		panic(err)
 	}
 	return logic.NewLogicClient(conn)
+}
+
+// Server is comet server.
+type Server struct {
+	c         *conf.Config
+	round     *Round    // accept round store
+	buckets   []*Bucket // subkey bucket
+	bucketIdx uint32
+
+	serverID  string
+	rpcClient logic.LogicClient
 }
 
 // NewServer returns a new Server.
@@ -102,7 +97,7 @@ func (s *Server) Bucket(subKey string) *Bucket {
 
 // RandServerHearbeat rand server heartbeat.
 func (s *Server) RandServerHearbeat() time.Duration {
-	return (minSrvHeartbeatSecond + time.Duration(rand.Intn(int(maxSrvHeartbeatSecond-minSrvHeartbeatSecond))))
+	return (minServerHeartbeat + time.Duration(rand.Intn(int(maxServerHeartbeat-minServerHeartbeat))))
 }
 
 // Close close the server.
@@ -123,12 +118,12 @@ func (s *Server) onlineproc() {
 			}
 		}
 		if allRoomsCount, err = s.RenewOnline(context.Background(), s.serverID, roomCount); err != nil {
-			time.Sleep(time.Duration(s.c.OnlineTick))
+			time.Sleep(time.Second)
 			continue
 		}
 		for _, bucket := range s.buckets {
 			bucket.UpRoomsCount(allRoomsCount)
 		}
-		time.Sleep(time.Duration(s.c.OnlineTick))
+		time.Sleep(time.Second * 10)
 	}
 }

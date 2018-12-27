@@ -3,6 +3,7 @@ package conf
 import (
 	"flag"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -32,22 +33,20 @@ func init() {
 		defWeight, _  = strconv.ParseInt(os.Getenv("WEIGHT"), 10, 32)
 		defAddrs      = os.Getenv("ADDRS")
 	)
-	flag.StringVar(&confPath, "conf", "comet-example.toml", "default config path")
-	flag.StringVar(&region, "region", os.Getenv("REGION"), "distribution region, likes bj/sh/gz/hk/jp/sv/de")
-	flag.StringVar(&zone, "zone", os.Getenv("ZONE"), "deployment zone, likes sh001/sh002/sh003")
-	flag.StringVar(&deployEnv, "deploy.env", os.Getenv("DEPLOY_ENV"), "deployment environment, likes dev/fat/uat/pre/prod")
-	flag.StringVar(&host, "host", defHost, "unique hostname")
-	flag.BoolVar(&offline, "offline", defOffline, "server offline")
-	flag.Int64Var(&weight, "weight", defWeight, "server weight for load balancer")
-	flag.StringVar(&addrs, "addrs", defAddrs, "server public ip addrs")
+	flag.StringVar(&confPath, "conf", "comet-example.toml", "default config path.")
+	flag.StringVar(&region, "region", os.Getenv("REGION"), "avaliable region. or use REGION env variable, value: sh etc.")
+	flag.StringVar(&zone, "zone", os.Getenv("ZONE"), "avaliable zone. or use ZONE env variable, value: sh001/sh002 etc.")
+	flag.StringVar(&deployEnv, "deploy.env", os.Getenv("DEPLOY_ENV"), "deploy env. or use DEPLOY_ENV env variable, value: dev/fat1/uat/pre/prod etc.")
+	flag.StringVar(&host, "host", defHost, "machine hostname. or use default machine hostname.")
+	flag.BoolVar(&offline, "offline", defOffline, "server offline. or use OFFLINE env variable, value: true/false etc.")
+	flag.Int64Var(&weight, "weight", defWeight, "load balancing weight, or use WEIGHT env variable, value: 10 etc.")
+	flag.StringVar(&addrs, "addrs", defAddrs, "server public ip addrs. or use ADDRS env variable, value: 127.0.0.1 etc.")
 }
 
 // Config is comet config.
 type Config struct {
 	Debug        bool
 	MaxProc      int
-	ServerTick   xtime.Duration
-	OnlineTick   xtime.Duration
 	Discovery    *naming.Config
 	TCP          *TCP
 	WebSocket    *WebSocket
@@ -212,19 +211,13 @@ func local() (err error) {
 }
 
 func (c *Config) fix() {
+	if c.MaxProc <= 0 {
+		c.MaxProc = runtime.NumCPU()
+	}
 	if c.Env == nil {
 		c.Env = new(Env)
 	}
 	c.Env.fix()
-	if c.MaxProc <= 0 {
-		c.MaxProc = 32
-	}
-	if c.ServerTick <= 0 {
-		c.ServerTick = xtime.Duration(1 * time.Second)
-	}
-	if c.OnlineTick <= 0 {
-		c.OnlineTick = xtime.Duration(10 * time.Second)
-	}
 	if c.RPCClient != nil {
 		c.RPCClient.fix()
 	}
