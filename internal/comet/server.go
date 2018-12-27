@@ -10,6 +10,7 @@ import (
 	log "github.com/golang/glog"
 	"github.com/zhenjl/cityhash"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/balancer/roundrobin"
 	"google.golang.org/grpc/keepalive"
 )
 
@@ -59,6 +60,7 @@ func newLogicClient(c *conf.RPCClient) logic.LogicClient {
 				Timeout:             grpcKeepAliveTimeout,
 				PermitWithoutStream: true,
 			}),
+			grpc.WithBalancerName(roundrobin.Name),
 		}...)
 	if err != nil {
 		panic(err)
