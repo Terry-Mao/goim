@@ -35,7 +35,7 @@ func main() {
 		panic(err)
 	}
 	rand.Seed(time.Now().UTC().UnixNano())
-	runtime.GOMAXPROCS(conf.Conf.MaxProc)
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	log.Infof("goim-comet [version: %s env: %+v] start", ver, conf.Conf.Env)
 	// register discovery
 	dis := naming.New(conf.Conf.Discovery)
@@ -45,20 +45,21 @@ func main() {
 	if err := comet.InitWhitelist(conf.Conf.Whitelist); err != nil {
 		panic(err)
 	}
-	if err := comet.InitTCP(srv, conf.Conf.TCP.Bind, conf.Conf.MaxProc); err != nil {
+	if err := comet.InitTCP(srv, conf.Conf.TCP.Bind, runtime.NumCPU()); err != nil {
 		panic(err)
 	}
-	if err := comet.InitWebsocket(srv, conf.Conf.WebSocket.Bind, conf.Conf.MaxProc); err != nil {
+	if err := comet.InitWebsocket(srv, conf.Conf.Websocket.Bind, runtime.NumCPU()); err != nil {
 		panic(err)
 	}
-	if conf.Conf.WebSocket.TLSOpen {
-		if err := comet.InitWebsocketWithTLS(srv, conf.Conf.WebSocket.TLSBind, conf.Conf.WebSocket.CertFile, conf.Conf.WebSocket.PrivateFile, runtime.NumCPU()); err != nil {
+	if conf.Conf.Websocket.TLSOpen {
+		if err := comet.InitWebsocketWithTLS(srv, conf.Conf.Websocket.TLSBind, conf.Conf.Websocket.CertFile, conf.Conf.Websocket.PrivateFile, runtime.NumCPU()); err != nil {
 			panic(err)
 		}
 	}
 	// new grpc server
 	rpcSrv := grpc.New(conf.Conf.RPCServer, srv)
 	cancel := register(dis, srv)
+	// signal
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	for {

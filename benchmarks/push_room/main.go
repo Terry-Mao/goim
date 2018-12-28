@@ -45,7 +45,7 @@ func run(addr string, delay time.Duration) {
 }
 
 func post(addr string, i int64) {
-	resp, err := http.Post("http://"+addr+"/1/push/room?rid="+os.Args[1], "application/json", bytes.NewBufferString(fmt.Sprintf("{\"test\":%d}", i)))
+	resp, err := http.Post("http://"+addr+"/goim/push/room?operation=1000&type=test&room="+os.Args[1], "application/json", bytes.NewBufferString(fmt.Sprintf("{\"test\":%d}", i)))
 	if err != nil {
 		fmt.Printf("Error: http.post() error(%v)\n", err)
 		return

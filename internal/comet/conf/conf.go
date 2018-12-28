@@ -3,7 +3,6 @@ package conf
 import (
 	"flag"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -19,44 +18,99 @@ var (
 	zone      string
 	deployEnv string
 	host      string
-	offline   bool
-	weight    int64
 	addrs     string
+	weight    int64
+	offline   bool
+	debug     bool
+
 	// Conf config
-	Conf = &Config{}
+	Conf = Default()
 )
 
 func init() {
 	var (
 		defHost, _    = os.Hostname()
-		defOffline, _ = strconv.ParseBool(os.Getenv("OFFLINE"))
-		defWeight, _  = strconv.ParseInt(os.Getenv("WEIGHT"), 10, 32)
 		defAddrs      = os.Getenv("ADDRS")
+		defWeight, _  = strconv.ParseInt(os.Getenv("WEIGHT"), 10, 32)
+		defOffline, _ = strconv.ParseBool(os.Getenv("OFFLINE"))
+		defDebug, _   = strconv.ParseBool(os.Getenv("DEBUG"))
 	)
 	flag.StringVar(&confPath, "conf", "comet-example.toml", "default config path.")
 	flag.StringVar(&region, "region", os.Getenv("REGION"), "avaliable region. or use REGION env variable, value: sh etc.")
 	flag.StringVar(&zone, "zone", os.Getenv("ZONE"), "avaliable zone. or use ZONE env variable, value: sh001/sh002 etc.")
 	flag.StringVar(&deployEnv, "deploy.env", os.Getenv("DEPLOY_ENV"), "deploy env. or use DEPLOY_ENV env variable, value: dev/fat1/uat/pre/prod etc.")
 	flag.StringVar(&host, "host", defHost, "machine hostname. or use default machine hostname.")
-	flag.BoolVar(&offline, "offline", defOffline, "server offline. or use OFFLINE env variable, value: true/false etc.")
-	flag.Int64Var(&weight, "weight", defWeight, "load balancing weight, or use WEIGHT env variable, value: 10 etc.")
 	flag.StringVar(&addrs, "addrs", defAddrs, "server public ip addrs. or use ADDRS env variable, value: 127.0.0.1 etc.")
+	flag.Int64Var(&weight, "weight", defWeight, "load balancing weight, or use WEIGHT env variable, value: 10 etc.")
+	flag.BoolVar(&offline, "offline", defOffline, "server offline. or use OFFLINE env variable, value: true/false etc.")
+	flag.BoolVar(&debug, "debug", defDebug, "server debug. or use DEBUG env variable, value: true/false etc.")
+}
+
+// Default new a config with specified defualt value.
+func Default() *Config {
+	return &Config{
+		Debug:     debug,
+		Env:       &Env{Region: region, Zone: zone, DeployEnv: deployEnv, Host: host, Weight: weight, Addrs: strings.Split(addrs, ","), Offline: offline},
+		Discovery: &naming.Config{Region: region, Zone: zone, Env: deployEnv, Host: host},
+		RPCClient: &RPCClient{
+			Dial:    xtime.Duration(time.Second),
+			Timeout: xtime.Duration(time.Second),
+		},
+		RPCServer: &RPCServer{
+			Network:           "tcp",
+			Addr:              ":3109",
+			Timeout:           xtime.Duration(time.Second),
+			IdleTimeout:       xtime.Duration(time.Second * 60),
+			MaxLifeTime:       xtime.Duration(time.Hour * 2),
+			ForceCloseWait:    xtime.Duration(time.Second * 20),
+			KeepAliveInterval: xtime.Duration(time.Second * 60),
+			KeepAliveTimeout:  xtime.Duration(time.Second * 20),
+		},
+		TCP: &TCP{
+			Bind:         []string{":3101"},
+			Sndbuf:       4096,
+			Rcvbuf:       4096,
+			KeepAlive:    false,
+			Reader:       32,
+			ReadBuf:      1024,
+			ReadBufSize:  8192,
+			Writer:       32,
+			WriteBuf:     1024,
+			WriteBufSize: 8192,
+		},
+		Websocket: &Websocket{
+			Bind: []string{":3102"},
+		},
+		Protocol: &Protocol{
+			Timer:            32,
+			TimerSize:        2048,
+			CliProto:         5,
+			SvrProto:         10,
+			HandshakeTimeout: xtime.Duration(time.Second * 5),
+			HeartbeatTimeout: xtime.Duration(time.Second * 120),
+		},
+		Bucket: &Bucket{
+			Size:          32,
+			Channel:       1024,
+			Room:          1024,
+			RoutineAmount: 32,
+			RoutineSize:   1024,
+		},
+	}
 }
 
 // Config is comet config.
 type Config struct {
-	Debug        bool
-	MaxProc      int
-	Discovery    *naming.Config
-	TCP          *TCP
-	WebSocket    *WebSocket
-	Timer        *Timer
-	ProtoSection *ProtoSection
-	Whitelist    *Whitelist
-	Bucket       *Bucket
-	RPCClient    *RPCClient
-	RPCServer    *RPCServer
-	Env          *Env
+	Debug     bool
+	Env       *Env
+	Discovery *naming.Config
+	TCP       *TCP
+	Websocket *Websocket
+	Protocol  *Protocol
+	Bucket    *Bucket
+	RPCClient *RPCClient
+	RPCServer *RPCServer
+	Whitelist *Whitelist
 }
 
 // Env is env config.
@@ -70,43 +124,10 @@ type Env struct {
 	Addrs     []string
 }
 
-func (e *Env) fix() {
-	if e.Region == "" {
-		e.Region = region
-	}
-	if e.Zone == "" {
-		e.Zone = zone
-	}
-	if e.DeployEnv == "" {
-		e.DeployEnv = deployEnv
-	}
-	if e.Host == "" {
-		e.Host = host
-	}
-	if e.Weight <= 0 {
-		e.Weight = weight
-	}
-	if !e.Offline {
-		e.Offline = offline
-	}
-	if len(e.Addrs) == 0 {
-		e.Addrs = strings.Split(addrs, ",")
-	}
-}
-
 // RPCClient is RPC client config.
 type RPCClient struct {
 	Dial    xtime.Duration
 	Timeout xtime.Duration
-}
-
-func (r *RPCClient) fix() {
-	if r.Dial <= 0 {
-		r.Dial = xtime.Duration(time.Second)
-	}
-	if r.Timeout <= 0 {
-		r.Timeout = xtime.Duration(time.Second)
-	}
 }
 
 // RPCServer is RPC server config.
@@ -121,36 +142,12 @@ type RPCServer struct {
 	KeepAliveTimeout  xtime.Duration
 }
 
-func (r *RPCServer) fix() {
-	if r.Network == "" {
-		r.Network = "tcp"
-	}
-	if r.Timeout <= 0 {
-		r.Timeout = xtime.Duration(time.Second)
-	}
-	if r.IdleTimeout <= 0 {
-		r.IdleTimeout = xtime.Duration(time.Second * 60)
-	}
-	if r.MaxLifeTime <= 0 {
-		r.MaxLifeTime = xtime.Duration(time.Hour * 2)
-	}
-	if r.ForceCloseWait <= 0 {
-		r.ForceCloseWait = xtime.Duration(time.Second * 20)
-	}
-	if r.KeepAliveInterval <= 0 {
-		r.KeepAliveInterval = xtime.Duration(time.Second * 60)
-	}
-	if r.KeepAliveTimeout <= 0 {
-		r.KeepAliveTimeout = xtime.Duration(time.Second * 20)
-	}
-}
-
 // TCP is tcp config.
 type TCP struct {
 	Bind         []string
 	Sndbuf       int
 	Rcvbuf       int
-	Keepalive    bool
+	KeepAlive    bool
 	Reader       int
 	ReadBuf      int
 	ReadBufSize  int
@@ -159,8 +156,8 @@ type TCP struct {
 	WriteBufSize int
 }
 
-// WebSocket is websocket config.
-type WebSocket struct {
+// Websocket is websocket config.
+type Websocket struct {
 	Bind        []string
 	TLSOpen     bool
 	TLSBind     []string
@@ -168,24 +165,14 @@ type WebSocket struct {
 	PrivateFile string
 }
 
-// Timer is timer config.
-type Timer struct {
-	Timer     int
-	TimerSize int
-}
-
-// ProtoSection is proto section.
-type ProtoSection struct {
-	HandshakeTimeout xtime.Duration
-	WriteTimeout     xtime.Duration
+// Protocol is protocol config.
+type Protocol struct {
+	Timer            int
+	TimerSize        int
 	SvrProto         int
 	CliProto         int
-}
-
-// Whitelist is white list config.
-type Whitelist struct {
-	Whitelist []int64
-	WhiteLog  string
+	HandshakeTimeout xtime.Duration
+	HeartbeatTimeout xtime.Duration
 }
 
 // Bucket is bucket config.
@@ -197,43 +184,14 @@ type Bucket struct {
 	RoutineSize   int
 }
 
+// Whitelist is white list config.
+type Whitelist struct {
+	Whitelist []int64
+	WhiteLog  string
+}
+
 // Init init conf.
-func Init() error {
-	return local()
-}
-
-func local() (err error) {
-	if _, err = toml.DecodeFile(confPath, &Conf); err != nil {
-		return
-	}
-	Conf.fix()
+func Init() (err error) {
+	_, err = toml.DecodeFile(confPath, &Conf)
 	return
-}
-
-func (c *Config) fix() {
-	if c.MaxProc <= 0 {
-		c.MaxProc = runtime.NumCPU()
-	}
-	if c.Env == nil {
-		c.Env = new(Env)
-	}
-	c.Env.fix()
-	if c.RPCClient != nil {
-		c.RPCClient.fix()
-	}
-	if c.RPCServer != nil {
-		c.RPCServer.fix()
-	}
-	if c.Discovery.Region == "" {
-		c.Discovery.Region = c.Env.Region
-	}
-	if c.Discovery.Zone == "" {
-		c.Discovery.Zone = c.Env.Zone
-	}
-	if c.Discovery.Env == "" {
-		c.Discovery.Env = c.Env.DeployEnv
-	}
-	if c.Discovery.Host == "" {
-		c.Discovery.Host = c.Env.Host
-	}
 }

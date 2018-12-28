@@ -59,7 +59,7 @@ func acceptTCP(server *Server, lis *net.TCPListener) {
 			log.Errorf("listener.Accept(\"%s\") error(%v)", lis.Addr().String(), err)
 			return
 		}
-		if err = conn.SetKeepAlive(server.c.TCP.Keepalive); err != nil {
+		if err = conn.SetKeepAlive(server.c.TCP.KeepAlive); err != nil {
 			log.Errorf("conn.SetKeepAlive() error(%v)", err)
 			return
 		}
@@ -107,7 +107,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 		lastHb  = time.Now()
 		rb      = rp.Get()
 		wb      = wp.Get()
-		ch      = NewChannel(s.c.ProtoSection.CliProto, s.c.ProtoSection.SvrProto)
+		ch      = NewChannel(s.c.Protocol.CliProto, s.c.Protocol.SvrProto)
 		rr      = &ch.Reader
 		wr      = &ch.Writer
 	)
@@ -117,7 +117,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 	defer cancel()
 	// handshake
 	step := 0
-	trd = tr.Add(time.Duration(s.c.ProtoSection.HandshakeTimeout), func() {
+	trd = tr.Add(time.Duration(s.c.Protocol.HandshakeTimeout), func() {
 		conn.Close()
 		log.Errorf("key: %s remoteIP: %s step: %d tcp handshake timeout", ch.Key, conn.RemoteAddr().String(), step)
 	})
@@ -144,7 +144,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 		return
 	}
 	trd.Key = ch.Key
-	tr.Set(trd, clientHeartbeatDeadline)
+	tr.Set(trd, time.Duration(s.c.Protocol.HeartbeatTimeout))
 	white = whitelist.Contains(ch.Mid)
 	if white {
 		whitelist.Printf("key: %s[%s] auth\n", ch.Key, rid)
@@ -167,9 +167,9 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 			whitelist.Printf("key: %s read proto:%v\n", ch.Key, p)
 		}
 		if p.Op == grpc.OpHeartbeat {
-			tr.Set(trd, clientHeartbeatDeadline)
-			p.Body = nil
+			tr.Set(trd, time.Duration(s.c.Protocol.HeartbeatTimeout))
 			p.Op = grpc.OpHeartbeatReply
+			p.Body = nil
 			// NOTE: send server heartbeat for a long time
 			if now := time.Now(); now.Sub(lastHb) > serverHeartbeat {
 				if err1 := s.Heartbeat(ctx, ch.Mid, ch.Key); err1 == nil {

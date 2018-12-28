@@ -19,8 +19,9 @@ var (
 	deployEnv string
 	host      string
 	weight    int64
+
 	// Conf config
-	Conf = &Config{}
+	Conf = Default()
 )
 
 func init() {
@@ -36,7 +37,39 @@ func init() {
 	flag.Int64Var(&weight, "weight", defWeight, "load balancing weight, or use WEIGHT env variable, value: 10 etc.")
 }
 
-// Config .
+// Init init config.
+func Init() (err error) {
+	_, err = toml.DecodeFile(confPath, &Conf)
+	return
+}
+
+// Default new a config with specified defualt value.
+func Default() *Config {
+	return &Config{
+		Env:       &Env{Region: region, Zone: zone, DeployEnv: deployEnv, Host: host, Weight: weight},
+		Discovery: &naming.Config{Region: region, Zone: zone, Env: deployEnv, Host: host},
+		HTTPServer: &HTTPServer{
+			Network:      "tcp",
+			Addr:         "3111",
+			ReadTimeout:  xtime.Duration(time.Second),
+			WriteTimeout: xtime.Duration(time.Second),
+		},
+		RPCClient: &RPCClient{Dial: xtime.Duration(time.Second), Timeout: xtime.Duration(time.Second)},
+		RPCServer: &RPCServer{
+			Network:           "tcp",
+			Addr:              "3119",
+			Timeout:           xtime.Duration(time.Second),
+			IdleTimeout:       xtime.Duration(time.Second * 60),
+			MaxLifeTime:       xtime.Duration(time.Hour * 2),
+			ForceCloseWait:    xtime.Duration(time.Second * 20),
+			KeepAliveInterval: xtime.Duration(time.Second * 60),
+			KeepAliveTimeout:  xtime.Duration(time.Second * 20),
+		},
+		Backoff: &Backoff{MaxDelay: 300, BaseDelay: 3, Factor: 1.8, Jitter: 1.3},
+	}
+}
+
+// Config config.
 type Config struct {
 	Env        *Env
 	Discovery  *naming.Config
@@ -59,25 +92,7 @@ type Env struct {
 	Weight    int64
 }
 
-func (e *Env) fix() {
-	if e.Region == "" {
-		e.Region = region
-	}
-	if e.Zone == "" {
-		e.Zone = zone
-	}
-	if e.DeployEnv == "" {
-		e.DeployEnv = deployEnv
-	}
-	if e.Host == "" {
-		e.Host = host
-	}
-	if e.Weight <= 0 {
-		e.Weight = weight
-	}
-}
-
-// Node .
+// Node node config.
 type Node struct {
 	DefaultDomain string
 	HostDomain    string
@@ -89,7 +104,7 @@ type Node struct {
 	RegionWeight  float64
 }
 
-// Backoff .
+// Backoff backoff.
 type Backoff struct {
 	MaxDelay  int32
 	BaseDelay int32
@@ -123,15 +138,6 @@ type RPCClient struct {
 	Timeout xtime.Duration
 }
 
-func (r *RPCClient) fix() {
-	if r.Dial <= 0 {
-		r.Dial = xtime.Duration(time.Second)
-	}
-	if r.Timeout <= 0 {
-		r.Timeout = xtime.Duration(time.Second)
-	}
-}
-
 // RPCServer is RPC server config.
 type RPCServer struct {
 	Network           string
@@ -144,71 +150,10 @@ type RPCServer struct {
 	KeepAliveTimeout  xtime.Duration
 }
 
-func (r *RPCServer) fix() {
-	if r.Network == "" {
-		r.Network = "tcp"
-	}
-	if r.Timeout <= 0 {
-		r.Timeout = xtime.Duration(time.Second)
-	}
-	if r.IdleTimeout <= 0 {
-		r.IdleTimeout = xtime.Duration(time.Second * 60)
-	}
-	if r.MaxLifeTime <= 0 {
-		r.MaxLifeTime = xtime.Duration(time.Hour * 2)
-	}
-	if r.ForceCloseWait <= 0 {
-		r.ForceCloseWait = xtime.Duration(time.Second * 20)
-	}
-	if r.KeepAliveInterval <= 0 {
-		r.KeepAliveInterval = xtime.Duration(time.Second * 60)
-	}
-	if r.KeepAliveTimeout <= 0 {
-		r.KeepAliveTimeout = xtime.Duration(time.Second * 20)
-	}
-}
-
 // HTTPServer is http server config.
 type HTTPServer struct {
 	Network      string
 	Addr         string
 	ReadTimeout  xtime.Duration
 	WriteTimeout xtime.Duration
-}
-
-// Init init conf
-func Init() error {
-	return local()
-}
-
-func local() (err error) {
-	if _, err = toml.DecodeFile(confPath, &Conf); err != nil {
-		return
-	}
-	Conf.fix()
-	return
-}
-func (c *Config) fix() {
-	if c.Env == nil {
-		c.Env = new(Env)
-	}
-	c.Env.fix()
-	if c.RPCClient != nil {
-		c.RPCClient.fix()
-	}
-	if c.RPCServer != nil {
-		c.RPCServer.fix()
-	}
-	if c.Discovery.Region == "" {
-		c.Discovery.Region = c.Env.Region
-	}
-	if c.Discovery.Zone == "" {
-		c.Discovery.Zone = c.Env.Zone
-	}
-	if c.Discovery.Env == "" {
-		c.Discovery.Env = c.Env.DeployEnv
-	}
-	if c.Discovery.Host == "" {
-		c.Discovery.Host = c.Env.Host
-	}
 }

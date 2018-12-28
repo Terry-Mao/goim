@@ -15,9 +15,8 @@ import (
 )
 
 const (
-	clientHeartbeatDeadline = time.Second * 70 // NOTE: Configure the client heartbeat expiration time
-	minServerHeartbeat      = time.Minute * 10
-	maxServerHeartbeat      = time.Minute * 30
+	minServerHeartbeat = time.Minute * 10
+	maxServerHeartbeat = time.Minute * 30
 	// grpc options
 	grpcInitialWindowSize     = 1 << 24
 	grpcInitialConnWindowSize = 1 << 24

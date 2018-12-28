@@ -50,6 +50,7 @@ response:
 | Name            | Type     | Remork                 |
 |:----------------|:--------:|:-----------------------|
 | [url]:operation | int32    | operation for response |
+| [url]:type      | string   | room type              |
 | [url]:room      | string   | room id                |
 | [Body]          | []byte   | http request body      |
 

@@ -33,10 +33,11 @@ func TestPushRoom(t *testing.T) {
 	var (
 		c    = context.TODO()
 		op   = int32(100)
+		typ  = "test"
 		room = "test_room"
 		msg  = []byte("hello")
 	)
-	err := lg.PushRoom(c, op, room, msg)
+	err := lg.PushRoom(c, op, typ, room, msg)
 	assert.Nil(t, err)
 }
 

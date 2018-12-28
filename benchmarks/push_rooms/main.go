@@ -90,7 +90,7 @@ func startPush(b, e int, delay time.Duration) {
 
 	for {
 		for i := b; i < e; i++ {
-			resp, err := http.Post(fmt.Sprintf("http://%s/1/push/room?rid=%d", os.Args[3], i), "application/json", bytes.NewBufferString(testContent))
+			resp, err := http.Post(fmt.Sprintf("http://%s/goim/push/room?operation=1000&type=test&room=%d", os.Args[3], i), "application/json", bytes.NewBufferString(testContent))
 			if err != nil {
 				lg.Printf("post error (%v)", err)
 				continue

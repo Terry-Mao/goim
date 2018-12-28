@@ -118,7 +118,7 @@ func startClient(key string) {
 	rd := bufio.NewReader(conn)
 	authToken := &AuthToken{
 		123,
-		"test_key",
+		"",
 		"test://1000",
 		"ios",
 		[]int32{1000, 1001, 1002},

@@ -37,8 +37,8 @@ func NewRound(c *conf.Config) (r *Round) {
 			Writer:       c.TCP.Writer,
 			WriteBuf:     c.TCP.WriteBuf,
 			WriteBufSize: c.TCP.WriteBufSize,
-			Timer:        c.Timer.Timer,
-			TimerSize:    c.Timer.TimerSize,
+			Timer:        c.Protocol.Timer,
+			TimerSize:    c.Protocol.TimerSize,
 		}}
 	// reader
 	r.readers = make([]bytes.Pool, r.options.Reader)

@@ -31,6 +31,26 @@ func init() {
 	flag.StringVar(&host, "host", defHost, "machine hostname. or use default machine hostname.")
 }
 
+// Init init config.
+func Init() (err error) {
+	_, err = toml.DecodeFile(confPath, &Conf)
+	return
+}
+
+// Default new a config with specified defualt value.
+func Default() *Config {
+	return &Config{
+		Env:       &Env{Region: region, Zone: zone, DeployEnv: deployEnv, Host: host},
+		Discovery: &naming.Config{Region: region, Zone: zone, Env: deployEnv, Host: host},
+		Comet:     &Comet{RoutineChan: 1024, RoutineSize: 32},
+		Room: &Room{
+			Batch:  20,
+			Signal: xtime.Duration(time.Second),
+			Idle:   xtime.Duration(time.Minute * 15),
+		},
+	}
+}
+
 // Config is job config.
 type Config struct {
 	Env       *Env
@@ -42,10 +62,9 @@ type Config struct {
 
 // Room is room config.
 type Room struct {
-	Refresh xtime.Duration
-	Idle    xtime.Duration
-	Signal  xtime.Duration
-	Batch   int
+	Batch  int
+	Signal xtime.Duration
+	Idle   xtime.Duration
 }
 
 // Comet is comet config.
@@ -67,75 +86,4 @@ type Env struct {
 	Zone      string
 	DeployEnv string
 	Host      string
-}
-
-func (e *Env) fix() {
-	if e.Region == "" {
-		e.Region = region
-	}
-	if e.Zone == "" {
-		e.Zone = zone
-	}
-	if e.DeployEnv == "" {
-		e.DeployEnv = deployEnv
-	}
-	if e.Host == "" {
-		e.Host = host
-	}
-}
-
-// Init init conf
-func Init() error {
-	return local()
-}
-
-func local() (err error) {
-	if _, err = toml.DecodeFile(confPath, &Conf); err != nil {
-		return
-	}
-	Conf.fix()
-	return
-}
-
-func (c *Config) fix() {
-	if c.Env == nil {
-		c.Env = new(Env)
-	}
-	c.Env.fix()
-	if c.Discovery.Region == "" {
-		c.Discovery.Region = c.Env.Region
-	}
-	if c.Discovery.Zone == "" {
-		c.Discovery.Zone = c.Env.Zone
-	}
-	if c.Discovery.Env == "" {
-		c.Discovery.Env = c.Env.DeployEnv
-	}
-	if c.Discovery.Host == "" {
-		c.Discovery.Host = c.Env.Host
-	}
-	if c.Comet == nil {
-		c.Comet = new(Comet)
-	}
-	if c.Comet.RoutineChan <= 0 {
-		c.Comet.RoutineChan = 1024
-	}
-	if c.Comet.RoutineSize <= 0 {
-		c.Comet.RoutineSize = 32
-	}
-	if c.Room == nil {
-		c.Room = new(Room)
-	}
-	if c.Room.Refresh <= 0 {
-		c.Room.Refresh = xtime.Duration(time.Second)
-	}
-	if c.Room.Idle <= 0 {
-		c.Room.Idle = xtime.Duration(time.Minute)
-	}
-	if c.Room.Signal <= 0 {
-		c.Room.Signal = xtime.Duration(time.Second)
-	}
-	if c.Room.Batch <= 0 {
-		c.Room.Batch = 20
-	}
 }
