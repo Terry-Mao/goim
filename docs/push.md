@@ -1,89 +1,207 @@
-<h3>Terry-Mao/goim push http协议文档</h3>
-push http接口文档，用于推送接口接入
+## goim push API
 
-<h3>接口汇总</h3>
+### error codes
+```
+// ok
+OK = 0
 
-| 接口名 | URL | 访问方式 |
-| :---- | :---- | :---- |
-| [单人推送](#单人推送)  | /1/push       | POST |
-| [单消息多人推送](#单消息多人推送) | /1/pushs      | POST |
-| [房间推送](#房间推送) | /1/push/room   | POST |
-| [广播](#广播) | /1/push/all   | POST |
+// request error
+RequestErr = -400
 
-<h3>公共返回码</h3>
-
-| 错误码 | 描述 |
-| :---- | :---- |
-| 1 | 成功 |
-| 65535 | 内部错误 |
-
-<h3>基本返回结构</h3>
-<pre>
-{
-    "ret": 1  //错误码
-}
-</pre>
-
-
-##### 单人推送
- * 请求例子
-
-```sh
-# uid 表示推送的用户?uid=0
-curl -d "{\"test\":1}" http://127.0.0.1:7172/1/push?uid=0
+// server error
+ServerErr = -500
 ```
 
- * 返回
+### push keys
+[POST] /goim/push/keys
 
-<pre>
+| Name            | Type     | Remork                 |
+|:----------------|:--------:|:-----------------------|
+| [url]:operation | int32    | operation for response |
+| [url]:keys      | []string | multiple client keys   |
+| [Body]          | []byte   | http request body      |
+
+response:
+```
 {
-    "ret": 1
+    "code": 0
 }
-</pre>
-
-##### 单消息多人推送
- * 请求例子
-
-```sh
-curl -d "{\"u\":[1,2,3,4,5],\"m\":{\"test\":1}}" http://127.0.0.1:7172/1/pushs
 ```
 
- * 返回
+### push mids
+[POST] /goim/push/mids
 
-<pre>
+| Name            | Type     | Remork                 |
+|:----------------|:--------:|:-----------------------|
+| [url]:operation | int32    | operation for response |
+| [url]:mids      | []int64  | multiple user mids     |
+| [Body]          | []byte   | http request body      |
+
+response:
+```
 {
-    "ret": 1
+    "code": 0
 }
-</pre>
-
-##### 房间推送
- * 请求例子
-
-```sh
-curl -d "{\"test\": 1}" http://127.0.0.1:7172/1/push/room?rid=1
 ```
 
- * 返回
+### push room
+[POST] /goim/push/room
 
-<pre>
+| Name            | Type     | Remork                 |
+|:----------------|:--------:|:-----------------------|
+| [url]:operation | int32    | operation for response |
+| [url]:room      | string   | room id                |
+| [Body]          | []byte   | http request body      |
+
+response:
+```
 {
-    "ret": 1
+    "code": 0
 }
-</pre>
-
-##### 广播
- * 请求例子
-
-```sh
-curl -d "{\"test\": 1}" http://127.0.0.1:7172/1/push/all
 ```
 
- * 返回
+### push all
+[POST] /goim/push/all
 
-<pre>
+| Name            | Type     | Remork                 |
+|:----------------|:--------:|:-----------------------|
+| [url]:operation | int32    | operation for response |
+| [url]:speed     | int32    | push speed             |
+| [Body]          | []byte   | http request body      |
+
+response:
+```
 {
-    "ret": 1
+    "code": 0
 }
-</pre>
+```
 
+### online top
+[GET] /goim/online/top
 
+| Name    | Type     | Remork                 |
+|:--------|:--------:|:-----------------------|
+| type    | string   | room type              |
+| limit   | string   | online limit           |
+
+response:
+```
+{
+    "code": 0,
+    "message": "",
+    "data": [
+        {
+            "room_id": "1000",
+            "count": 100
+        },
+        {
+            "room_id": "2000",
+            "count": 200
+        },
+        {
+            "room_id": "3000",
+            "count": 300
+        }
+    ]
+}
+```
+
+### online room
+[GET] /goim/online/room
+
+| Name    | Type     | Remork                 |
+|:--------|:--------:|:-----------------------|
+| type    | string   | room type              |
+| rooms   | []string | room ids               |
+
+response:
+```
+{
+    "code": 0,
+    "message": "",
+    "data": {
+        "1000": 100,
+        "2000": 200,
+        "3000": 300
+    }
+}
+```
+### online total
+[GET] /goim/online/total
+
+response:
+```
+{
+    "code": 0,
+    "message": "",
+    "data": {
+        "conn_count": 1,
+        "ip_count": 1
+    }
+}
+```
+
+### nodes weighted
+[GET] /goim/nodes/weighted
+
+| Name     | Type     | Remork                 |
+|:---------|:--------:|:-----------------------|
+| platform | string   | web/android/ios        |
+
+response:
+```
+{
+    "code": 0,
+    "message": "",
+    "data": {
+        "domain": "conn.goim.io",
+        "tcp_port": 3101,
+        "ws_port": 3102,
+        "wss_port": 3103,
+        "heartbeat": 30,    // heartbeat seconds
+        "heartbeat_max": 3  // heartbeat tries
+        "nodes": [
+            "47.89.10.97"
+        ],
+        "backoff": {
+            "max_delay": 300,
+            "base_delay": 3,
+            "factor": 1.8,
+            "jitter": 0.3
+        },
+        
+    }
+}
+```
+
+### nodes instances
+[GET] /nodes/instances
+
+response:
+```
+{
+    "code": 0,
+    "message": "",
+    "data": [
+        {
+            "region": "sh",
+            "zone": "sh001",
+            "env": "dev",
+            "appid": "goim.comet",
+            "hostname": "test",
+            "addrs": [
+                "grpc://192.168.1.30:3109"
+            ],
+            "version": "",
+            "latest_timestamp": 1545750122311688676,
+            "metadata": {
+                "addrs": "47.89.10.97",
+                "conn_count": "1",
+                "ip_count": "1",
+                "offline": "false",
+                "weight": "10"
+            }
+        }
+    ]
+}
+`

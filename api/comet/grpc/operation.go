@@ -24,7 +24,7 @@ const (
 	// OpAuthReply auth connect reply
 	OpAuthReply = int32(8)
 
-	// OpRaw  raw message
+	// OpRaw raw message
 	OpRaw = int32(9)
 
 	// OpProtoReady proto ready
