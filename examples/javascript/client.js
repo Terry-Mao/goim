@@ -53,28 +53,36 @@
                     case 8:
                         // auth reply ok
                         document.getElementById("status").innerHTML = "<color style='color:green'>ok<color>";
+                        appendMsg("receive: auth reply");
                         // send a heartbeat to server
                         heartbeat();
                         heartbeatInterval = setInterval(heartbeat, 30 * 1000);
-                    break;
+                        break;
                     case 3:
                         // receive a heartbeat from server
                         console.log("receive: heartbeat");
-                        appendMsg("receive: heartbeat from server");
-                    break;
-                    default:
+                        appendMsg("receive: heartbeat reply");
+                        break;
+                    case 9:
                         // batch message
-                        for (var offset=0; offset<data.byteLength; offset+=packetLen) {
+                        for (var offset=rawHeaderLen; offset<data.byteLength; offset+=packetLen) {
                             // parse
                             var packetLen = dataView.getInt32(offset);
                             var headerLen = dataView.getInt16(offset+headerOffset);
                             var ver = dataView.getInt16(offset+verOffset);
+                            var op = dataView.getInt32(offset+opOffset);
+                            var seq = dataView.getInt32(offset+seqOffset);
                             var msgBody = textDecoder.decode(data.slice(offset+headerLen, offset+packetLen));
                             // callback
                             messageReceived(ver, msgBody);
                             appendMsg("receive: ver=" + ver + " op=" + op + " seq=" + seq + " message=" + msgBody);
                         }
-                    break;
+                        break;
+                    default:
+                        var msgBody = textDecoder.decode(data.slice(headerLen, packetLen));
+                        messageReceived(ver, msgBody);
+                        appendMsg("receive: ver=" + ver + " op=" + op + " seq=" + seq + " message=" + msgBody);
+                        break
                 }
             }
 
@@ -95,7 +103,7 @@
                 headerView.setInt32(seqOffset, 1);
                 ws.send(headerBuf);
                 console.log("send: heartbeat");
-                appendMsg("send: heartbeat to server");
+                appendMsg("send: heartbeat");
             }
 
             function auth() {
@@ -110,7 +118,7 @@
                 headerView.setInt32(seqOffset, 1);
                 ws.send(mergeArrayBuffer(headerBuf, bodyBuf));
 
-                document.getElementById("session").innerHTML = "auth: " + token;
+                appendMsg("send: auth token: " + token);
             }
 
             function messageReceived(ver, body) {
