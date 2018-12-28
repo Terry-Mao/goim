@@ -35,11 +35,11 @@ func init() {
 	flag.StringVar(&deployEnv, "deploy.env", os.Getenv("DEPLOY_ENV"), "deploy env. or use DEPLOY_ENV env variable, value: dev/fat1/uat/pre/prod etc.")
 	flag.StringVar(&host, "host", defHost, "machine hostname. or use default machine hostname.")
 	flag.Int64Var(&weight, "weight", defWeight, "load balancing weight, or use WEIGHT env variable, value: 10 etc.")
-	Conf = Default()
 }
 
 // Init init config.
 func Init() (err error) {
+	Conf = Default()
 	_, err = toml.DecodeFile(confPath, &Conf)
 	return
 }

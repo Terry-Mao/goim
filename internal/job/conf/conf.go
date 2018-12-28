@@ -29,11 +29,11 @@ func init() {
 	flag.StringVar(&zone, "zone", os.Getenv("ZONE"), "avaliable zone. or use ZONE env variable, value: sh001/sh002 etc.")
 	flag.StringVar(&deployEnv, "deploy.env", os.Getenv("DEPLOY_ENV"), "deploy env. or use DEPLOY_ENV env variable, value: dev/fat1/uat/pre/prod etc.")
 	flag.StringVar(&host, "host", defHost, "machine hostname. or use default machine hostname.")
-	Conf = Default()
 }
 
 // Init init config.
 func Init() (err error) {
+	Conf = Default()
 	_, err = toml.DecodeFile(confPath, &Conf)
 	return
 }

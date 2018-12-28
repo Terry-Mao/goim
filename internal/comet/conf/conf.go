@@ -44,7 +44,13 @@ func init() {
 	flag.Int64Var(&weight, "weight", defWeight, "load balancing weight, or use WEIGHT env variable, value: 10 etc.")
 	flag.BoolVar(&offline, "offline", defOffline, "server offline. or use OFFLINE env variable, value: true/false etc.")
 	flag.BoolVar(&debug, "debug", defDebug, "server debug. or use DEBUG env variable, value: true/false etc.")
+}
+
+// Init init config.
+func Init() (err error) {
 	Conf = Default()
+	_, err = toml.DecodeFile(confPath, &Conf)
+	return
 }
 
 // Default new a config with specified defualt value.
@@ -189,10 +195,4 @@ type Bucket struct {
 type Whitelist struct {
 	Whitelist []int64
 	WhiteLog  string
-}
-
-// Init init conf.
-func Init() (err error) {
-	_, err = toml.DecodeFile(confPath, &Conf)
-	return
 }
