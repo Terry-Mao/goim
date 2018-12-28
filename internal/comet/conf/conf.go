@@ -24,7 +24,7 @@ var (
 	debug     bool
 
 	// Conf config
-	Conf = Default()
+	Conf *Config
 )
 
 func init() {
@@ -44,6 +44,7 @@ func init() {
 	flag.Int64Var(&weight, "weight", defWeight, "load balancing weight, or use WEIGHT env variable, value: 10 etc.")
 	flag.BoolVar(&offline, "offline", defOffline, "server offline. or use OFFLINE env variable, value: true/false etc.")
 	flag.BoolVar(&debug, "debug", defDebug, "server debug. or use DEBUG env variable, value: true/false etc.")
+	Conf = Default()
 }
 
 // Default new a config with specified defualt value.
