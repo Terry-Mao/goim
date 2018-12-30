@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/Terry-Mao/goim/api/comet/grpc"
-	"github.com/issue9/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConnect(t *testing.T) {
@@ -23,7 +23,7 @@ func TestConnect(t *testing.T) {
 	assert.Equal(t, serverKey, key)
 	assert.Equal(t, roomID, "test://test_room")
 	assert.Equal(t, len(accepts), 3)
-	assert.NotEqual(t, hb, 0)
+	assert.NotZero(t, hb)
 	t.Log(mid, key, roomID, accepts, err)
 	// heartbeat
 	err = lg.Heartbeat(c, mid, key, server)

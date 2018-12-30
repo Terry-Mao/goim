@@ -10,8 +10,8 @@
 [node]
     defaultDomain = "conn.goim.io"
     hostDomain = ".goim.io"
-    heartbeat = "30s"
-    eartbeatMax = 3
+    heartbeat = "1m"
+    heartbeatMax = 2
     tcpPort = 3101
     wsPort = 3102
     wssPort = 3103
