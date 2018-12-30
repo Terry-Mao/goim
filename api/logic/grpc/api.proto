@@ -46,6 +46,7 @@ message ConnectReply {
     string key = 2;
     string roomID = 3;
     repeated int32 accepts = 4;
+    int64 heartbeat = 5;
 }
 
 message DisconnectReq {

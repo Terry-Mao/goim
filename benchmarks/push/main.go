@@ -18,7 +18,6 @@ import (
 )
 
 var (
-	lg         *log.Logger
 	httpClient *http.Client
 	t          int
 )
@@ -51,12 +50,6 @@ func init() {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	infoLogfi, err := os.OpenFile("./pushs.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		panic(err)
-	}
-	lg = log.New(infoLogfi, "", log.LstdFlags|log.Lshortfile)
-
 	begin, err := strconv.Atoi(os.Args[1])
 	if err != nil {
 		panic(err)
@@ -72,7 +65,7 @@ func main() {
 	}
 
 	num := runtime.NumCPU() * 2
-	lg.Printf("start routine num:%d", num)
+	log.Printf("start routine num:%d", num)
 
 	l := length / num
 	b, e := begin, begin+l
@@ -94,7 +87,7 @@ func stop() {
 }
 
 func startPush(b, e int) {
-	lg.Printf("start Push from %d to %d", b, e)
+	log.Printf("start Push from %d to %d", b, e)
 	bodys := make([][]byte, e-b)
 	for i := 0; i < e-b; i++ {
 		msg := &pushBodyMsg{Msg: json.RawMessage(testContent), UserID: int64(b)}
@@ -107,20 +100,20 @@ func startPush(b, e int) {
 
 	for {
 		for i := 0; i < len(bodys); i++ {
-			resp, err := httpPost(fmt.Sprintf("http://%s/1/pushs", os.Args[3]), "application/x-www-form-urlencoded", bytes.NewBuffer(bodys[i]))
+			resp, err := httpPost(fmt.Sprintf("http://%s/goim/push/mids?operation=1000&mids=%d", os.Args[3], b), "application/x-www-form-urlencoded", bytes.NewBuffer(bodys[i]))
 			if err != nil {
-				lg.Printf("post error (%v)", err)
+				log.Printf("post error (%v)", err)
 				continue
 			}
 
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				lg.Printf("post error (%v)", err)
+				log.Printf("post error (%v)", err)
 				return
 			}
 			resp.Body.Close()
 
-			lg.Printf("response %s", string(body))
+			log.Printf("response %s", string(body))
 			//time.Sleep(50 * time.Millisecond)
 		}
 	}

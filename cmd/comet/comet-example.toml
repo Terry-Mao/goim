@@ -35,7 +35,6 @@
     svrProto = 10
     cliProto = 5
     handshakeTimeout = "8s"
-    heartbeatTimeout = "120s"
 
 [whitelist]
     Whitelist = [123]

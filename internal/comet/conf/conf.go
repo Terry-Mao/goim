@@ -94,7 +94,6 @@ func Default() *Config {
 			CliProto:         5,
 			SvrProto:         10,
 			HandshakeTimeout: xtime.Duration(time.Second * 5),
-			HeartbeatTimeout: xtime.Duration(time.Second * 120),
 		},
 		Bucket: &Bucket{
 			Size:          32,
@@ -179,7 +178,6 @@ type Protocol struct {
 	SvrProto         int
 	CliProto         int
 	HandshakeTimeout xtime.Duration
-	HeartbeatTimeout xtime.Duration
 }
 
 // Bucket is bucket config.

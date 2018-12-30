@@ -20,7 +20,6 @@ import (
 )
 
 var (
-	lg         *log.Logger
 	httpClient *http.Client
 )
 
@@ -34,7 +33,6 @@ func init() {
 			if err != nil {
 				return nil, err
 			}
-
 			_ = c.SetDeadline(deadline)
 			return c, nil
 		},
@@ -47,12 +45,6 @@ func init() {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	infoLogfi, err := os.OpenFile("./push_rooms.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		panic(err)
-	}
-	lg = log.New(infoLogfi, "", log.LstdFlags|log.Lshortfile)
-
 	begin, err := strconv.Atoi(os.Args[1])
 	if err != nil {
 		panic(err)
@@ -69,7 +61,7 @@ func main() {
 	delay := (1000 * time.Millisecond) / time.Duration(num)
 
 	routines := runtime.NumCPU() * 2
-	lg.Printf("start routine num:%d", routines)
+	log.Printf("start routine num:%d", routines)
 
 	l := length / routines
 	b, e := begin, begin+l
@@ -86,24 +78,24 @@ func main() {
 }
 
 func startPush(b, e int, delay time.Duration) {
-	lg.Printf("start Push from %d to %d", b, e)
+	log.Printf("start Push from %d to %d", b, e)
 
 	for {
 		for i := b; i < e; i++ {
 			resp, err := http.Post(fmt.Sprintf("http://%s/goim/push/room?operation=1000&type=test&room=%d", os.Args[3], i), "application/json", bytes.NewBufferString(testContent))
 			if err != nil {
-				lg.Printf("post error (%v)", err)
+				log.Printf("post error (%v)", err)
 				continue
 			}
 
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				lg.Printf("post error (%v)", err)
+				log.Printf("post error (%v)", err)
 				return
 			}
 			resp.Body.Close()
 
-			lg.Printf("push room:%d response %s", i, string(body))
+			log.Printf("push room:%d response %s", i, string(body))
 			time.Sleep(delay)
 		}
 	}

@@ -12,7 +12,7 @@ import (
 )
 
 // Connect connected a conn.
-func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) (mid int64, key, roomID string, accepts []int32, err error) {
+func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) (mid int64, key, roomID string, accepts []int32, hb int64, err error) {
 	var params struct {
 		Mid      int64   `json:"mid"`
 		Key      string  `json:"key"`
@@ -27,6 +27,7 @@ func (l *Logic) Connect(c context.Context, server, cookie string, token []byte) 
 	mid = params.Mid
 	roomID = params.RoomID
 	accepts = params.Accepts
+	hb = int64(l.c.Node.Heartbeat) * int64(l.c.Node.HeartbeatMax)
 	if key = params.Key; key == "" {
 		key = uuid.New().String()
 	}

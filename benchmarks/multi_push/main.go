@@ -103,7 +103,7 @@ func startPush(b, e int) {
 		panic(err)
 	}
 	for {
-		resp, err := httpPost(fmt.Sprintf("http://%s/1/pushs", os.Args[3]), "application/x-www-form-urlencoded", bytes.NewBuffer(body))
+		resp, err := httpPost(fmt.Sprintf("http://%s/goim/push/mids=%d", os.Args[3], b), "application/x-www-form-urlencoded", bytes.NewBuffer(body))
 		if err != nil {
 			lg.Printf("post error (%v)", err)
 			continue

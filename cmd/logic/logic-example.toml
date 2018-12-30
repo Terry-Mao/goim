@@ -46,9 +46,9 @@
     network = "tcp"
     addr = "127.0.0.1:6379"
     active = 60000
-    idle = 32
-    dialTimeout = "50ms"
+    idle = 1024
+    dialTimeout = "200ms"
     readTimeout = "500ms"
     writeTimeout = "500ms"
-    idleTimeout = "30s"
+    idleTimeout = "120s"
     expire = "30m"

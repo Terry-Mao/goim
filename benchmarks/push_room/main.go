@@ -1,6 +1,6 @@
 package main
 
-// Start Commond eg: ./push_room 1 20 localhost:7172
+// Start Commond eg: ./push_room 1 20 localhost:3111
 // first parameter: room id
 // second parameter: num per seconds
 // third parameter: logic server ip

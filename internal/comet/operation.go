@@ -2,6 +2,7 @@ package comet
 
 import (
 	"context"
+	"time"
 
 	model "github.com/Terry-Mao/goim/api/comet/grpc"
 	logic "github.com/Terry-Mao/goim/api/logic/grpc"
@@ -13,7 +14,7 @@ import (
 )
 
 // Connect connected a connection.
-func (s *Server) Connect(c context.Context, p *model.Proto, cookie string) (mid int64, key, rid string, accepts []int32, err error) {
+func (s *Server) Connect(c context.Context, p *model.Proto, cookie string) (mid int64, key, rid string, accepts []int32, heartbeat time.Duration, err error) {
 	reply, err := s.rpcClient.Connect(c, &logic.ConnectReq{
 		Server: s.serverID,
 		Cookie: cookie,
@@ -22,7 +23,7 @@ func (s *Server) Connect(c context.Context, p *model.Proto, cookie string) (mid 
 	if err != nil {
 		return
 	}
-	return reply.Mid, reply.Key, reply.RoomID, reply.Accepts, nil
+	return reply.Mid, reply.Key, reply.RoomID, reply.Accepts, time.Duration(reply.Heartbeat), nil
 }
 
 // Disconnect disconnected a connection.

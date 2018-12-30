@@ -18,11 +18,12 @@ func TestConnect(t *testing.T) {
 		c         = context.Background()
 	)
 	// connect
-	mid, key, roomID, accepts, err := lg.Connect(c, server, cookie, token)
+	mid, key, roomID, accepts, hb, err := lg.Connect(c, server, cookie, token)
 	assert.Nil(t, err)
 	assert.Equal(t, serverKey, key)
 	assert.Equal(t, roomID, "test://test_room")
 	assert.Equal(t, len(accepts), 3)
+	assert.NotEqual(t, hb, 0)
 	t.Log(mid, key, roomID, accepts, err)
 	// heartbeat
 	err = lg.Heartbeat(c, mid, key, server)
