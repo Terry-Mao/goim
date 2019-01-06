@@ -1,0 +1,62 @@
+# This is a weird way of telling Travis to use the fast container-based test
+# runner instead of the slow VM-based runner.
+sudo: false
+
+language: go
+
+# Force-enable Go modules. This will be unnecessary when Go 1.12 lands.
+env:
+  global:
+    - GO111MODULE=on
+    - REGION=sh
+    - ZONE=sh001
+    - DEPLOY_ENV=dev
+    - WEIGHT=10
+    - ADDRS=127.0.0.1
+
+# You don't need to test on very old version of the Go compiler. It's the user's
+# responsibility to keep their compilers up to date.
+go:
+  - 1.11.x
+
+# Only clone the most recent commit.
+git:
+  depth: 1
+
+# Skip the install step. Don't `go get` dependencies. Only build with the code
+# in vendor/
+install: true
+
+# Don't email me the results of the test runs.
+notifications:
+  email: false
+
+services:
+  - redis-server
+
+# Anything in before_script that returns a nonzero exit code will flunk the
+# build and immediately stop. It's sorta like having set -e enabled in bash.
+# Make sure golangci-lint is vendored.
+before_script:
+  - curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $GOPATH/bin
+  - curl -sfL https://raw.githubusercontent.com/Bilibili/discovery/master/install.sh | sh -s -- -b $GOPATH/bin
+  - curl -sfL https://raw.githubusercontent.com/Bilibili/discovery/master/cmd/discovery/discovery-example.toml -o $GOPATH/bin/discovery.toml
+  - nohup bash -c "$GOPATH/bin/discovery -conf $GOPATH/bin/discovery.toml &"
+  - curl -L https://www-us.apache.org/dist/kafka/2.1.0/kafka_2.11-2.1.0.tgz -o kafka.tgz
+  - mkdir -p kafka && tar xzf kafka.tgz -C kafka --strip-components 1
+  - nohup bash -c "cd kafka && bin/zookeeper-server-start.sh config/zookeeper.properties &"
+  - nohup bash -c "cd kafka && bin/kafka-server-start.sh config/server.properties &"
+  - sleep 5
+  - kafka/bin/kafka-topics.sh --create --partitions 1 --replication-factor 1 --topic goim-push-topic --zookeeper localhost:2181
+
+# script always runs to completion (set +e). If we have linter issues AND a
+# failing test, we want to see both. Configure golangci-lint with a
+# .golangci.yml file at the top level of your repo.
+script:
+  - make build
+  - make run
+  - golangci-lint run   # run a bunch of code checkers/linters in parallel
+  - sh codecov.sh       # Run all the tests with the race detector enabled
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
