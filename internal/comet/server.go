@@ -96,7 +96,7 @@ func (s *Server) Bucket(subKey string) *Bucket {
 
 // RandServerHearbeat rand server heartbeat.
 func (s *Server) RandServerHearbeat() time.Duration {
-	return (minServerHeartbeat + time.Duration(rand.Intn(int(maxServerHeartbeat-minServerHeartbeat))))
+	return (minServerHeartbeat + time.Duration(rand.Int63n(int64(maxServerHeartbeat-minServerHeartbeat))))
 }
 
 // Close close the server.
