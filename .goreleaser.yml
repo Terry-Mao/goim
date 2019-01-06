@@ -11,8 +11,21 @@ before:
     - cp cmd/logic/logic-example.toml configs/logic-example.toml
     - cp cmd/job/job-example.toml configs/job-example.toml
 builds:
-- env:
-  - CGO_ENABLED=0
+  - 
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/comet/main.go
+    binary: comet
+  -
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/logic/main.go
+    binary: logic
+  - 
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/job/main.go
+    binary: job
 archive:
   replacements:
     darwin: Darwin
