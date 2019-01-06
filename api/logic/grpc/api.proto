@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package goim.logic;
+
+option go_package = "grpc";
+
+import "github.com/Terry-Mao/goim/api/comet/grpc/api.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message PushMsg {
+    enum Type {
+        PUSH = 0;
+        ROOM = 1;
+        BROADCAST = 2;
+    }
+    Type type = 1;
+    int32 operation = 2;
+    int32 speed = 3;
+    string server = 4;
+    string room = 5;
+    repeated string keys = 6;
+    bytes msg = 7;
+}
+
+message CloseReply {
+}
+
+message CloseReq {
+}
+
+message PingReply {
+}
+
+message PingReq {
+}
+
+message ConnectReq {
+    option (gogoproto.goproto_stringer) = false;
+    string server = 1;
+    string cookie = 2;
+    bytes token = 3;
+}
+
+message ConnectReply {
+    int64 mid = 1;
+    string key = 2;
+    string roomID = 3;
+    repeated int32 accepts = 4;
+    int64 heartbeat = 5;
+}
+
+message DisconnectReq {
+    int64 mid = 1;
+    string key = 2;
+    string server = 3;
+}
+
+message DisconnectReply {
+    bool has = 1;
+}
+
+message HeartbeatReq {
+    int64 mid = 1;
+    string key = 2;
+    string server = 3;
+}
+
+message HeartbeatReply {
+}
+
+message OnlineReq {
+    option (gogoproto.goproto_stringer) = false;
+    string server = 1;
+    map<string, int32> roomCount = 2;
+}
+
+message OnlineReply {
+    option (gogoproto.goproto_stringer) = false;
+    map<string, int32> allRoomCount = 1;
+}
+
+message ReceiveReq {
+    int64 mid = 1;
+    comet.Proto proto = 2;
+}
+
+message ReceiveReply {
+}
+
+message NodesReq {
+	string platform = 1;
+	string clientIP = 2;
+}
+
+message NodesReply {
+	string domain = 1 [(gogoproto.jsontag) = "domain"];
+	int32 tcpPort = 2 [(gogoproto.jsontag) = "tcp_port"];
+	int32 wsPort = 3 [(gogoproto.jsontag) = "ws_port"];
+	int32 wssPort = 4 [(gogoproto.jsontag) = "wss_port"];
+	int32 heartbeat = 5 [(gogoproto.jsontag) = "heartbeat"];
+	repeated string nodes = 6 [(gogoproto.jsontag) = "nodes"];
+	Backoff backoff = 7 [(gogoproto.jsontag) = "backoff"];
+	int32 heartbeatMax = 8 [(gogoproto.jsontag) = "heartbeat_max"];
+}
+
+message Backoff {
+	int32	MaxDelay = 1 [(gogoproto.jsontag) = "max_delay"];
+	int32	BaseDelay = 2 [(gogoproto.jsontag) = "base_delay"];
+	float	Factor = 3 [(gogoproto.jsontag) = "factor"];
+	float	Jitter = 4 [(gogoproto.jsontag) = "jitter"];
+}
+
+service Logic {
+    // Ping Service 
+    rpc Ping(PingReq) returns(PingReply);
+    // Close Service 
+    rpc Close(CloseReq) returns(CloseReply);
+    // Connect
+    rpc Connect(ConnectReq) returns (ConnectReply);
+    // Disconnect
+    rpc Disconnect(DisconnectReq) returns (DisconnectReply);
+    // Heartbeat
+    rpc Heartbeat(HeartbeatReq) returns (HeartbeatReply);
+    // RenewOnline
+    rpc RenewOnline(OnlineReq) returns (OnlineReply);
+    // Receive
+    rpc Receive(ReceiveReq) returns (ReceiveReply);
+	//ServerList
+	rpc Nodes(NodesReq) returns (NodesReply);
+}
