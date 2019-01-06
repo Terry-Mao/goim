@@ -6,6 +6,10 @@ before:
     - go mod download
     # you may remove this if you don't need go generate
     - go generate ./...
+    # copy config
+    - cp cmd/comet/comet-example.toml configs/comet-example.toml
+    - cp cmd/logic/logic-example.toml configs/logic-example.toml
+    - cp cmd/job/job-example.toml configs/job-example.toml
 builds:
 - env:
   - CGO_ENABLED=0
@@ -16,6 +20,11 @@ archive:
     windows: Windows
     386: i386
     amd64: x86_64
+  files:
+    - LICENSE
+    - README.md
+    - CHANGELOG.md
+    - configs/* 
 checksum:
   name_template: 'checksums.txt'
 snapshot:
