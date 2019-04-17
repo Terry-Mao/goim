@@ -1,3 +1,35 @@
+# Change Plan 变更计划
+
+有几位朋友私信沟通闲聊, 想要一个同时支持 kafka / nats , 以便能 merge 回这里的主线, 我 fork 了一个 repo 来尝试实现这个想法, 这里 https://github.com/tsingson/goim, 在将来几天内处理完成
+
+计划变更如下:
+  - [ ] 在 internal/logic/conf 与 internal/job/conf 中增加 nats 的连接配置项, 与 选择 kafka ( 默认) 或 nats 的开关配置项
+  - [ ] 把 internal/logic/dao 抽象为 interface , 同时支持 kafka / nats ( 仅是 nats )
+  - [ ] 把 internal/job 中 func (j *Job) Consume() 函数拆分为  func (j *Job) Consume() 支持 kafka / func (j *Job) ConsumeNats()  支持 nats
+
+除以上变更外, 所有代码尽量保持不变
+
+以上, 祝愉快.
+
+
+----------------
+
+Some friends ask to [https://github.com/Terry-Mao/goim](https://github.com/Terry-Mao/goim) support the kafka / nats. 
+I forked a repo to try to implement this idea, here https://github.com/tsingson/goim, Completed in the next few days
+
+The plan changes are:
+   - [ ] Add nats connection configuration in internal/logic/conf and internal/job/conf, and switch configuration for kafka (default) or nats
+   - [ ] Abstract internal/logic/dao as interface to support kafka / nats (only nats, no liftbridge )
+   - [ ] Split the func (j *Job) Consume() function in internal/job into func (j *Job) Consume() Support kafka ( default) / func (j *Job) ConsumeNats() Support nats
+
+it's all.
+
+ps, wish you happiness.
+
+
+
+
+
 goim v2.0
 ==============
 [![Build Status](https://travis-ci.org/Terry-Mao/goim.svg?branch=master)](https://travis-ci.org/Terry-Mao/goim) 
