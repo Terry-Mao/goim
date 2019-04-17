@@ -11,13 +11,15 @@
 
 以上, 祝愉快.
 
-
 ----------------
 
 Some friends ask to [https://github.com/Terry-Mao/goim](https://github.com/Terry-Mao/goim) support the kafka / nats. 
-I forked a repo to try to implement this idea, here https://github.com/tsingson/goim, Completed in the next few days
+I forked a repo to try to implement this idea, here https://github.com/tsingson/goim, Completed in few days
 
-The plan changes are:
+
+
+The plan  are:
+
    - [ ] Add nats connection configuration in internal/logic/conf and internal/job/conf, and switch configuration for kafka (default) or nats
    - [ ] Abstract internal/logic/dao as interface to support kafka / nats (only nats, no liftbridge )
    - [ ] Split the func (j *Job) Consume() function in internal/job into func (j *Job) Consume() Support kafka ( default) / func (j *Job) ConsumeNats() Support nats
