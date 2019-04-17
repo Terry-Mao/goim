@@ -6,10 +6,13 @@ import (
 	"time"
 
 	"github.com/Bilibili/discovery/naming"
+	log "github.com/golang/glog"
+
 	"github.com/Terry-Mao/goim/internal/logic/conf"
 	"github.com/Terry-Mao/goim/internal/logic/dao"
+	"github.com/Terry-Mao/goim/internal/logic/dao/kafka"
+	"github.com/Terry-Mao/goim/internal/logic/dao/nats"
 	"github.com/Terry-Mao/goim/internal/logic/model"
-	log "github.com/golang/glog"
 )
 
 const (
@@ -21,7 +24,7 @@ const (
 type Logic struct {
 	c   *conf.Config
 	dis *naming.Discovery
-	dao *dao.Dao
+	dao dao.Dao
 	// online
 	totalIPs   int64
 	totalConns int64
@@ -36,10 +39,14 @@ type Logic struct {
 func New(c *conf.Config) (l *Logic) {
 	l = &Logic{
 		c:            c,
-		dao:          dao.New(c),
 		dis:          naming.New(c.Discovery),
 		loadBalancer: NewLoadBalancer(),
 		regions:      make(map[string]string),
+	}
+	if c.KafaNatsSwitch {
+		l.dao = nats.New(c)
+	} else {
+		l.dao = kafka.New(c)
 	}
 	l.initRegions()
 	l.initNodes()
@@ -55,7 +62,7 @@ func (l *Logic) Ping(c context.Context) (err error) {
 
 // Close close resources.
 func (l *Logic) Close() {
-	l.dao.Close()
+	_ = l.dao.Close()
 }
 
 func (l *Logic) initRegions() {

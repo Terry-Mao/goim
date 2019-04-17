@@ -10,6 +10,7 @@ import (
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
 	"github.com/Terry-Mao/goim/internal/job/conf"
 	"github.com/gogo/protobuf/proto"
+	"github.com/nats-io/go-nats"
 
 	cluster "github.com/bsm/sarama-cluster"
 	log "github.com/golang/glog"
@@ -18,22 +19,69 @@ import (
 // Job is push job.
 type Job struct {
 	c            *conf.Config
-	consumer     *cluster.Consumer
+	consumer     JobConsumer
 	cometServers map[string]*Comet
 
 	rooms      map[string]*Room
 	roomsMutex sync.RWMutex
 }
 
+type JobConsumer interface {
+	//	WatchComet(c *naming.Config)
+	// Subscribe(channel, channelID string) error
+	Consume(j *Job)
+	Close() error
+}
+
 // New new a push job.
 func New(c *conf.Config) *Job {
 	j := &Job{
-		c:        c,
-		consumer: newKafkaSub(c.Kafka),
-		rooms:    make(map[string]*Room),
+		c: c,
+		//	consumer: newKafkaSub(c.Kafka),
+		rooms: make(map[string]*Room),
 	}
+	if c.KafaNatsSwitch {
+		j.consumer = NewKafka(c)
+	} else {
+		j.consumer = NewKafka(c)
+	}
+
 	j.watchComet(c.Discovery)
 	return j
+}
+
+type kafkaConsumer struct {
+	consumer *cluster.Consumer
+}
+
+func NewKafka(c *conf.Config) *kafkaConsumer {
+	return &kafkaConsumer{
+		consumer: newKafkaSub(c.Kafka),
+	}
+}
+
+func (c *kafkaConsumer) Close() error {
+	return nil
+}
+
+type natsConsumer struct {
+	consumer *nats.Conn
+}
+
+func NewNats(c *conf.Config) *natsConsumer {
+
+	nc, err := nats.Connect(c.Nats.NatsAddr)
+	if err != nil {
+		return nil
+	}
+
+	return &natsConsumer{
+		consumer: nc,
+	}
+}
+
+func (c *natsConsumer) Close() error {
+	return nil
 }
 
 func newKafkaSub(c *conf.Kafka) *cluster.Consumer {
@@ -56,18 +104,18 @@ func (j *Job) Close() error {
 }
 
 // Consume messages, watch signals
-func (j *Job) Consume() {
+func (c *kafkaConsumer) Consume(j *Job) {
 	for {
 		select {
-		case err := <-j.consumer.Errors():
+		case err := <-c.consumer.Errors():
 			log.Errorf("consumer error(%v)", err)
-		case n := <-j.consumer.Notifications():
+		case n := <-c.consumer.Notifications():
 			log.Infof("consumer rebalanced(%v)", n)
-		case msg, ok := <-j.consumer.Messages():
+		case msg, ok := <-c.consumer.Messages():
 			if !ok {
 				return
 			}
-			j.consumer.MarkOffset(msg, "")
+			c.consumer.MarkOffset(msg, "")
 			// process push message
 			pushMsg := new(pb.PushMsg)
 			if err := proto.Unmarshal(msg.Value, pushMsg); err != nil {
@@ -75,11 +123,39 @@ func (j *Job) Consume() {
 				continue
 			}
 			if err := j.push(context.Background(), pushMsg); err != nil {
-				log.Errorf("j.push(%v) error(%v)", pushMsg, err)
+				log.Errorf("c.push(%v) error(%v)", pushMsg, err)
 			}
 			log.Infof("consume: %s/%d/%d\t%s\t%+v", msg.Topic, msg.Partition, msg.Offset, msg.Key, pushMsg)
 		}
 	}
+}
+
+// Consume messages, watch signals
+func (c *natsConsumer) Consume(j *Job) {
+	ctx := context.Background()
+
+	// process push message
+	pushMsg := new(pb.PushMsg)
+
+	if _, err := c.consumer.Subscribe(j.c.Nats.Channel, func(msg *nats.Msg) {
+
+		log.Info("------------> ", string(msg.Data))
+
+		if err := proto.Unmarshal(msg.Data, pushMsg); err != nil {
+			log.Errorf("proto.Unmarshal(%v) error(%v)", msg, err)
+			return
+		}
+		if err := j.push(context.Background(), pushMsg); err != nil {
+			log.Errorf("push(%v) error(%v)", pushMsg, err)
+		}
+		log.Infof("consume: %d  %s \t%+v", msg.Data, pushMsg)
+
+	}); err != nil {
+		return
+	}
+
+	<-ctx.Done()
+	return
 }
 
 func (j *Job) watchComet(c *naming.Config) {

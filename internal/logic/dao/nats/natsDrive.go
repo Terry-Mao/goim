@@ -4,16 +4,16 @@ import (
 	"context"
 	"time"
 
-	liftbridge "github.com/liftbridge-io/go-liftbridge"
-	nats "github.com/nats-io/go-nats"
+	"github.com/liftbridge-io/go-liftbridge"
+	"github.com/nats-io/go-nats"
 
 	"github.com/Terry-Mao/goim/internal/logic/conf"
 )
 
 // New new a dao and return.
-func New(c *conf.LogicConfig) *Dao {
+func New(c *conf.Config) *Dao {
 
-	conn, err := newNatsClient(c.Nats.NatsAddr, c.Nats.LiftAddr, c.Nats.Channel, c.Nats.ChannelID)
+	conn, err := newNatsClient(c.Nats.NatsAddr, c.Nats.Channel, c.Nats.ChannelID)
 	if err != nil {
 		return nil
 	}
@@ -39,17 +39,8 @@ func (d *Dao) Ping(c context.Context) error {
 	return d.pingRedis(c)
 }
 
-func newNatsClient(natsAddr, liftAddr, channel, channelID string) (*nats.Conn, error) {
-	// liftAddr := "localhost:9292" // address for lift-bridge
-	// channel := "bar"
-	// channelID := "bar-stream"
-	// ackInbox := "acks"
+func newNatsClient(natsAddr, channel, channelID string) (*nats.Conn, error) {
 
-	if err := createStream(liftAddr, channel, channelID); err != nil {
-		if err != liftbridge.ErrStreamExists {
-			return nil, err
-		}
-	}
 	// conn, err := nats.GetDefaultOptions().Connect()
 	// natsAddr := "nats://localhost:4222"
 	return nats.Connect(natsAddr)
