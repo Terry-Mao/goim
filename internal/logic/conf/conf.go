@@ -73,18 +73,18 @@ func Default() *Config {
 
 // Config config.
 type Config struct {
-	UseNats    bool           `json:"kafaNatsSwitch"`
-	Nats       *Nats          `json:"nats"`
-	Env        *Env           `json:"env"`
-	Discovery  *naming.Config `json:"discovery"`
-	RPCClient  *RPCClient     `json:"rPCClient"`
-	RPCServer  *RPCServer     `json:"rPCServer"`
-	HTTPServer *HTTPServer    `json:"hTTPServer"`
-	Kafka      *Kafka         `json:"kafka"`
-	Redis      *Redis         `json:"redis"`
-	Node       *Node          `json:"node"`
-	Backoff        *Backoff            `json:"backoff"`
-	Regions        map[string][]string `json:"regions"`
+	UseNats    bool                `json:"useNats"`
+	Nats       *Nats               `json:"nats"`
+	Env        *Env                `json:"env"`
+	Discovery  *naming.Config      `json:"discovery"`
+	RPCClient  *RPCClient          `json:"rPCClient"`
+	RPCServer  *RPCServer          `json:"rPCServer"`
+	HTTPServer *HTTPServer         `json:"hTTPServer"`
+	Kafka      *Kafka              `json:"kafka"`
+	Redis      *Redis              `json:"redis"`
+	Node       *Node               `json:"node"`
+	Backoff    *Backoff            `json:"backoff"`
+	Regions    map[string][]string `json:"regions"`
 }
 
 // Env is env config.

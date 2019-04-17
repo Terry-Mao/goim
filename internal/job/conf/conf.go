@@ -55,7 +55,7 @@ func Default() *Config {
 
 // Config is job config.
 type Config struct {
-	UseNats bool   `json:"kafaNatsSwitch"`
+	UseNats bool   `json:"useNats"`
 	Nats    *Nats  `json:"nats"`
 	Env     *Env   `json:"env"`
 	Kafka   *Kafka `json:"kafka"`
@@ -87,9 +87,10 @@ type Kafka struct {
 
 // Nats configuration for nats
 type Nats struct {
-	Topic   string `json:"topic"`
-	TopicID string `json:"topicID"`
-	Brokers string `json:"brokers"`
+	Topic    string `json:"topic"`
+	TopicID  string `json:"topicID"`
+	Brokers  string `json:"brokers"`
+	AckInbox string `json:"ackInbox"`
 }
 
 // Env is env config.

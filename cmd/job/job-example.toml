@@ -1,4 +1,5 @@
 # This is a TOML document. Boom
+usenats = true
 [discovery]
     nodes = ["127.0.0.1:7171"]
 
@@ -6,3 +7,8 @@
     topic = "goim-push-topic"
     group = "goim-push-group-job"
     brokers = ["127.0.0.1:9092"]
+[nats]
+    topic = "goim-push-topic"
+    group = "goim-push-group-job"
+    brokers = "nats://localhost:4222"
+    ackinbox = "ack"
