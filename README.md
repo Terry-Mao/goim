@@ -3,8 +3,8 @@
 有几位朋友私信沟通闲聊, 想要一个同时支持 kafka / nats , 以便 merge 原有代码, 我 fork 了一个 repo 来尝试实现这个想法, 这里 https://github.com/tsingson/goim, 在将来几天内处理完成
 
 计划变更如下:
-  - [ ] 在 internal/logic/conf 与 internal/job/conf 中增加 nats 的连接配置项, 与 选择 kafka ( 默认) 或 nats 的开关配置项
-  - [ ] 把 internal/logic/dao 抽象为 interface , 同时支持 kafka / nats ( 仅是 nats )
+  - [X] 在 internal/logic/conf 与 internal/job/conf 中增加 nats 的连接配置项, 与 选择 kafka ( 默认) 或 nats 的开关配置项
+  - [x] 把 internal/logic/dao 抽象为 interface , 同时支持 kafka / nats ( 仅是 nats )
   - [ ] 把 internal/job 中 func (j *Job) Consume() 函数拆分为  func (j *Job) Consume() 支持 kafka / func (j *Job) ConsumeNats()  支持 nats
 
 除以上变更外, 所有代码尽量保持不变
@@ -20,9 +20,10 @@ I forked a repo to try to implement this idea, here https://github.com/tsingson/
 
 The plan  are:
 
-   - [ ] Add nats connection configuration in internal/logic/conf and internal/job/conf, and switch configuration for kafka (default) or nats
-   - [ ] Abstract internal/logic/dao as interface to support kafka / nats (only nats, no liftbridge )
-   - [ ] Split the func (j *Job) Consume() function in internal/job into func (j *Job) Consume() Support kafka ( default) / func (j *Job) ConsumeNats() Support nats
+   - [x] Add nats connection configuration in internal/logic/conf and internal/job/conf, and switch configuration for kafka (default) or nats
+   - [x] Abstract internal/logic/dao as interface to support kafka / nats (only nats, no liftbridge )
+   
+   - [ ] Split the func (j *Job) Consume() function in internal/job into func (j *Job) Consume() Support kafka ( default) / func (j *Job) ConsumeNats() Support nats
 
 it's all.
 
