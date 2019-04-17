@@ -49,7 +49,7 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 		return
 	}
 
-	_ = d.publishMessage(d.c.Nats.Channel, d.c.Nats.AckInbox, []byte(keys[0]), b)
+	_ = d.publishMessage(d.c.Nats.Topic, d.c.Nats.AckInbox, []byte(keys[0]), b)
 	return
 }
 
@@ -66,7 +66,7 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []b
 		return
 	}
 
-	_ = d.publishMessage(d.c.Nats.Channel, d.c.Nats.AckInbox, []byte(room), b)
+	_ = d.publishMessage(d.c.Nats.Topic, d.c.Nats.AckInbox, []byte(room), b)
 	return
 }
 
@@ -85,7 +85,7 @@ func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, msg []byte) (err 
 
 	key := strconv.FormatInt(int64(op), 10)
 
-	_ = d.publishMessage(d.c.Nats.Channel, d.c.Nats.AckInbox, []byte(key), b)
+	_ = d.publishMessage(d.c.Nats.Topic, d.c.Nats.AckInbox, []byte(key), b)
 
 	return
 }

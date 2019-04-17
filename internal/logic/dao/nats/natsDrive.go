@@ -13,7 +13,7 @@ import (
 // New new a dao and return.
 func New(c *conf.Config) *Dao {
 
-	conn, err := newNatsClient(c.Nats.NatsAddr, c.Nats.Channel, c.Nats.ChannelID)
+	conn, err := newNatsClient(c.Nats.Brokers, c.Nats.Topic, c.Nats.TopicID)
 	if err != nil {
 		return nil
 	}

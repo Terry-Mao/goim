@@ -16,12 +16,13 @@ import (
 
 	"github.com/Bilibili/discovery/naming"
 	resolver "github.com/Bilibili/discovery/naming/grpc"
+	log "github.com/golang/glog"
+
 	"github.com/Terry-Mao/goim/internal/comet"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
 	"github.com/Terry-Mao/goim/internal/comet/grpc"
 	md "github.com/Terry-Mao/goim/internal/logic/model"
 	"github.com/Terry-Mao/goim/pkg/ip"
-	log "github.com/golang/glog"
 )
 
 const (

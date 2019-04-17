@@ -7,6 +7,7 @@ import (
 
 	"github.com/Bilibili/discovery/naming"
 	"github.com/BurntSushi/toml"
+
 	xtime "github.com/Terry-Mao/goim/pkg/time"
 )
 
@@ -54,23 +55,14 @@ func Default() *Config {
 
 // Config is job config.
 type Config struct {
-	KafaNatsSwitch bool   `json:"kafaNatsSwitch"`
-	Nats           *Nats  `json:"nats"`
-	Env            *Env   `json:"env"`
-	Kafka          *Kafka `json:"kafka"`
+	UseNats bool   `json:"kafaNatsSwitch"`
+	Nats    *Nats  `json:"nats"`
+	Env     *Env   `json:"env"`
+	Kafka   *Kafka `json:"kafka"`
 
 	Discovery *naming.Config `json:"discovery"`
 	Comet     *Comet         `json:"comet"`
 	Room      *Room          `json:"room"`
-}
-
-// Nats configuration for nats
-type Nats struct {
-	Channel   string `json:"channel"`
-	ChannelID string `json:"channelID"`
-	Group     string `json:"group"`
-	NatsAddr  string `json:"natsAddr"`
-	AckInbox  string `json:"ackInbox"`
 }
 
 // Room is room config.
@@ -91,6 +83,13 @@ type Kafka struct {
 	Topic   string   `json:"topic"`
 	Group   string   `json:"group"`
 	Brokers []string `json:"brokers"`
+}
+
+// Nats configuration for nats
+type Nats struct {
+	Topic   string `json:"topic"`
+	TopicID string `json:"topicID"`
+	Brokers string `json:"brokers"`
 }
 
 // Env is env config.

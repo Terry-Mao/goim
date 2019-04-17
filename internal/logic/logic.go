@@ -43,7 +43,7 @@ func New(c *conf.Config) (l *Logic) {
 		loadBalancer: NewLoadBalancer(),
 		regions:      make(map[string]string),
 	}
-	if c.KafaNatsSwitch {
+	if c.UseNats {
 		l.dao = nats.New(c)
 	} else {
 		l.dao = kafka.New(c)

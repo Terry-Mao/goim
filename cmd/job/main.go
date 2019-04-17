@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/Bilibili/discovery/naming"
+
 	"github.com/Terry-Mao/goim/internal/job"
 	"github.com/Terry-Mao/goim/internal/job/conf"
 
@@ -29,6 +30,7 @@ func main() {
 	resolver.Register(dis)
 	// job
 	j := job.New(conf.Conf)
+
 	go j.Consume()
 	// signal
 	c := make(chan os.Signal, 1)

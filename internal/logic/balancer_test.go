@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Bilibili/discovery/naming"
+
 	"github.com/Terry-Mao/goim/internal/logic/model"
 )
 

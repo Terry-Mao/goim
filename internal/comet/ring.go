@@ -1,10 +1,11 @@
 package comet
 
 import (
+	log "github.com/golang/glog"
+
 	"github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
 	"github.com/Terry-Mao/goim/internal/comet/errors"
-	log "github.com/golang/glog"
 )
 
 // Ring ring proto buffer.

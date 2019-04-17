@@ -415,7 +415,7 @@ func (t *testReader) Read(buf []byte) (n int, err error) {
 }
 
 func testReadLine(t *testing.T, input []byte) {
-	//for stride := 1; stride < len(input); stride++ {
+	// for stride := 1; stride < len(input); stride++ {
 	for stride := 1; stride < 2; stride++ {
 		done := 0
 		reader := testReader{input, stride}

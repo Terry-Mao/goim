@@ -233,7 +233,7 @@ func (b *Reader) Read(p []byte) (n int, err error) {
 // ReadByte reads and returns a single byte.
 // If no byte is available, returns an error.
 func (b *Reader) ReadByte() (c byte, err error) {
-	//b.lastRuneSize = -1
+	// b.lastRuneSize = -1
 	for b.r == b.w {
 		if b.err != nil {
 			return 0, b.readErr()
@@ -242,7 +242,7 @@ func (b *Reader) ReadByte() (c byte, err error) {
 	}
 	c = b.buf[b.r]
 	b.r++
-	//b.lastByte = int(c)
+	// b.lastByte = int(c)
 	return c, nil
 }
 

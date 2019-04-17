@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Bilibili/discovery/naming"
+
 	comet "github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/job/conf"
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	log "github.com/golang/glog"
 	"github.com/gomodule/redigo/redis"
 
 	"github.com/zhenjl/cityhash"

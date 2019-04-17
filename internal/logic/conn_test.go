@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/Terry-Mao/goim/api/comet/grpc"
 )
 
 func TestConnect(t *testing.T) {

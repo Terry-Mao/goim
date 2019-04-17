@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Bilibili/discovery/naming"
+
 	xtime "github.com/Terry-Mao/goim/pkg/time"
 
 	"github.com/BurntSushi/toml"
@@ -72,27 +73,18 @@ func Default() *Config {
 
 // Config config.
 type Config struct {
-	KafaNatsSwitch bool                `json:"kafaNatsSwitch"`
-	Nats           *Nats               `json:"nats"`
-	Env            *Env                `json:"env"`
-	Discovery      *naming.Config      `json:"discovery"`
-	RPCClient      *RPCClient          `json:"rPCClient"`
-	RPCServer      *RPCServer          `json:"rPCServer"`
-	HTTPServer     *HTTPServer         `json:"hTTPServer"`
-	Kafka          *Kafka              `json:"kafka"`
-	Redis          *Redis              `json:"redis"`
-	Node           *Node               `json:"node"`
+	UseNats    bool           `json:"kafaNatsSwitch"`
+	Nats       *Nats          `json:"nats"`
+	Env        *Env           `json:"env"`
+	Discovery  *naming.Config `json:"discovery"`
+	RPCClient  *RPCClient     `json:"rPCClient"`
+	RPCServer  *RPCServer     `json:"rPCServer"`
+	HTTPServer *HTTPServer    `json:"hTTPServer"`
+	Kafka      *Kafka         `json:"kafka"`
+	Redis      *Redis         `json:"redis"`
+	Node       *Node          `json:"node"`
 	Backoff        *Backoff            `json:"backoff"`
 	Regions        map[string][]string `json:"regions"`
-}
-
-// Nats configuration for nats
-type Nats struct {
-	Channel   string `json:"channel"`
-	ChannelID string `json:"channelID"`
-	Group     string `json:"group"`
-	NatsAddr  string `json:"natsAddr"`
-	AckInbox  string `json:"ackInbox"`
 }
 
 // Env is env config.
@@ -142,6 +134,14 @@ type Redis struct {
 type Kafka struct {
 	Topic   string   `json:"topic"`
 	Brokers []string `json:"brokers"`
+}
+
+// Nats configuration for nats
+type Nats struct {
+	Topic    string `json:"topic"`
+	TopicID  string `json:"topicID"`
+	Brokers  string `json:"brokers"`
+	AckInbox string `json:"ackInbox"`
 }
 
 // RPCClient is RPC client config.

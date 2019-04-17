@@ -2,15 +2,17 @@ package job
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/Bilibili/discovery/naming"
-	pb "github.com/Terry-Mao/goim/api/logic/grpc"
-	"github.com/Terry-Mao/goim/internal/job/conf"
 	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/go-nats"
+
+	pb "github.com/Terry-Mao/goim/api/logic/grpc"
+	"github.com/Terry-Mao/goim/internal/job/conf"
 
 	cluster "github.com/bsm/sarama-cluster"
 	log "github.com/golang/glog"
@@ -27,7 +29,7 @@ type Job struct {
 }
 
 type JobConsumer interface {
-	//	WatchComet(c *naming.Config)
+	// 	WatchComet(c *naming.Config)
 	// Subscribe(channel, channelID string) error
 	Consume(j *Job)
 	Close() error
@@ -37,10 +39,10 @@ type JobConsumer interface {
 func New(c *conf.Config) *Job {
 	j := &Job{
 		c: c,
-		//	consumer: newKafkaSub(c.Kafka),
+		// 	consumer: newKafkaSub(c.Kafka),
 		rooms: make(map[string]*Room),
 	}
-	if c.KafaNatsSwitch {
+	if c.UseNats {
 		j.consumer = NewKafka(c)
 	} else {
 		j.consumer = NewKafka(c)
@@ -61,7 +63,7 @@ func NewKafka(c *conf.Config) *kafkaConsumer {
 }
 
 func (c *kafkaConsumer) Close() error {
-	return nil
+	return c.consumer.Close()
 }
 
 type natsConsumer struct {
@@ -70,7 +72,7 @@ type natsConsumer struct {
 
 func NewNats(c *conf.Config) *natsConsumer {
 
-	nc, err := nats.Connect(c.Nats.NatsAddr)
+	nc, err := nats.Connect(c.Nats.Brokers)
 	if err != nil {
 		return nil
 	}
@@ -81,6 +83,7 @@ func NewNats(c *conf.Config) *natsConsumer {
 }
 
 func (c *natsConsumer) Close() error {
+	c.consumer.Close()
 	return nil
 }
 
@@ -101,6 +104,15 @@ func (j *Job) Close() error {
 		return j.consumer.Close()
 	}
 	return nil
+}
+
+func (j *Job) Consume() {
+	if j.consumer != nil {
+		j.consumer.Consume(j)
+	} else {
+		log.Errorf("----------> error(%v)", errors.New("consumer is NIL"))
+	}
+
 }
 
 // Consume messages, watch signals
@@ -137,7 +149,7 @@ func (c *natsConsumer) Consume(j *Job) {
 	// process push message
 	pushMsg := new(pb.PushMsg)
 
-	if _, err := c.consumer.Subscribe(j.c.Nats.Channel, func(msg *nats.Msg) {
+	if _, err := c.consumer.Subscribe(j.c.Nats.Topic, func(msg *nats.Msg) {
 
 		log.Info("------------> ", string(msg.Data))
 

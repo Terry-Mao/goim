@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	log "github.com/golang/glog"
 	"github.com/gomodule/redigo/redis"
 
 	"github.com/Terry-Mao/goim/internal/logic/conf"
