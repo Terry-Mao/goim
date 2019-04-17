@@ -13,7 +13,7 @@
 
  - [ ] 把 internal/job 中 func (j *Job) Consume() 抽取为 interface 支持 nats
 
-   
+ - [ ] 从 json 文件中读取配置
 
 除以上变更外, 所有代码尽量保持不变
 
@@ -31,7 +31,9 @@ The plan  are:
    - [x] Add nats connection configuration in internal/logic/conf and internal/job/conf, and switch configuration for kafka (default) or nats
    - [x] Abstract internal/logic/dao as interface to support kafka / nats (only nats, no liftbridge )
 
-   - [ ] Split the func (j *Job) Consume() function in internal/job into func (j *Job) Consume() Support kafka ( default) / func (j *Job) ConsumeNats() Support nats
+   - [ ] ~~Split the func (j *Job) Consume() function in internal/job into func (j *Job) Consume() Support kafka ( default) / func (j *Job) ConsumeNats() Support nats~~
+   - [ ] Split the  func (j *Job) Consume() function in internal/job into interface , to support kafka / nats 
+   - [ ] read configuration from json file 
 
 it's all.
 
