@@ -1,14 +1,38 @@
-package dao
+package nats
 
 import (
 	"context"
 	"strconv"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/gomodule/redigo/redis"
+
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
-	"github.com/gogo/protobuf/proto"
-	log "github.com/golang/glog"
-	sarama "gopkg.in/Shopify/sarama.v1"
+	"github.com/Terry-Mao/goim/internal/logic/conf"
 )
+
+// Dao dao for nats
+type Dao struct {
+	c           *conf.Config
+	natsClient  *nats.Conn
+	redis       *redis.Pool
+	redisExpire int32
+}
+
+// NatsDao alias name of dao
+type NatsDao = Dao
+
+// LogicConfig configuration for nats / liftbridge queue
+type Config struct {
+	Channel   string
+	ChannelID string
+	Group     string
+	NatsAddr  string
+	LiftAddr  string
+}
+
+// NatsCOnfig alias name of Config
+type NatsConfig = Config
 
 // PushMsg push a message to databus.
 func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string, msg []byte) (err error) {
@@ -23,14 +47,8 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 	if err != nil {
 		return
 	}
-	m := &sarama.ProducerMessage{
-		Key:   sarama.StringEncoder(keys[0]),
-		Topic: d.c.Kafka.Topic,
-		Value: sarama.ByteEncoder(b),
-	}
-	if _, _, err = d.kafkaPub.SendMessage(m); err != nil {
-		log.Errorf("PushMsg.send(push pushMsg:%v) error(%v)", pushMsg, err)
-	}
+
+	_ = d.publishMessage(d.c.Nats.Channel, d.c.Nats.AckInbox, []byte(keys[0]), b)
 	return
 }
 
@@ -46,14 +64,8 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []b
 	if err != nil {
 		return
 	}
-	m := &sarama.ProducerMessage{
-		Key:   sarama.StringEncoder(room),
-		Topic: d.c.Kafka.Topic,
-		Value: sarama.ByteEncoder(b),
-	}
-	if _, _, err = d.kafkaPub.SendMessage(m); err != nil {
-		log.Errorf("PushMsg.send(broadcast_room pushMsg:%v) error(%v)", pushMsg, err)
-	}
+
+	_ = d.publishMessage(d.c.Nats.Channel, d.c.Nats.AckInbox, []byte(room), b)
 	return
 }
 
@@ -69,13 +81,10 @@ func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, msg []byte) (err 
 	if err != nil {
 		return
 	}
-	m := &sarama.ProducerMessage{
-		Key:   sarama.StringEncoder(strconv.FormatInt(int64(op), 10)),
-		Topic: d.c.Kafka.Topic,
-		Value: sarama.ByteEncoder(b),
-	}
-	if _, _, err = d.kafkaPub.SendMessage(m); err != nil {
-		log.Errorf("PushMsg.send(broadcast pushMsg:%v) error(%v)", pushMsg, err)
-	}
+
+	key := strconv.FormatInt(int64(op), 10)
+
+	_ = d.publishMessage(d.c.Nats.Channel, d.c.Nats.AckInbox, []byte(key), b)
+
 	return
 }

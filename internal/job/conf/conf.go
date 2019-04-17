@@ -54,11 +54,23 @@ func Default() *Config {
 
 // Config is job config.
 type Config struct {
-	Env       *Env
-	Kafka     *Kafka
+	KafaNatsSwitch bool
+	Nats           *Nats
+	Env            *Env
+	Kafka          *Kafka
+
 	Discovery *naming.Config
 	Comet     *Comet
 	Room      *Room
+}
+
+// Nats configuration for nats
+type Nats struct {
+	Channel   string
+	ChannelID string
+	Group     string
+	NatsAddr  string
+	AckInbox  string
 }
 
 // Room is room config.
