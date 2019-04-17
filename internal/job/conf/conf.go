@@ -54,49 +54,49 @@ func Default() *Config {
 
 // Config is job config.
 type Config struct {
-	KafaNatsSwitch bool
-	Nats           *Nats
-	Env            *Env
-	Kafka          *Kafka
+	KafaNatsSwitch bool   `json:"kafaNatsSwitch"`
+	Nats           *Nats  `json:"nats"`
+	Env            *Env   `json:"env"`
+	Kafka          *Kafka `json:"kafka"`
 
-	Discovery *naming.Config
-	Comet     *Comet
-	Room      *Room
+	Discovery *naming.Config `json:"discovery"`
+	Comet     *Comet         `json:"comet"`
+	Room      *Room          `json:"room"`
 }
 
 // Nats configuration for nats
 type Nats struct {
-	Channel   string
-	ChannelID string
-	Group     string
-	NatsAddr  string
-	AckInbox  string
+	Channel   string `json:"channel"`
+	ChannelID string `json:"channelID"`
+	Group     string `json:"group"`
+	NatsAddr  string `json:"natsAddr"`
+	AckInbox  string `json:"ackInbox"`
 }
 
 // Room is room config.
 type Room struct {
-	Batch  int
-	Signal xtime.Duration
-	Idle   xtime.Duration
+	Batch  int            `json:"batch"`
+	Signal xtime.Duration `json:"signal"`
+	Idle   xtime.Duration `json:"idle"`
 }
 
 // Comet is comet config.
 type Comet struct {
-	RoutineChan int
-	RoutineSize int
+	RoutineChan int `json:"routineChan"`
+	RoutineSize int `json:"routineSize"`
 }
 
 // Kafka is kafka config.
 type Kafka struct {
-	Topic   string
-	Group   string
-	Brokers []string
+	Topic   string   `json:"topic"`
+	Group   string   `json:"group"`
+	Brokers []string `json:"brokers"`
 }
 
 // Env is env config.
 type Env struct {
-	Region    string
-	Zone      string
-	DeployEnv string
-	Host      string
+	Region    string `json:"region"`
+	Zone      string `json:"zone"`
+	DeployEnv string `json:"deployEnv"`
+	Host      string `json:"host"`
 }

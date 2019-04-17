@@ -72,100 +72,100 @@ func Default() *Config {
 
 // Config config.
 type Config struct {
-	KafaNatsSwitch bool
-	Nats           *Nats
-	Env            *Env
-	Discovery      *naming.Config
-	RPCClient      *RPCClient
-	RPCServer      *RPCServer
-	HTTPServer     *HTTPServer
-	Kafka          *Kafka
-	Redis          *Redis
-	Node           *Node
-	Backoff        *Backoff
-	Regions        map[string][]string
+	KafaNatsSwitch bool                `json:"kafaNatsSwitch"`
+	Nats           *Nats               `json:"nats"`
+	Env            *Env                `json:"env"`
+	Discovery      *naming.Config      `json:"discovery"`
+	RPCClient      *RPCClient          `json:"rPCClient"`
+	RPCServer      *RPCServer          `json:"rPCServer"`
+	HTTPServer     *HTTPServer         `json:"hTTPServer"`
+	Kafka          *Kafka              `json:"kafka"`
+	Redis          *Redis              `json:"redis"`
+	Node           *Node               `json:"node"`
+	Backoff        *Backoff            `json:"backoff"`
+	Regions        map[string][]string `json:"regions"`
 }
 
 // Nats configuration for nats
 type Nats struct {
-	Channel   string
-	ChannelID string
-	Group     string
-	NatsAddr  string
-	AckInbox  string
+	Channel   string `json:"channel"`
+	ChannelID string `json:"channelID"`
+	Group     string `json:"group"`
+	NatsAddr  string `json:"natsAddr"`
+	AckInbox  string `json:"ackInbox"`
 }
 
 // Env is env config.
 type Env struct {
-	Region    string
-	Zone      string
-	DeployEnv string
-	Host      string
-	Weight    int64
+	Region    string `json:"region"`
+	Zone      string `json:"zone"`
+	DeployEnv string `json:"deployEnv"`
+	Host      string `json:"host"`
+	Weight    int64  `json:"weight"`
 }
 
 // Node node config.
 type Node struct {
-	DefaultDomain string
-	HostDomain    string
-	TCPPort       int
-	WSPort        int
-	WSSPort       int
-	HeartbeatMax  int
-	Heartbeat     xtime.Duration
-	RegionWeight  float64
+	DefaultDomain string         `json:"defaultDomain"`
+	HostDomain    string         `json:"hostDomain"`
+	TCPPort       int            `json:"tCPPort"`
+	WSPort        int            `json:"wSPort"`
+	WSSPort       int            `json:"wSSPort"`
+	HeartbeatMax  int            `json:"heartbeatMax"`
+	Heartbeat     xtime.Duration `json:"heartbeat"`
+	RegionWeight  float64        `json:"regionWeight"`
 }
 
 // Backoff backoff.
 type Backoff struct {
-	MaxDelay  int32
-	BaseDelay int32
-	Factor    float32
-	Jitter    float32
+	MaxDelay  int32   `json:"maxDelay"`
+	BaseDelay int32   `json:"baseDelay"`
+	Factor    float32 `json:"factor"`
+	Jitter    float32 `json:"jitter"`
 }
 
 // Redis .
 type Redis struct {
-	Network      string
-	Addr         string
-	Auth         string
-	Active       int
-	Idle         int
-	DialTimeout  xtime.Duration
-	ReadTimeout  xtime.Duration
-	WriteTimeout xtime.Duration
-	IdleTimeout  xtime.Duration
-	Expire       xtime.Duration
+	Network      string         `json:"network"`
+	Addr         string         `json:"addr"`
+	Auth         string         `json:"auth"`
+	Active       int            `json:"active"`
+	Idle         int            `json:"idle"`
+	DialTimeout  xtime.Duration `json:"dialTimeout"`
+	ReadTimeout  xtime.Duration `json:"readTimeout"`
+	WriteTimeout xtime.Duration `json:"writeTimeout"`
+	IdleTimeout  xtime.Duration `json:"idleTimeout"`
+	Expire       xtime.Duration `json:"expire"`
 }
 
 // Kafka .
 type Kafka struct {
-	Topic   string
-	Brokers []string
+	Topic   string   `json:"topic"`
+	Brokers []string `json:"brokers"`
 }
 
 // RPCClient is RPC client config.
 type RPCClient struct {
-	Dial    xtime.Duration
-	Timeout xtime.Duration
+	Dial    xtime.Duration `json:"dial"`
+	Timeout xtime.Duration `json:"timeout"`
 }
 
 // RPCServer is RPC server config.
 type RPCServer struct {
-	Network           string
-	Addr              string
-	Timeout           xtime.Duration
-	IdleTimeout       xtime.Duration
-	MaxLifeTime       xtime.Duration
-	ForceCloseWait    xtime.Duration
-	KeepAliveInterval xtime.Duration
-	KeepAliveTimeout  xtime.Duration
+	Network           string         `json:"network"`
+	Addr              string         `json:"addr"`
+	Timeout           xtime.Duration `json:"timeout"`
+	IdleTimeout       xtime.Duration `json:"idleTimeout"`
+	MaxLifeTime       xtime.Duration `json:"maxLifeTime"`
+	ForceCloseWait    xtime.Duration `json:"forceCloseWait"`
+	KeepAliveInterval xtime.Duration `json:"keepAliveInterval"`
+	KeepAliveTimeout  xtime.Duration `json:"keepAliveTimeout"`
 }
 
 // HTTPServer is http server config.
 type HTTPServer struct {
-	Network      string
-	Addr         string
-	ReadTimeout  xtime.Duration
-	WriteTimeout xtime.Duration
+	Network      string         `json:"network"`
+	Addr         string         `json:"addr"`
+	ReadTimeout  xtime.Duration `json:"readTimeout"`
+	WriteTimeout xtime.Duration `json:"writeTimeout"`
 }

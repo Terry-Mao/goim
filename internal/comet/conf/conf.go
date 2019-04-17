@@ -107,90 +107,90 @@ func Default() *Config {
 
 // Config is comet config.
 type Config struct {
-	Debug     bool
-	Env       *Env
-	Discovery *naming.Config
-	TCP       *TCP
-	Websocket *Websocket
-	Protocol  *Protocol
-	Bucket    *Bucket
-	RPCClient *RPCClient
-	RPCServer *RPCServer
-	Whitelist *Whitelist
+	Debug     bool           `json:"debug"`
+	Env       *Env           `json:"env"`
+	Discovery *naming.Config `json:"discovery"`
+	TCP       *TCP           `json:"tCP"`
+	Websocket *Websocket     `json:"websocket"`
+	Protocol  *Protocol      `json:"protocol"`
+	Bucket    *Bucket        `json:"bucket"`
+	RPCClient *RPCClient     `json:"rPCClient"`
+	RPCServer *RPCServer     `json:"rPCServer"`
+	Whitelist *Whitelist     `json:"whitelist"`
 }
 
 // Env is env config.
 type Env struct {
-	Region    string
-	Zone      string
-	DeployEnv string
-	Host      string
-	Weight    int64
-	Offline   bool
-	Addrs     []string
+	Region    string   `json:"region"`
+	Zone      string   `json:"zone"`
+	DeployEnv string   `json:"deployEnv"`
+	Host      string   `json:"host"`
+	Weight    int64    `json:"weight"`
+	Offline   bool     `json:"offline"`
+	Addrs     []string `json:"addrs"`
 }
 
 // RPCClient is RPC client config.
 type RPCClient struct {
-	Dial    xtime.Duration
-	Timeout xtime.Duration
+	Dial    xtime.Duration `json:"dial"`
+	Timeout xtime.Duration `json:"timeout"`
 }
 
 // RPCServer is RPC server config.
 type RPCServer struct {
-	Network           string
-	Addr              string
-	Timeout           xtime.Duration
-	IdleTimeout       xtime.Duration
-	MaxLifeTime       xtime.Duration
-	ForceCloseWait    xtime.Duration
-	KeepAliveInterval xtime.Duration
-	KeepAliveTimeout  xtime.Duration
+	Network           string         `json:"network"`
+	Addr              string         `json:"addr"`
+	Timeout           xtime.Duration `json:"timeout"`
+	IdleTimeout       xtime.Duration `json:"idleTimeout"`
+	MaxLifeTime       xtime.Duration `json:"maxLifeTime"`
+	ForceCloseWait    xtime.Duration `json:"forceCloseWait"`
+	KeepAliveInterval xtime.Duration `json:"keepAliveInterval"`
+	KeepAliveTimeout  xtime.Duration `json:"keepAliveTimeout"`
 }
 
 // TCP is tcp config.
 type TCP struct {
-	Bind         []string
-	Sndbuf       int
-	Rcvbuf       int
-	KeepAlive    bool
-	Reader       int
-	ReadBuf      int
-	ReadBufSize  int
-	Writer       int
-	WriteBuf     int
-	WriteBufSize int
+	Bind         []string `json:"bind"`
+	Sndbuf       int      `json:"sndbuf"`
+	Rcvbuf       int      `json:"rcvbuf"`
+	KeepAlive    bool     `json:"keepAlive"`
+	Reader       int      `json:"reader"`
+	ReadBuf      int      `json:"readBuf"`
+	ReadBufSize  int      `json:"readBufSize"`
+	Writer       int      `json:"writer"`
+	WriteBuf     int      `json:"writeBuf"`
+	WriteBufSize int      `json:"writeBufSize"`
 }
 
 // Websocket is websocket config.
 type Websocket struct {
-	Bind        []string
-	TLSOpen     bool
-	TLSBind     []string
-	CertFile    string
-	PrivateFile string
+	Bind        []string `json:"bind"`
+	TLSOpen     bool     `json:"tLSOpen"`
+	TLSBind     []string `json:"tLSBind"`
+	CertFile    string   `json:"certFile"`
+	PrivateFile string   `json:"privateFile"`
 }
 
 // Protocol is protocol config.
 type Protocol struct {
-	Timer            int
-	TimerSize        int
-	SvrProto         int
-	CliProto         int
-	HandshakeTimeout xtime.Duration
+	Timer            int            `json:"timer"`
+	TimerSize        int            `json:"timerSize"`
+	SvrProto         int            `json:"svrProto"`
+	CliProto         int            `json:"cliProto"`
+	HandshakeTimeout xtime.Duration `json:"handshakeTimeout"`
 }
 
 // Bucket is bucket config.
 type Bucket struct {
-	Size          int
-	Channel       int
-	Room          int
-	RoutineAmount uint64
-	RoutineSize   int
+	Size          int    `json:"size"`
+	Channel       int    `json:"channel"`
+	Room          int    `json:"room"`
+	RoutineAmount uint64 `json:"routineAmount"`
+	RoutineSize   int    `json:"routineSize"`
 }
 
 // Whitelist is white list config.
 type Whitelist struct {
-	Whitelist []int64
-	WhiteLog  string
+	Whitelist []int64 `json:"whitelist"`
+	WhiteLog  string  `json:"whiteLog"`
 }
