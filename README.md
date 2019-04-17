@@ -11,9 +11,9 @@
 
   - [ ] ~~把 internal/job 中 func (j *Job) Consume() 函数拆分为  func (j *Job) Consume() 支持 kafka / func (j *Job) ConsumeNats()  支持 nats~~
 
- - [ ] 把 internal/job 中 func (j *Job) Consume() 抽取为 interface 支持 nats
+  - [x] 把 internal/job 中 func (j *Job) Consume() 抽取为 interface 支持 nats
 
- - [ ] 从 json 文件中读取配置
+ - [ ] 修改 job / logic 配置项,  从 toml 文件中读取 Nats 开关项与连接配置
 
 除以上变更外, 所有代码尽量保持不变
 
@@ -33,7 +33,7 @@ The plan  are:
 
    - [ ] ~~Split the func (j *Job) Consume() function in internal/job into func (j *Job) Consume() Support kafka ( default) / func (j *Job) ConsumeNats() Support nats~~
    - [ ] Split the  func (j *Job) Consume() function in internal/job into interface , to support kafka / nats 
-   - [ ] read configuration from json file 
+   - [ ] add nats switch setting and nats client connect setting , modify  job / logic read configuration from toml file 
 
 it's all.
 
