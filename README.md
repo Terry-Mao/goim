@@ -13,7 +13,8 @@
 
   - [x] 把 internal/job 中 func (j *Job) Consume() 抽取为 interface 支持 nats
 
- - [ ] 修改 job / logic 配置项,  从 toml 文件中读取 Nats 开关项与连接配置
+  - [x] 修改 job / logic 配置项,  从 toml 文件中读取 Nats 开关项与连接配置
+  - [ ] 测试, 测试, 测试
 
 除以上变更外, 所有代码尽量保持不变
 
@@ -32,8 +33,9 @@ The plan  are:
    - [x] Abstract internal/logic/dao as interface to support kafka / nats (only nats, no liftbridge )
 
    - [ ] ~~Split the func (j *Job) Consume() function in internal/job into func (j *Job) Consume() Support kafka ( default) / func (j *Job) ConsumeNats() Support nats~~
-   - [ ] Split the  func (j *Job) Consume() function in internal/job into interface , to support kafka / nats 
-   - [ ] add nats switch setting and nats client connect setting , modify  job / logic read configuration from toml file 
+  - [x] Split the  func (j *Job) Consume() function in internal/job into interface , to support kafka / nats 
+  - [x] add nats switch setting and nats client connect setting , modify  job / logic read configuration from toml file 
+  - [ ] testing, more testing 
 
 it's all.
 
