@@ -21,10 +21,10 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
-	github.com/liftbridge-io/go-liftbridge v0.0.0-20181231191109-b4f9a50124b8
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/nats-io/gnatsd v1.4.1 // indirect
 	github.com/nats-io/go-nats v1.7.2
 	github.com/nats-io/nkeys v0.0.2 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
