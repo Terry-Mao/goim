@@ -10,8 +10,6 @@ import (
 
 	"github.com/Terry-Mao/goim/internal/logic/conf"
 	"github.com/Terry-Mao/goim/internal/logic/dao"
-	"github.com/Terry-Mao/goim/internal/logic/dao/kafka"
-	"github.com/Terry-Mao/goim/internal/logic/dao/nats"
 	"github.com/Terry-Mao/goim/internal/logic/model"
 )
 
@@ -24,7 +22,7 @@ const (
 type Logic struct {
 	c   *conf.Config
 	dis *naming.Discovery
-	dao dao.Dao
+	dao dao.LogicDao
 	// online
 	totalIPs   int64
 	totalConns int64
@@ -44,9 +42,9 @@ func New(c *conf.Config) (l *Logic) {
 		regions:      make(map[string]string),
 	}
 	if c.UseNats {
-		l.dao = nats.New(c)
+		l.dao = dao.New(c)
 	} else {
-		l.dao = kafka.New(c)
+		l.dao = dao.New(c)
 	}
 	l.initRegions()
 	l.initNodes()

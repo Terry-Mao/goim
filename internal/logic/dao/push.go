@@ -1,39 +1,14 @@
-package nats
+package dao
 
 import (
 	"context"
 	"strconv"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/gomodule/redigo/redis"
-	"github.com/nats-io/go-nats"
+	"github.com/gogo/protobuf/proto"
+	log "github.com/golang/glog"
 
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
-	"github.com/Terry-Mao/goim/internal/logic/conf"
 )
-
-// Dao dao for nats
-type Dao struct {
-	c           *conf.Config
-	natsClient  *nats.Conn
-	redis       *redis.Pool
-	redisExpire int32
-}
-
-// NatsDao alias name of dao
-type NatsDao = Dao
-
-// LogicConfig configuration for nats / liftbridge queue
-type Config struct {
-	Channel   string
-	ChannelID string
-	Group     string
-	NatsAddr  string
-	LiftAddr  string
-}
-
-// NatsCOnfig alias name of Config
-type NatsConfig = Config
 
 // PushMsg push a message to databus.
 func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string, msg []byte) (err error) {
@@ -49,7 +24,9 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 		return
 	}
 
-	_ = d.publishMessage(d.c.Nats.Topic, d.c.Nats.AckInbox, []byte(keys[0]), b)
+	if err = d.push.PublishMessage(d.c.Kafka.Topic, d.c.Nats.AckInbox, keys[0], b); err != nil {
+		log.Errorf("PushMsg.send(push pushMsg:%v) error(%v)", pushMsg, err)
+	}
 	return
 }
 
@@ -66,7 +43,9 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []b
 		return
 	}
 
-	_ = d.publishMessage(d.c.Nats.Topic, d.c.Nats.AckInbox, []byte(room), b)
+	if err = d.push.PublishMessage(d.c.Kafka.Topic, d.c.Nats.AckInbox, room, b); err != nil {
+		log.Errorf("PushMsg.send(broadcast_room pushMsg:%v) error(%v)", pushMsg, err)
+	}
 	return
 }
 
@@ -83,9 +62,8 @@ func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, msg []byte) (err 
 		return
 	}
 
-	key := strconv.FormatInt(int64(op), 10)
-
-	_ = d.publishMessage(d.c.Nats.Topic, d.c.Nats.AckInbox, []byte(key), b)
-
+	if err = d.push.PublishMessage(d.c.Kafka.Topic, d.c.Nats.AckInbox, strconv.FormatInt(int64(op), 10), b); err != nil {
+		log.Errorf("PushMsg.send(broadcast pushMsg:%v) error(%v)", pushMsg, err)
+	}
 	return
 }

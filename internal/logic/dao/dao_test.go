@@ -1,4 +1,4 @@
-package kafka
+package dao
 
 import (
 	"context"
