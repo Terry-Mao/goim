@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/liftbridge-io/go-liftbridge"
 	"github.com/nats-io/go-nats"
 
 	"github.com/Terry-Mao/goim/internal/logic/conf"
@@ -30,7 +29,10 @@ func New(c *conf.Config) *Dao {
 
 // Close close the resource.
 func (d *Dao) Close() error {
-	d.natsClient.Close()
+	if d.natsClient != nil {
+		d.natsClient.Close()
+	}
+
 	return d.redis.Close()
 }
 
@@ -44,86 +46,8 @@ func newNatsClient(natsAddr, channel, channelID string) (*nats.Conn, error) {
 	// conn, err := nats.GetDefaultOptions().Connect()
 	// natsAddr := "nats://localhost:4222"
 	return nats.Connect(natsAddr)
-
-	// defer conn.Flush()
-	// defer conn.Close()
-
 }
 
 func (d *Dao) publishMessage(channel, ackInbox string, key, value []byte) error {
-	// var wg sync.WaitGroup
-	// wg.Add(1)
-	// sub, err := d.natsClient.Subscribe(ackInbox, func(m *nats.Msg) {
-	// 	ack, err := liftbridge.UnmarshalAck(m.Data)
-	// 	if err != nil {
-	// 		// TODO: handel error write to log
-	// 		return
-	// 	}
-	//
-	// 	log.Info(utils.StrBuilder("ack:", ack.StreamSubject, " stream: ",  ack.StreamName, " offset: ",  strconv.FormatInt(ack.Offset,10), " msg: ",  ack.MsgSubject) )
-	// 	wg.Done()
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-	// defer sub.Unsubscribe()
-
-	m := liftbridge.NewMessage(value, liftbridge.MessageOptions{Key: key, AckInbox: ackInbox})
-
-	if err := d.natsClient.Publish(channel, m); err != nil {
-		return err
-	}
-
-	// wg.Wait()
-	return nil
-}
-
-// func (d *Dao) publishMessageSync(channel, ackInbox string, key, value []byte) error {
-// 	var wg sync.WaitGroup
-// 	wg.Add(1)
-// 	sub, err := d.natsClient.Subscribe(ackInbox, func(m *nats.Msg) {
-// 		ack, err := liftbridge.UnmarshalAck(m.Data)
-// 		if err != nil {
-// 			// TODO: handel error write to log
-// 			return
-// 		}
-//
-// 		log.Info(utils.StrBuilder("ack:", ack.StreamSubject, " stream: ", ack.StreamName, " offset: ", strconv.FormatInt(ack.Offset, 10), " msg: ", ack.MsgSubject))
-// 		wg.Done()
-// 	})
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer sub.Unsubscribe()
-//
-// 	m := liftbridge.NewMessage(value, liftbridge.MessageOptions{Key: key, AckInbox: ackInbox})
-//
-// 	if err := d.natsClient.Publish(channel, m); err != nil {
-// 		return err
-// 	}
-//
-// 	wg.Wait()
-// 	return nil
-// }
-
-func createStream(liftAddr, subject, name string) error {
-
-	client, err := liftbridge.Connect([]string{liftAddr})
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	stream := liftbridge.StreamInfo{
-		Subject:           subject,
-		Name:              name,
-		ReplicationFactor: 1,
-	}
-	if err := client.CreateStream(context.Background(), stream); err != nil {
-		if err != liftbridge.ErrStreamExists {
-			return err
-		}
-	}
-
-	return nil
+	return d.natsClient.Publish(channel, value)
 }

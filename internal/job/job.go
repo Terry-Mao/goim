@@ -35,23 +35,6 @@ type JobConsumer interface {
 	Close() error
 }
 
-// New new a push job.
-func New(c *conf.Config) *Job {
-	j := &Job{
-		c: c,
-		// 	consumer: newKafkaSub(c.Kafka),
-		rooms: make(map[string]*Room),
-	}
-	if c.UseNats {
-		j.consumer = NewKafka(c)
-	} else {
-		j.consumer = NewKafka(c)
-	}
-
-	j.watchComet(c.Discovery)
-	return j
-}
-
 type kafkaConsumer struct {
 	consumer *cluster.Consumer
 }
@@ -96,6 +79,23 @@ func newKafkaSub(c *conf.Kafka) *cluster.Consumer {
 		panic(err)
 	}
 	return consumer
+}
+
+// New new a push job.
+func New(c *conf.Config) *Job {
+	j := &Job{
+		c: c,
+		// 	consumer: newKafkaSub(c.Kafka),
+		rooms: make(map[string]*Room),
+	}
+	if c.UseNats {
+		j.consumer = NewNats(c)
+	} else {
+		j.consumer = NewKafka(c)
+	}
+
+	j.watchComet(c.Discovery)
+	return j
 }
 
 // Close close resounces.
