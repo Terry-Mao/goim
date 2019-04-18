@@ -22,7 +22,7 @@ const (
 type Logic struct {
 	c   *conf.Config
 	dis *naming.Discovery
-	dao dao.LogicDao
+	dao *dao.Dao
 	// online
 	totalIPs   int64
 	totalConns int64
@@ -37,15 +37,12 @@ type Logic struct {
 func New(c *conf.Config) (l *Logic) {
 	l = &Logic{
 		c:            c,
+		dao:          dao.New(c),
 		dis:          naming.New(c.Discovery),
 		loadBalancer: NewLoadBalancer(),
 		regions:      make(map[string]string),
 	}
-	if c.UseNats {
-		l.dao = dao.New(c)
-	} else {
-		l.dao = dao.New(c)
-	}
+
 	l.initRegions()
 	l.initNodes()
 	_ = l.loadOnline()
