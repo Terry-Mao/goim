@@ -1,7 +1,7 @@
 # Go parameters
 GOCMD=GO111MODULE=on go
-GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
+GOBUILD=CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOCMD) build
 
 all: test build
 build:
