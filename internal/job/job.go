@@ -4,11 +4,12 @@ import (
 	"errors"
 	"sync"
 
-	pb "github.com/Terry-Mao/goim/api/logic/grpc"
-	"github.com/Terry-Mao/goim/internal/job/conf"
 	"github.com/bilibili/discovery/naming"
 	"github.com/gogo/protobuf/proto"
 	log "github.com/golang/glog"
+
+	pb "github.com/Terry-Mao/goim/api/logic/grpc"
+	"github.com/Terry-Mao/goim/internal/job/conf"
 )
 
 // Job is push job.
