@@ -10,6 +10,7 @@ import (
 	"github.com/Bilibili/discovery/naming"
 	"github.com/BurntSushi/toml"
 
+	"github.com/Terry-Mao/goim/logger"
 	xtime "github.com/Terry-Mao/goim/pkg/time"
 )
 
@@ -118,6 +119,7 @@ type Config struct {
 	RPCClient *RPCClient     `json:"rPCClient"`
 	RPCServer *RPCServer     `json:"rPCServer"`
 	Whitelist *Whitelist     `json:"whitelist"`
+	log       logger.Logger  `json:"-"`
 }
 
 // Env is env config.

@@ -26,7 +26,15 @@ func main() {
 	}
 	log.Infof("goim-job [version: %s env: %+v] start", ver, conf.Conf.Env)
 	// grpc register naming
-	dis := naming.New(conf.Conf.Discovery)
+
+	cfgNaming := &naming.Config{
+		Nodes:  conf.Conf.Discovery.Nodes,
+		Region: conf.Conf.Discovery.Region,
+		Zone:   conf.Conf.Discovery.Zone,
+		Env:    conf.Conf.Discovery.Env,
+		Host:   conf.Conf.Discovery.Host,
+	}
+	dis := naming.New(cfgNaming)
 	resolver.Register(dis)
 	// job
 	j := job.New(conf.Conf)
@@ -40,7 +48,7 @@ func main() {
 		log.Infof("goim-job get a signal %s", s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
-			j.Close()
+			_ = j.Close()
 			log.Infof("goim-job [version: %s] exit", ver)
 			log.Flush()
 			return

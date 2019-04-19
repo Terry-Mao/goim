@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/Bilibili/discovery/naming"
 	"github.com/BurntSushi/toml"
 
 	xtime "github.com/Terry-Mao/goim/pkg/time"
@@ -43,7 +42,7 @@ func Init() (err error) {
 func Default() *Config {
 	return &Config{
 		Env:       &Env{Region: region, Zone: zone, DeployEnv: deployEnv, Host: host},
-		Discovery: &naming.Config{Region: region, Zone: zone, Env: deployEnv, Host: host},
+		Discovery: &DiscoveryConfig{Region: region, Zone: zone, Env: deployEnv, Host: host},
 		Comet:     &Comet{RoutineChan: 1024, RoutineSize: 32},
 		Room: &Room{
 			Batch:  20,
@@ -55,14 +54,23 @@ func Default() *Config {
 
 // Config is job config.
 type Config struct {
-	UseNats bool   `json:"useNats"`
-	Nats    *Nats  `json:"nats"`
-	Env     *Env   `json:"env"`
-	Kafka   *Kafka `json:"kafka"`
+	UseNats   bool             `json:"useNats"`
+	Debug     bool             `json:"debug"`
+	Env       *Env             `json:"env"`
+	Nats      *Nats            `json:"nats"`
+	Discovery *DiscoveryConfig `json:"discovery"`
+	Kafka     *Kafka           `json:"kafka"`
+	Comet     *Comet           `json:"comet"`
+	Room      *Room            `json:"room"`
+}
 
-	Discovery *naming.Config `json:"discovery"`
-	Comet     *Comet         `json:"comet"`
-	Room      *Room          `json:"room"`
+// DiscoveryConfig discovery configures.
+type DiscoveryConfig struct {
+	Nodes  []string
+	Region string
+	Zone   string
+	Env    string
+	Host   string
 }
 
 // Room is room config.
