@@ -6,11 +6,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Bilibili/discovery/naming"
+	"github.com/bilibili/discovery/naming"
 	"github.com/Terry-Mao/goim/internal/job"
 	"github.com/Terry-Mao/goim/internal/job/conf"
 
-	resolver "github.com/Bilibili/discovery/naming/grpc"
+	resolver "github.com/bilibili/discovery/naming/grpc"
 	log "github.com/golang/glog"
 )
 
