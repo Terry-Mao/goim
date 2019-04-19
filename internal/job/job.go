@@ -3,6 +3,7 @@ package job
 import (
 	"errors"
 	"sync"
+
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
 	"github.com/Terry-Mao/goim/internal/job/conf"
 	"github.com/bilibili/discovery/naming"

@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"syscall"
 
-
 	"github.com/bilibili/discovery/naming"
 
 	"github.com/Terry-Mao/goim/internal/job"

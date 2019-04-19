@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-
 	"github.com/BurntSushi/toml"
 
 	xtime "github.com/Terry-Mao/goim/pkg/time"

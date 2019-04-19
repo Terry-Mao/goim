@@ -8,13 +8,10 @@ import (
 	"strings"
 	"sync"
 
-
-	"github.com/bilibili/discovery/naming"
 	"github.com/Terry-Mao/goim/internal/logic/model"
+	"github.com/bilibili/discovery/naming"
 
 	log "github.com/golang/glog"
-
-	"github.com/Terry-Mao/goim/internal/logic/model"
 )
 
 const (

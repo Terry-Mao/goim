@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"syscall"
 
-
 	log "github.com/golang/glog"
 
 	"github.com/bilibili/discovery/naming"

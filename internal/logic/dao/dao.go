@@ -30,7 +30,7 @@ func New(c *conf.Config) *Dao {
 		d.push = NewNats(c)
 	} else {
 		d.push = NewKafka(c)
- }
+	}
 	return d
 }
 

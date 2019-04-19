@@ -4,9 +4,7 @@ import (
 	"context"
 	"time"
 
-
 	log "github.com/golang/glog"
-
 
 	"github.com/bilibili/discovery/naming"
 
