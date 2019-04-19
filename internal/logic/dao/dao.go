@@ -25,13 +25,26 @@ func New(c *conf.Config) *Dao {
 		redis:       newRedis(c.Redis),
 		redisExpire: int32(time.Duration(c.Redis.Expire) / time.Second),
 	}
+
 	if c.UseNats {
 		d.push = NewNats(c)
 	} else {
 		d.push = NewKafka(c)
+ }
+	return d
+}
+
+func newKafkaPub(c *conf.Kafka) kafka.SyncProducer {
+	kc := kafka.NewConfig()
+	kc.Producer.RequiredAcks = kafka.WaitForAll // Wait for all in-sync replicas to ack the message
+	kc.Producer.Retry.Max = 10                  // Retry up to 10 times to produce the message
+	kc.Producer.Return.Successes = true
+	pub, err := kafka.NewSyncProducer(c.Brokers, kc)
+	if err != nil {
+		panic(err)
 	}
 
-	return d
+	return pub
 }
 
 func newRedis(c *conf.Redis) *redis.Pool {

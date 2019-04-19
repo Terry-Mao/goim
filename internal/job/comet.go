@@ -7,7 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Bilibili/discovery/naming"
+
+	"github.com/bilibili/discovery/naming"
 
 	comet "github.com/Terry-Mao/goim/api/comet/grpc"
 	"github.com/Terry-Mao/goim/internal/job/conf"

@@ -5,12 +5,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Bilibili/discovery/naming"
-	log "github.com/golang/glog"
+
+
+
 
 	"github.com/Terry-Mao/goim/internal/logic/conf"
 	"github.com/Terry-Mao/goim/internal/logic/dao"
 	"github.com/Terry-Mao/goim/internal/logic/model"
+	"github.com/bilibili/discovery/naming"
+	log "github.com/golang/glog"
+
 )
 
 const (
@@ -98,7 +102,7 @@ func (l *Logic) newNodes(res naming.Resolver) {
 			totalIPs   int64
 			allIns     []*naming.Instance
 		)
-		for _, zins := range zoneIns {
+		for _, zins := range zoneIns.Instances {
 			for _, ins := range zins {
 				if ins.Metadata == nil {
 					log.Errorf("node instance metadata is empty(%+v)", ins)

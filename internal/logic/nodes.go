@@ -4,8 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/Bilibili/discovery/naming"
+
 	log "github.com/golang/glog"
+
+
+	"github.com/bilibili/discovery/naming"
 
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
 	"github.com/Terry-Mao/goim/internal/logic/model"
