@@ -34,9 +34,9 @@ goim is a im server writen by golang.
     make stop
 
     // or
-    nohup target/logic -conf=target/logic.toml -region=sh -zone=sh001 deploy.env=dev weight=10 2>&1 > target/logic.log &
-    nohup target/comet -conf=target/comet.toml -region=sh -zone=sh001 deploy.env=dev weight=10 addrs=127.0.0.1 2>&1 > target/logic.log &
-    nohup target/job -conf=target/job.toml -region=sh -zone=sh001 deploy.env=dev 2>&1 > target/logic.log &
+    nohup target/logic -conf=target/logic.toml -region=sh -zone=sh001 -deploy.env=dev -weight=10 2>&1 > target/logic.log &
+    nohup target/comet -conf=target/comet.toml -region=sh -zone=sh001 -deploy.env=dev -weight=10 -addrs=127.0.0.1 2>&1 > target/logic.log &
+    nohup target/job -conf=target/job.toml -region=sh -zone=sh001 -deploy.env=dev 2>&1 > target/logic.log &
 
 ```
 ### Environment
@@ -56,7 +56,7 @@ goim is a im server writen by golang.
 You can view the comments in target/comet.toml,logic.toml,job.toml to understand the meaning of the config.
 
 ### Dependencies
-[Discovery](https://github.com/Bilibili/discovery)
+[Discovery](https://github.com/bilibili/discovery)
 
 [Kafka](https://kafka.apache.org/quickstart)
 

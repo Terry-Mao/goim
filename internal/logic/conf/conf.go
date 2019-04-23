@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Bilibili/discovery/naming"
+	"github.com/bilibili/discovery/naming"
 	xtime "github.com/Terry-Mao/goim/pkg/time"
 
 	"github.com/BurntSushi/toml"

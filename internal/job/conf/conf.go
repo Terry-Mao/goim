@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Bilibili/discovery/naming"
+	"github.com/bilibili/discovery/naming"
 	"github.com/BurntSushi/toml"
 	xtime "github.com/Terry-Mao/goim/pkg/time"
 )
