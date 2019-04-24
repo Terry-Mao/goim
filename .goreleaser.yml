@@ -1,0 +1,50 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+before:
+  hooks:
+    # you may remove this if you don't use vgo
+    - go mod download
+    # you may remove this if you don't need go generate
+    - go generate ./...
+    # copy config
+    - cp cmd/comet/comet-example.toml configs/comet-example.toml
+    - cp cmd/logic/logic-example.toml configs/logic-example.toml
+    - cp cmd/job/job-example.toml configs/job-example.toml
+builds:
+  - 
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/comet/main.go
+    binary: comet
+  -
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/logic/main.go
+    binary: logic
+  - 
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/job/main.go
+    binary: job
+archive:
+  replacements:
+    darwin: Darwin
+    linux: Linux
+    windows: Windows
+    386: i386
+    amd64: x86_64
+  files:
+    - LICENSE
+    - README.md
+    - CHANGELOG.md
+    - configs/* 
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'

@@ -1,0 +1,48 @@
+# This is a TOML document. Boom
+[discovery]
+    nodes = ["127.0.0.1:7171"]
+
+[rpcServer]
+    addr = ":3109"
+    timeout = "1s"
+
+[rpcClient]
+    dial = "1s"
+    timeout = "1s"
+
+[tcp]
+    bind = [":3101"]
+    sndbuf = 4096
+    rcvbuf = 4096
+    keepalive = false
+    reader = 32
+    readBuf = 1024
+    readBufSize = 8192
+    writer = 32
+    writeBuf = 1024
+    writeBufSize = 8192
+
+[websocket]
+    bind = [":3102"]
+    tlsOpen = false
+    tlsBind = [":3103"]
+    certFile = "../../cert.pem"
+    privateFile = "../../private.pem"
+
+[protocol]
+    timer = 32
+    timerSize = 2048
+    svrProto = 10
+    cliProto = 5
+    handshakeTimeout = "8s"
+
+[whitelist]
+    Whitelist = [123]
+    WhiteLog  = "/tmp/white_list.log"
+
+[bucket]
+    size = 32
+    channel = 1024
+    room = 1024
+    routineAmount = 32
+    routineSize = 1024

@@ -1,0 +1,33 @@
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>client demo</title>
+    <script src="client.js"></script>
+    <script>
+      var client = new MyClient({
+        notify: function(data) {
+		  console.log(data);
+          // alert(JSON.stringify(data));
+        }
+      });
+    </script>
+    <style type="text/css">
+        span{ display:block;}
+    </style>
+  </head>
+  <body>
+    <h1>websocket</h1>
+    <h2>status:</h2>
+    <span id="status"></span>
+    <h2>push</h2>
+    <div>
+        <p>curl -d 'mid message' http://api.goim.io:3111/goim/push/mids?operation=1000&mids=123</p>
+        <p>curl -d 'room message' http://api.goim.io:3111/goim/push/room?operation=1000&type=live&room=1000</p>
+        <p>curl -d 'broadcast message' http://api.goim.io:3111/goim/push/all?operation=1000</p>
+    </div>
+    <h2>message:</h2>
+    <div id="box"></div>
+  </body>
+</html>

@@ -84,7 +84,7 @@ If it fails, please check the logs for debugging.
 
 ### Testing
 
-Check the push protocols here[push HTTP protocols](./doc/push.md)
+Check the push protocols here[push HTTP protocols](./docs/push.md)
 
 ## Configurations
 TODO
@@ -97,9 +97,9 @@ Android: [Android SDK](https://github.com/roamdy/goim-sdk)
 iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 
 ## Documents
-[push HTTP protocols](./doc/en/push.md)
+[push HTTP protocols](./docs/en/push.md)
 
-[Comet client protocols](./doc/en/proto.md)
+[Comet client protocols](./docs/en/proto.md)
 
 ##More
 TODO

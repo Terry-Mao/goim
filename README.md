@@ -1,5 +1,9 @@
-goim
+goim v2.0
 ==============
+[![Build Status](https://travis-ci.org/Terry-Mao/goim.svg?branch=master)](https://travis-ci.org/Terry-Mao/goim) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/Terry-Mao/goim)](https://goreportcard.com/report/github.com/Terry-Mao/goim)
+[![codecov](https://codecov.io/gh/Terry-Mao/goim/branch/master/graph/badge.svg)](https://codecov.io/gh/Terry-Mao/goim)
+
 goim is a im server writen by golang.
 
 ## Features
@@ -15,13 +19,50 @@ goim is a im server writen by golang.
  * Asynchronous push notification based on Kafka
 
 ## Architecture
-![arch](https://github.com/Terry-Mao/goim/blob/master/doc/arch.png)
+![arch](./docs/arch.png)
 
-Protocol:
+## Quick Start
 
-[proto](https://github.com/Terry-Mao/goim/blob/master/doc/protocol.png)
+### Build
+```
+    make build
+```
+
+### Run
+```
+    make run
+    make stop
+
+    // or
+    nohup target/logic -conf=target/logic.toml -region=sh -zone=sh001 -deploy.env=dev -weight=10 2>&1 > target/logic.log &
+    nohup target/comet -conf=target/comet.toml -region=sh -zone=sh001 -deploy.env=dev -weight=10 -addrs=127.0.0.1 2>&1 > target/logic.log &
+    nohup target/job -conf=target/job.toml -region=sh -zone=sh001 -deploy.env=dev 2>&1 > target/logic.log &
+
+```
+### Environment
+```
+    env:
+    export REGION=sh
+    export ZONE=sh001
+    export DEPLOY_ENV=dev
+
+    supervisor:
+    environment=REGION=sh,ZONE=sh001,DEPLOY_ENV=dev
+
+    go flag:
+    -region=sh -zone=sh001 deploy.env=dev
+```
+### Configuration
+You can view the comments in target/comet.toml,logic.toml,job.toml to understand the meaning of the config.
+
+### Dependencies
+[Discovery](https://github.com/bilibili/discovery)
+
+[Kafka](https://kafka.apache.org/quickstart)
 
 ## Document
+[Protocol](./docs/protocol.png)
+
 [English](./README_en.md)
 
 [中文](./README_cn.md)
@@ -34,7 +75,7 @@ Android: [Android](https://github.com/roamdy/goim-sdk)
 iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 
 ## Benchmark
-![benchmark](./doc/benchmark.jpg)
+![benchmark](./docs/benchmark.jpg)
 
 ### Benchmark Server
 | CPU | Memory | OS | Instance |
@@ -57,9 +98,9 @@ iOS: [iOS](https://github.com/roamdy/goim-oc-sdk)
 ### Benchmark Result
 * Received: 35,900,000/s
 
-[中文](./doc/benchmark_cn.md)
+[中文](./docs/benchmark_cn.md)
 
-[English](./doc/benchmark_en.md)
+[English](./docs/benchmark_en.md)
 
 ## LICENSE
 goim is is distributed under the terms of the MIT License.
