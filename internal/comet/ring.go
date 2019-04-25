@@ -7,16 +7,21 @@ import (
 	log "github.com/golang/glog"
 )
 
-// Ring ring proto buffer.
+// 用於控制讀寫異步grpc.Proto的環型Pool
 type Ring struct {
-	// read
-	rp   uint64
-	num  uint64
+	// 讀的游標
+	rp uint64
+
+	// data長度
+	num uint64
+
+	// 用於切換異步grpc.Proto游標
 	mask uint64
-	// TODO split cacheline, many cpu cache line size is 64
-	// pad [40]byte
-	// write
-	wp   uint64
+
+	// 寫的游標
+	wp uint64
+
+	// 多個grpc Proto結構
 	data []grpc.Proto
 }
 
@@ -33,7 +38,8 @@ func (r *Ring) Init(num int) {
 }
 
 func (r *Ring) init(num uint64) {
-	// 2^N
+	// 如果num非2的公倍數則轉成2的公倍數
+	// 因為需保證讀寫游標與mask的&操作是可以對Proto做循環取得
 	if num&(num-1) != 0 {
 		for num&(num-1) != 0 {
 			num &= (num - 1)
@@ -45,7 +51,7 @@ func (r *Ring) init(num uint64) {
 	r.mask = r.num - 1
 }
 
-// Get get a proto from ring.
+// 取用於寫的grpc.Proto，如果讀跟寫游標相等代表沒有可以讀的Proto
 func (r *Ring) Get() (proto *grpc.Proto, err error) {
 	if r.rp == r.wp {
 		return nil, errors.ErrRingEmpty
@@ -54,7 +60,7 @@ func (r *Ring) Get() (proto *grpc.Proto, err error) {
 	return
 }
 
-// GetAdv incr read index.
+// 讀游標++
 func (r *Ring) GetAdv() {
 	r.rp++
 	if conf.Conf.Debug {
@@ -62,7 +68,34 @@ func (r *Ring) GetAdv() {
 	}
 }
 
-// Set get a proto to write.
+// 取用於寫的grpc.Proto，讀跟寫的游標不可相差大於等於Proto數量
+// 需要要防寫的速度大於讀的速度時會把已寫未讀的Proto做覆蓋
+// 假設Proto數量是6個(A,B,C,D,E,F)，w(寫游標)，r(讀游標)
+// ====================================================
+// 沒有可讀Proto
+//
+//		r
+//		↓
+// 		A	B	C	D	E	F
+//		↑
+//		w
+// ====================================================
+// 可讀Proto
+//
+//		r
+//		↓
+// 		A	B	C	D	E	F
+//			↑
+//			w
+// ====================================================
+// 不可寫Proto
+//
+//		r
+//		↓
+// 		A	B	C	D	E	F
+//							↑
+//							w
+//
 func (r *Ring) Set() (proto *grpc.Proto, err error) {
 	if r.wp-r.rp >= r.num {
 		return nil, errors.ErrRingFull
@@ -71,7 +104,7 @@ func (r *Ring) Set() (proto *grpc.Proto, err error) {
 	return
 }
 
-// SetAdv incr write index.
+// 寫游標++
 func (r *Ring) SetAdv() {
 	r.wp++
 	if conf.Conf.Debug {
@@ -79,10 +112,8 @@ func (r *Ring) SetAdv() {
 	}
 }
 
-// Reset reset ring.
+// 重置讀寫游標
 func (r *Ring) Reset() {
 	r.rp = 0
 	r.wp = 0
-	// prevent pad compiler optimization
-	// r.pad = [40]byte{}
 }

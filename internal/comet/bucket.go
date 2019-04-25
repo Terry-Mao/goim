@@ -8,26 +8,39 @@ import (
 	"github.com/Terry-Mao/goim/internal/comet/conf"
 )
 
-// Bucket is a channel holder.
+// 用於管理Room與Channel關於推送的邏輯
 type Bucket struct {
-	c     *conf.Bucket
-	cLock sync.RWMutex        // protect the channels for chs
-	chs   map[string]*Channel // map sub key to a channel
-	// room
-	rooms       map[string]*Room // bucket room channels
-	routines    []chan *grpc.BroadcastRoomReq
+	c *conf.Bucket
+
+	// 讀寫鎖
+	cLock sync.RWMutex
+
+	// 當前管理的Channel以user sub key當作key
+	chs map[string]*Channel
+
+	// 當前管理的Room以Room id當作key
+	rooms map[string]*Room
+
+	// 一個Bucket會開多個goroutine，每個goroutine都有一把此chan針對房間做推送
+	// 推送時會採用原子操作遞增並除於grpc.BroadcastRoomReq數量取餘數來決定使用哪一個
+	routines []chan *grpc.BroadcastRoomReq
+
+	// 用於決定由哪一個routines來做房間推送，此數字由atomic.AddUint64做原子操作遞增
 	routinesNum uint64
 
+	// 紀錄有哪些ip在此房間，key=ip value = 重覆ip數量
 	ipCnts map[string]int32
 }
 
-// NewBucket new a bucket struct. store the key with im channel.
+// 初始化Bucket結構
 func NewBucket(c *conf.Bucket) (b *Bucket) {
 	b = new(Bucket)
 	b.chs = make(map[string]*Channel, c.Channel)
+	b.rooms = make(map[string]*Room, c.Room)
 	b.ipCnts = make(map[string]int32)
 	b.c = c
-	b.rooms = make(map[string]*Room, c.Room)
+
+	// 設定該Bucket需要開幾個goroutine併發做房間訊息推送
 	b.routines = make([]chan *grpc.BroadcastRoomReq, c.RoutineAmount)
 	for i := uint64(0); i < c.RoutineAmount; i++ {
 		c := make(chan *grpc.BroadcastRoomReq, c.RoutineSize)
@@ -37,17 +50,17 @@ func NewBucket(c *conf.Bucket) (b *Bucket) {
 	return
 }
 
-// ChannelCount channel count in the bucket
+// 管理的人數
 func (b *Bucket) ChannelCount() int {
 	return len(b.chs)
 }
 
-// RoomCount room count in the bucket
+// 管理的房間數量
 func (b *Bucket) RoomCount() int {
 	return len(b.rooms)
 }
 
-// RoomsCount get all room id where online number > 0.
+// 統計房間人數
 func (b *Bucket) RoomsCount() (res map[string]int32) {
 	var (
 		roomID string
@@ -64,7 +77,7 @@ func (b *Bucket) RoomsCount() (res map[string]int32) {
 	return
 }
 
-// ChangeRoom change ro room
+// user更換房間
 func (b *Bucket) ChangeRoom(nrid string, ch *Channel) (err error) {
 	var (
 		nroom *Room
@@ -95,14 +108,28 @@ func (b *Bucket) ChangeRoom(nrid string, ch *Channel) (err error) {
 	return
 }
 
-// Put put a channel according with sub key.
+// 將user Channel 分配到某房間，總共會有三種結構互相關聯Bucket,Room,Channel
+// 假設Room id = A , Channel key = B
+// 1. Bucket put Channel(B)
+// 2. Bucket put Room(A)
+// 3. Channel(B) Room 對應到 Room(A)
+// 4. Room(A) Channel put Channel(B)
+// =============================================
+// 		Bucket
+//  		- []Room    			- []Channel
+//			|						|
+//			↓						↓
+//		 Room(A) ←----------	 Channel(B) ←-|
+//			- Channel		|-------- Room     |
+//          |----------------------------------|
+//
 func (b *Bucket) Put(rid string, ch *Channel) (err error) {
 	var (
 		room *Room
 		ok   bool
 	)
 	b.cLock.Lock()
-	// close old channel
+
 	if dch := b.chs[ch.Key]; dch != nil {
 		dch.Close()
 	}
@@ -122,7 +149,10 @@ func (b *Bucket) Put(rid string, ch *Channel) (err error) {
 	return
 }
 
-// Del delete the channel by sub key.
+// 刪除某個user Channel
+// 1. Bucket刪除[]Channel對應的Channel
+// 2. Bucket刪除[]Room內對應的Channel
+// 3. 如果Room沒人則Bucket刪除對應Room
 func (b *Bucket) Del(dch *Channel) {
 	var (
 		ok   bool
@@ -135,7 +165,6 @@ func (b *Bucket) Del(dch *Channel) {
 		if ch == dch {
 			delete(b.chs, ch.Key)
 		}
-		// ip counter
 		if b.ipCnts[ch.IP] > 1 {
 			b.ipCnts[ch.IP]--
 		} else {
@@ -144,12 +173,11 @@ func (b *Bucket) Del(dch *Channel) {
 	}
 	b.cLock.Unlock()
 	if room != nil && room.Del(ch) {
-		// if empty room, must delete from bucket
 		b.DelRoom(room)
 	}
 }
 
-// Channel get a channel by sub key.
+// 根據user key取對應Channel
 func (b *Bucket) Channel(key string) (ch *Channel) {
 	b.cLock.RLock()
 	ch = b.chs[key]
@@ -157,7 +185,7 @@ func (b *Bucket) Channel(key string) (ch *Channel) {
 	return
 }
 
-// Broadcast push msgs to all channels in the bucket.
+// 對Bucket內所有Channel且符合operation做訊息推送
 func (b *Bucket) Broadcast(p *grpc.Proto, op int32) {
 	var ch *Channel
 	b.cLock.RLock()
@@ -170,7 +198,7 @@ func (b *Bucket) Broadcast(p *grpc.Proto, op int32) {
 	b.cLock.RUnlock()
 }
 
-// Room get a room by roomid.
+// 取得房間
 func (b *Bucket) Room(rid string) (room *Room) {
 	b.cLock.RLock()
 	room = b.rooms[rid]
@@ -178,7 +206,7 @@ func (b *Bucket) Room(rid string) (room *Room) {
 	return
 }
 
-// DelRoom delete a room by roomid.
+// 刪除房間並將此房間內所有連線close
 func (b *Bucket) DelRoom(room *Room) {
 	b.cLock.Lock()
 	delete(b.rooms, room.ID)
@@ -186,13 +214,15 @@ func (b *Bucket) DelRoom(room *Room) {
 	room.Close()
 }
 
-// BroadcastRoom broadcast a message to specified room
+// logic service透過grpc推送給某個房間訊息
+// Bucket本身會開多個goroutine做併發推送，與goroutine溝透透過chan
+// 會使用原子鎖做遞增%Bucket開的goroutine數量來做選擇
 func (b *Bucket) BroadcastRoom(arg *grpc.BroadcastRoomReq) {
 	num := atomic.AddUint64(&b.routinesNum, 1) % b.c.RoutineAmount
 	b.routines[num] <- arg
 }
 
-// Rooms get all room id where online number > 0.
+// Bucket內房間內所有人數大於1的房間id
 func (b *Bucket) Rooms() (res map[string]struct{}) {
 	var (
 		roomID string
@@ -209,7 +239,6 @@ func (b *Bucket) Rooms() (res map[string]struct{}) {
 	return
 }
 
-// IPCount get ip count.
 func (b *Bucket) IPCount() (res map[string]struct{}) {
 	var (
 		ip string
@@ -223,7 +252,6 @@ func (b *Bucket) IPCount() (res map[string]struct{}) {
 	return
 }
 
-// UpRoomsCount update all room count
 func (b *Bucket) UpRoomsCount(roomCountMap map[string]int32) {
 	var (
 		roomID string
@@ -236,7 +264,7 @@ func (b *Bucket) UpRoomsCount(roomCountMap map[string]int32) {
 	b.cLock.RUnlock()
 }
 
-// roomproc
+// 接收logic grpc client資料做某房間訊息推送
 func (b *Bucket) roomproc(c chan *grpc.BroadcastRoomReq) {
 	for {
 		arg := <-c

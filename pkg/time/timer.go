@@ -1,6 +1,7 @@
 package time
 
 import (
+	"fmt"
 	"sync"
 	itime "time"
 
@@ -12,13 +13,21 @@ const (
 	infiniteDuration = itime.Duration(1<<63 - 1)
 )
 
-// TimerData timer data.
+// 一個單向鏈結串列表結構的TimerData，用於定時器任務
 type TimerData struct {
-	Key    string
+	Key string
+
+	// 多久過期
 	expire itime.Time
-	fn     func()
-	index  int
-	next   *TimerData
+
+	// 過期執行的時間
+	fn func()
+
+	//
+	index int
+
+	// 下一個鏈結點
+	next *TimerData
 }
 
 // Delay delay duration.
@@ -31,13 +40,24 @@ func (td *TimerData) ExpireString() string {
 	return td.expire.Format(timerFormat)
 }
 
-// Timer timer.
+// 一個任務倒數計時器Pool，以單向鏈結串列表管理各個任務
+// 每次free指向一個TimerData，而TimerData本身也紀錄下一個TimerData是誰
+// 最後一個TimerData則會指向nil
 type Timer struct {
-	lock   sync.Mutex
-	free   *TimerData
+	// 鎖
+	lock sync.Mutex
+
+	// 當前Pool可供Get()拿走的TimerData
+	free *TimerData
+
+	// 管理多少個TimerData
 	timers []*TimerData
+
+	//
 	signal *itime.Timer
-	num    int
+
+	//
+	num int
 }
 
 // NewTimer new a timer.
@@ -65,6 +85,7 @@ func (t *Timer) init(num int) {
 	go t.start()
 }
 
+//
 func (t *Timer) grow() {
 	var (
 		i   int
@@ -178,6 +199,7 @@ func (t *Timer) start() {
 	for {
 		t.expire()
 		<-t.signal.C
+		fmt.Println("eee")
 	}
 }
 

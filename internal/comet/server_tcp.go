@@ -26,6 +26,7 @@ func InitTCP(server *Server, addrs []string, accept int) (err error) {
 		listener *net.TCPListener
 		addr     *net.TCPAddr
 	)
+	// 監聽多個Tcp Port
 	for _, bind = range addrs {
 		if addr, err = net.ResolveTCPAddr("tcp", bind); err != nil {
 			log.Errorf("net.ResolveTCPAddr(tcp, %s) error(%v)", bind, err)
@@ -36,7 +37,8 @@ func InitTCP(server *Server, addrs []string, accept int) (err error) {
 			return
 		}
 		log.Infof("start tcp listen: %s", bind)
-		// split N core accept
+
+		// 一個Tcp Port根據CPU核心數開goroutine監聽Tcp
 		for i := 0; i < accept; i++ {
 			go acceptTCP(server, listener)
 		}
@@ -51,26 +53,32 @@ func acceptTCP(server *Server, lis *net.TCPListener) {
 	var (
 		conn *net.TCPConn
 		err  error
-		r    int
+
+		// 取Pool的rand seed
+		r int
 	)
 	for {
+		// tcp監聽並連線
 		if conn, err = lis.AcceptTCP(); err != nil {
-			// if listener close then return
 			log.Errorf("listener.Accept(\"%s\") error(%v)", lis.Addr().String(), err)
 			return
 		}
+		// tcp 開啟KeepAlive
 		if err = conn.SetKeepAlive(server.c.TCP.KeepAlive); err != nil {
 			log.Errorf("conn.SetKeepAlive() error(%v)", err)
 			return
 		}
+		// tcp讀取資料的緩衝區大小，該緩衝區為0時會阻塞，此值通常設定完後，系統會自行在多一倍，設定1024會變2304
 		if err = conn.SetReadBuffer(server.c.TCP.Rcvbuf); err != nil {
 			log.Errorf("conn.SetReadBuffer() error(%v)", err)
 			return
 		}
+		// tcp寫資料的緩衝區大小，該緩衝區滿到無法發送時會阻塞，此值通常設定完後系統會自行在多一倍，設定1024會變2304
 		if err = conn.SetWriteBuffer(server.c.TCP.Sndbuf); err != nil {
 			log.Errorf("conn.SetWriteBuffer() error(%v)", err)
 			return
 		}
+
 		go serveTCP(server, conn, r)
 		if r++; r == maxInt {
 			r = 0
@@ -78,14 +86,22 @@ func acceptTCP(server *Server, lis *net.TCPListener) {
 	}
 }
 
+// tcp連線後的邏輯處理
 func serveTCP(s *Server, conn *net.TCPConn, r int) {
 	var (
-		// timer
+		// 任務倒數計時器
 		tr = s.round.Timer(r)
+
+		// Reader Buffer
 		rp = s.round.Reader(r)
+
+		// Writer Buffer
 		wp = s.round.Writer(r)
-		// ip addr
+
+		// 本地ip:port
 		lAddr = conn.LocalAddr().String()
+
+		// tcp來源端ip:port
 		rAddr = conn.RemoteAddr().String()
 	)
 	if conf.Conf.Debug {
@@ -97,34 +113,67 @@ func serveTCP(s *Server, conn *net.TCPConn, r int) {
 // ServeTCP serve a tcp connection.
 func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer) {
 	var (
-		err     error
-		rid     string
+		err error
+
+		// 房間id
+		rid string
+
+		// tcp 連線的tag，可以用於設置訊息推送條件
 		accepts []int32
-		hb      time.Duration
-		white   bool
-		p       *grpc.Proto
-		b       *Bucket
-		trd     *xtime.TimerData
-		lastHb  = time.Now()
-		rb      = rp.Get()
-		wb      = wp.Get()
-		ch      = NewChannel(s.c.Protocol.CliProto, s.c.Protocol.SvrProto)
-		rr      = &ch.Reader
-		wr      = &ch.Writer
+
+		// 心跳時間週期
+		hb time.Duration
+
+		//
+		white bool
+
+		// grpc 自訂Protocol
+		p *grpc.Proto
+
+		// 管理Channel與Room
+		b *Bucket
+
+		// 時間倒數任務
+		trd *xtime.TimerData
+
+		// 現在時間
+		lastHb = time.Now()
+
+		// 用於讀的Buffer
+		rb = rp.Get()
+
+		// 用於寫的Buffer
+		wb = wp.Get()
+
+		// 此tcp連線的Channel
+		ch = NewChannel(s.c.Protocol.CliProto, s.c.Protocol.SvrProto)
+
+		// Reader byte
+		rr = &ch.Reader
+
+		// Writer byte
+		wr = &ch.Writer
 	)
+
+	// Channel設置的讀寫Buffer(由Pool取得之後會還給Pool做復用)
 	ch.Reader.ResetBuffer(conn, rb.Bytes())
 	ch.Writer.ResetBuffer(conn, wb.Bytes())
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	// handshake
+
 	step := 0
+
+	// 心跳超時後的邏輯
 	trd = tr.Add(time.Duration(s.c.Protocol.HandshakeTimeout), func() {
 		conn.Close()
 		log.Errorf("key: %s remoteIP: %s step: %d tcp handshake timeout", ch.Key, conn.RemoteAddr().String(), step)
 	})
+
+
 	ch.IP, _, _ = net.SplitHostPort(conn.RemoteAddr().String())
-	// must not setadv, only used in auth
 	step = 1
+
 	if p, err = ch.CliProto.Set(); err == nil {
 		if ch.Mid, ch.Key, rid, accepts, hb, err = s.authTCP(ctx, rr, wr, p); err == nil {
 			ch.Watch(accepts...)

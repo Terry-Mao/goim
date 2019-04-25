@@ -41,9 +41,10 @@ var (
 )
 
 var (
-	// ProtoReady proto ready
+	// 心跳回覆
 	ProtoReady = &Proto{Op: OpProtoReady}
-	// ProtoFinish proto finish
+
+	// close連線
 	ProtoFinish = &Proto{Op: OpProtoFinish}
 )
 

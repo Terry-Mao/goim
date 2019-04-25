@@ -38,10 +38,12 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	println(conf.Conf.Debug)
 	log.Infof("goim-comet [version: %s env: %+v] start", ver, conf.Conf.Env)
-	// register discovery
+
+	// 初始化註冊中心
 	dis := naming.New(conf.Conf.Discovery)
 	resolver.Register(dis)
-	// new comet server
+
+	// server tcp 連線
 	srv := comet.NewServer(conf.Conf)
 	if err := comet.InitWhitelist(conf.Conf.Whitelist); err != nil {
 		panic(err)
@@ -57,10 +59,14 @@ func main() {
 			panic(err)
 		}
 	}
-	// new grpc server
+
+	// 啟動grpc server
 	rpcSrv := grpc.New(conf.Conf.RPCServer, srv)
+
+	// 向註冊中心提交節點資料
 	cancel := register(dis, srv)
-	// signal
+
+	// 接收到close signal的處理
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	for {
