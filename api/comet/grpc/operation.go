@@ -1,49 +1,57 @@
 package grpc
 
 const (
-	// OpHandshake handshake
+	//
 	OpHandshake = int32(0)
-	// OpHandshakeReply handshake reply
+
+	//
 	OpHandshakeReply = int32(1)
 
-	// OpHeartbeat heartbeat
+	// client 發送心跳
 	OpHeartbeat = int32(2)
-	// OpHeartbeatReply heartbeat reply
+
+	// server 回覆心跳結果
 	OpHeartbeatReply = int32(3)
 
-	// OpSendMsg send message.
+	//
 	OpSendMsg = int32(4)
-	// OpSendMsgReply  send message reply
+
+	//
 	OpSendMsgReply = int32(5)
 
-	// OpDisconnectReply disconnect reply
+	//
 	OpDisconnectReply = int32(6)
 
-	// OpAuth auth connnect
+	// client要求連線到某一個房間
 	OpAuth = int32(7)
-	// OpAuthReply auth connect reply
+
+	// server回覆連線到某一個房間結果
 	OpAuthReply = int32(8)
 
-	// OpRaw raw message
+	// server訊息推送給client
 	OpRaw = int32(9)
 
-	// OpProtoReady proto ready
+	// 處理tcp資料
 	OpProtoReady = int32(10)
-	// OpProtoFinish proto finish
+
+	// tcp close連線
 	OpProtoFinish = int32(11)
 
-	// OpChangeRoom change room
+	// 更換房間
 	OpChangeRoom = int32(12)
-	// OpChangeRoomReply change room reply
+
+	// 回覆更換房間結果
 	OpChangeRoomReply = int32(13)
 
-	// OpSub subscribe operation
+	// user新增operation
 	OpSub = int32(14)
-	// OpSubReply subscribe operation
+
+	// 回覆user新增operation結果
 	OpSubReply = int32(15)
 
-	// OpUnsub unsubscribe operation
+	// user移除operation
 	OpUnsub = int32(16)
-	// OpUnsubReply unsubscribe operation reply
+
+	// 回覆user移除operation結果
 	OpUnsubReply = int32(17)
 )

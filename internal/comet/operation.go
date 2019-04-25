@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 )
 
-// Connect connected a connection.
+// 告知logic service有人想要進入某個房間
 func (s *Server) Connect(c context.Context, p *model.Proto, cookie string) (mid int64, key, rid string, accepts []int32, heartbeat time.Duration, err error) {
 	reply, err := s.rpcClient.Connect(c, &logic.ConnectReq{
 		Server: s.serverID,
@@ -26,7 +26,7 @@ func (s *Server) Connect(c context.Context, p *model.Proto, cookie string) (mid 
 	return reply.Mid, reply.Key, reply.RoomID, reply.Accepts, time.Duration(reply.Heartbeat), nil
 }
 
-// Disconnect disconnected a connection.
+//  client連線中斷，告知logic service需清理此人的連線資料
 func (s *Server) Disconnect(c context.Context, mid int64, key string) (err error) {
 	_, err = s.rpcClient.Disconnect(context.Background(), &logic.DisconnectReq{
 		Server: s.serverID,
@@ -36,7 +36,7 @@ func (s *Server) Disconnect(c context.Context, mid int64, key string) (err error
 	return
 }
 
-// Heartbeat heartbeat a connection session.
+// 告知logic service要刷新某人的在線狀態(session 過期時間)
 func (s *Server) Heartbeat(ctx context.Context, mid int64, key string) (err error) {
 	_, err = s.rpcClient.Heartbeat(ctx, &logic.HeartbeatReq{
 		Server: s.serverID,
@@ -46,7 +46,7 @@ func (s *Server) Heartbeat(ctx context.Context, mid int64, key string) (err erro
 	return
 }
 
-// RenewOnline renew room online.
+// 告知logic service現在房間的在線人數
 func (s *Server) RenewOnline(ctx context.Context, serverID string, rommCount map[string]int32) (allRoom map[string]int32, err error) {
 	reply, err := s.rpcClient.RenewOnline(ctx, &logic.OnlineReq{
 		Server:    s.serverID,
@@ -64,7 +64,7 @@ func (s *Server) Receive(ctx context.Context, mid int64, p *model.Proto) (err er
 	return
 }
 
-// Operate operate.
+// 處理Proto相關邏輯
 func (s *Server) Operate(ctx context.Context, p *model.Proto, ch *Channel, b *Bucket) error {
 	switch p.Op {
 	case model.OpChangeRoom:

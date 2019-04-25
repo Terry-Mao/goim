@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"errors"
-
 	"github.com/Terry-Mao/goim/pkg/bufio"
 	"github.com/Terry-Mao/goim/pkg/bytes"
 	"github.com/Terry-Mao/goim/pkg/encoding/binary"
@@ -14,40 +13,85 @@ const (
 	MaxBodySize = int32(1 << 12)
 )
 
+//
+// |---------|--------|---------|-----------|----------|---------|
+// | Package | Header | Version | Operation | Sequence |   Body  |
+// |---------|--------|---------|-----------|----------|---------|
+// | 4 bytes | 2 bytes| 2 bytes |  4 bytes  |  4 bytes | ? bytes |
+// |---------|--------|---------|-----------|----------|---------|
+// |					16 bytes					   |
+// |---------------------------------------------------|
+//
+// Package: 整個封包長度
+// Header: 整個封包表頭長度
+// Version: 封包版本號(目前沒看到用途)
+// Operation: 封包意義識別
+// Sequence: 類似Tcp 三項交握的seq(目前沒看到用途)
+// Body: 封包真正的內容
+// =============================================================
+// Package - Header = Body
+//
 const (
-	// size
-	_packSize      = 4
-	_headerSize    = 2
-	_verSize       = 2
-	_opSize        = 4
-	_seqSize       = 4
-	_heartSize     = 4
+	// Protocol 長度的byte長度
+	_packSize = 4
+
+	// Protocol Header的byte長度
+	_headerSize = 2
+
+	// Protocol 版本號的byte長度
+	_verSize = 2
+
+	// Protocol 動作意義的byte長度
+	_opSize = 4
+
+	// Protocol seq的byte長度
+	_seqSize = 4
+
+	// 回覆心跳Body的byte長度
+	_heartSize = 4
+
+	// Protocol Header的總長度
 	_rawHeaderSize = _packSize + _headerSize + _verSize + _opSize + _seqSize
-	_maxPackSize   = MaxBodySize + int32(_rawHeaderSize)
-	// offset
-	_packOffset   = 0
+
+	_maxPackSize = MaxBodySize + int32(_rawHeaderSize)
+
+	// Protocol 長度的byte位置範圍
+	_packOffset = 0
+
+	// Protocol 整個header長度的byte位置範圍
+	// Protocol 長度 - header長度 = Body長度
 	_headerOffset = _packOffset + _packSize
-	_verOffset    = _headerOffset + _headerSize
-	_opOffset     = _verOffset + _verSize
-	_seqOffset    = _opOffset + _opSize
-	_heartOffset  = _seqOffset + _seqSize
+
+	// Protocol版本號的byte位置範圍
+	_verOffset = _headerOffset + _headerSize
+
+	// Protocol動作意義的byte位置範圍
+	_opOffset = _verOffset + _verSize
+
+	// Protocol seq意義的byte位置範圍
+	_seqOffset = _opOffset + _opSize
+
+	// 回覆心跳Body的byte位置範圍
+	_heartOffset = _seqOffset + _seqSize
 )
 
 var (
-	// ErrProtoPackLen proto packet len error
+	// 封包長度大小超過限定的長度
 	ErrProtoPackLen = errors.New("default server codec pack length error")
-	// ErrProtoHeaderLen proto header len error
+
+	// 封包Header長度不符合規定
 	ErrProtoHeaderLen = errors.New("default server codec header length error")
 )
 
 var (
-	// ProtoReady proto ready
+	// 處理tcp資料的flag
 	ProtoReady = &Proto{Op: OpProtoReady}
-	// ProtoFinish proto finish
+
+	// tcp close連線
 	ProtoFinish = &Proto{Op: OpProtoFinish}
 )
 
-// WriteTo write a proto to bytes writer.
+// Proto內容寫至bytes
 func (p *Proto) WriteTo(b *bytes.Writer) {
 	var (
 		packLen = _rawHeaderSize + int32(len(p.Body))
@@ -63,7 +107,7 @@ func (p *Proto) WriteTo(b *bytes.Writer) {
 	}
 }
 
-// ReadTCP read a proto from TCP reader.
+// 從tcp中讀出封包並解成Proto格式
 func (p *Proto) ReadTCP(rr *bufio.Reader) (err error) {
 	var (
 		bodyLen   int
@@ -93,14 +137,13 @@ func (p *Proto) ReadTCP(rr *bufio.Reader) (err error) {
 	return
 }
 
-// WriteTCP write a proto to TCP writer.
+// 將Proto格式資料寫入tcp
 func (p *Proto) WriteTCP(wr *bufio.Writer) (err error) {
 	var (
 		buf     []byte
 		packLen int32
 	)
 	if p.Op == OpRaw {
-		// write without buffer, job concact proto into raw buffer
 		_, err = wr.WriteRaw(p.Body)
 		return
 	}
@@ -119,7 +162,7 @@ func (p *Proto) WriteTCP(wr *bufio.Writer) (err error) {
 	return
 }
 
-// WriteTCPHeart write TCP heartbeat with room online.
+// tcp寫入心跳回覆結果
 func (p *Proto) WriteTCPHeart(wr *bufio.Writer, online int32) (err error) {
 	var (
 		buf     []byte
@@ -140,7 +183,7 @@ func (p *Proto) WriteTCPHeart(wr *bufio.Writer, online int32) (err error) {
 	return
 }
 
-// ReadWebsocket read a proto from websocket connection.
+// 從websocket讀出內容
 func (p *Proto) ReadWebsocket(ws *websocket.Conn) (err error) {
 	var (
 		bodyLen   int
@@ -173,7 +216,7 @@ func (p *Proto) ReadWebsocket(ws *websocket.Conn) (err error) {
 	return
 }
 
-// WriteWebsocket write a proto to websocket connection.
+// Websocket寫入Proto內容
 func (p *Proto) WriteWebsocket(ws *websocket.Conn) (err error) {
 	var (
 		buf     []byte
@@ -197,7 +240,7 @@ func (p *Proto) WriteWebsocket(ws *websocket.Conn) (err error) {
 	return
 }
 
-// WriteWebsocketHeart write websocket heartbeat with room online.
+// Websocket回覆心跳結果
 func (p *Proto) WriteWebsocketHeart(wr *websocket.Conn, online int32) (err error) {
 	var (
 		buf     []byte

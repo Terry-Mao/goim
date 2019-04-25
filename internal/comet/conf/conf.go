@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bilibili/discovery/naming"
 	"github.com/BurntSushi/toml"
 	xtime "github.com/Terry-Mao/goim/pkg/time"
+	"github.com/bilibili/discovery/naming"
 )
 
 var (
@@ -59,6 +59,7 @@ func Default() *Config {
 		Debug:     debug,
 		Env:       &Env{Region: region, Zone: zone, DeployEnv: deployEnv, Host: host, Weight: weight, Addrs: strings.Split(addrs, ","), Offline: offline},
 		Discovery: &naming.Config{Region: region, Zone: zone, Env: deployEnv, Host: host},
+
 		RPCClient: &RPCClient{
 			Dial:    xtime.Duration(time.Second),
 			Timeout: xtime.Duration(time.Second),
@@ -114,7 +115,11 @@ type Config struct {
 	Websocket *Websocket
 	Protocol  *Protocol
 	Bucket    *Bucket
+
+	// Logic grpc Client參數
 	RPCClient *RPCClient
+
+	// Logic grpc Server參數
 	RPCServer *RPCServer
 	Whitelist *Whitelist
 }
@@ -130,9 +135,12 @@ type Env struct {
 	Addrs     []string
 }
 
-// RPCClient is RPC client config.
+// grpc client config
 type RPCClient struct {
-	Dial    xtime.Duration
+	// client連線timeout
+	Dial xtime.Duration
+
+	// 好像沒用到
 	Timeout xtime.Duration
 }
 
@@ -150,15 +158,38 @@ type RPCServer struct {
 
 // TCP is tcp config.
 type TCP struct {
-	Bind         []string
-	Sndbuf       int
-	Rcvbuf       int
-	KeepAlive    bool
-	Reader       int
-	ReadBuf      int
-	ReadBufSize  int
-	Writer       int
-	WriteBuf     int
+	// tcp 要監聽的port
+	Bind   []string
+
+	//
+	Sndbuf int
+
+	//
+	Rcvbuf int
+
+	// 是否開啟KeepAlive
+	KeepAlive bool
+
+	// 先初始化多少個用於Reader bytes的Pool
+	// 每個Pool都會有sync.Mutex，多個pool來分散鎖的競爭
+	// 有效提高併發數
+	Reader int
+
+	// 每個Reader bytes Pool有多少個Buffer
+	ReadBuf int
+
+	// 每個Reader bytes Pool的Buffer能有多大的空間
+	ReadBufSize int
+
+	// 先初始化多少個用於Writer bytes的Pool
+	// 每個Pool都會有sync.Mutex，多個pool來分散鎖的競爭
+	// 有效提高併發數
+	Writer int
+
+	// 每個Writer bytes Pool有多少個Buffer
+	WriteBuf int
+
+	// 每個Writer bytes Pool的Buffer能有多大的空間
 	WriteBufSize int
 }
 
@@ -173,8 +204,12 @@ type Websocket struct {
 
 // Protocol is protocol config.
 type Protocol struct {
-	Timer            int
-	TimerSize        int
+	// 先初始化多少個time.Timer
+	Timer int
+
+	// 每個time.Timer一開始能接收的TimerData數量
+	TimerSize int
+
 	SvrProto         int
 	CliProto         int
 	HandshakeTimeout xtime.Duration
@@ -182,11 +217,19 @@ type Protocol struct {
 
 // Bucket is bucket config.
 type Bucket struct {
-	Size          int
-	Channel       int
-	Room          int
+	// 一開始需要幾個Bucket
+	Size int
+
+	// 每個Bucket一開始管理多少個Channel
+	Channel int
+
+	// 每個Bucket一開始管理多少個Room
+	Room int
+
+	// 每個Bucket開幾個goroutine併發做房間推送
 	RoutineAmount uint64
-	RoutineSize   int
+
+	RoutineSize int
 }
 
 // Whitelist is white list config.
