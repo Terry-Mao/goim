@@ -59,7 +59,6 @@ func Default() *Config {
 		Debug:     debug,
 		Env:       &Env{Region: region, Zone: zone, DeployEnv: deployEnv, Host: host, Weight: weight, Addrs: strings.Split(addrs, ","), Offline: offline},
 		Discovery: &naming.Config{Region: region, Zone: zone, Env: deployEnv, Host: host},
-
 		RPCClient: &RPCClient{
 			Dial:    xtime.Duration(time.Second),
 			Timeout: xtime.Duration(time.Second),
@@ -115,11 +114,7 @@ type Config struct {
 	Websocket *Websocket
 	Protocol  *Protocol
 	Bucket    *Bucket
-
-	// Logic grpc Client參數
 	RPCClient *RPCClient
-
-	// Logic grpc Server參數
 	RPCServer *RPCServer
 	Whitelist *Whitelist
 }
@@ -146,25 +141,41 @@ type RPCClient struct {
 
 // RPCServer is RPC server config.
 type RPCServer struct {
-	Network           string
-	Addr              string
-	Timeout           xtime.Duration
-	IdleTimeout       xtime.Duration
-	MaxLifeTime       xtime.Duration
-	ForceCloseWait    xtime.Duration
+	// host
+	Network string
+
+	// port
+	Addr string
+
+	// 沒用到
+	Timeout xtime.Duration
+
+	// 當連線閒置多久後發送一個`GOAWAY` Framer 封包告知Client說太久沒活動
+	//至於Client收到`GOAWAY`後要做什麼目前要自己實現stream，server只是做通知而已，grpc server默認沒開啟此功能
+	IdleTimeout xtime.Duration
+
+	// 任何連線只要連線超過某時間就會強制被close，但是在close之前會先發送`GOAWAY`Framer 封包告知Client
+	MaxLifeTime xtime.Duration
+
+	// MaxConnectionAge要關閉之前等待的時間
+	ForceCloseWait xtime.Duration
+
+	// keepalive頻率(心跳週期)
 	KeepAliveInterval xtime.Duration
-	KeepAliveTimeout  xtime.Duration
+
+	// 每次做keepalive完後等待多少秒如果server沒有回應則將此連線close掉
+	KeepAliveTimeout xtime.Duration
 }
 
 // TCP is tcp config.
 type TCP struct {
 	// tcp 要監聽的port
-	Bind   []string
+	Bind []string
 
-	//
+	// tcp寫資料的緩衝區大小，該緩衝區滿到無法發送時會阻塞，此值通常設定完後系統會自行在多一倍，設定1024會變2304
 	Sndbuf int
 
-	//
+	// tcp讀取資料的緩衝區大小，該緩衝區為0時會阻塞，此值通常設定完後，系統會自行在多一倍，設定1024會變2304
 	Rcvbuf int
 
 	// 是否開啟KeepAlive
@@ -195,10 +206,19 @@ type TCP struct {
 
 // Websocket is websocket config.
 type Websocket struct {
-	Bind        []string
-	TLSOpen     bool
-	TLSBind     []string
-	CertFile    string
+	// Websocket 要監聽的port
+	Bind []string
+
+	// 是否打開tls
+	TLSOpen bool
+
+	// tls 要監聽的port
+	TLSBind []string
+
+	// tls公鑰
+	CertFile string
+
+	// tls私鑰
 	PrivateFile string
 }
 
@@ -210,8 +230,19 @@ type Protocol struct {
 	// 每個time.Timer一開始能接收的TimerData數量
 	TimerSize int
 
-	SvrProto         int
-	CliProto         int
+	// 每一個連線開grpc接收資料的緩充量，當寫的速度大於讀的速度這時會阻塞，透過調大此值可以有更多緩衝避免阻塞
+	SvrProto int
+
+	// 每一個連線開異步Proto結構緩型Pool的大小，跟client透過tcp or websocket傳遞資料做消費速度有關聯
+	// 由於寫的速度有可能大於讀的速度，這時會自行close此連線，透過調大此值可以有更多緩衝close
+	CliProto int
+
+	// 一開始tcp連線後等待多久沒有請求連至某房間，連線就直接close
+	//
+	//             -> 送auth資料 ok
+	// tcp -> 等待 ->
+	//             -> 超時close
+	//
 	HandshakeTimeout xtime.Duration
 }
 
@@ -229,6 +260,7 @@ type Bucket struct {
 	// 每個Bucket開幾個goroutine併發做房間推送
 	RoutineAmount uint64
 
+	// 每個房間推送管道最大緩衝量
 	RoutineSize int
 }
 

@@ -176,6 +176,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 	// tcp連線做auth
 	if p, err = ch.CliProto.Set(); err == nil {
 		if ch.Mid, ch.Key, rid, accepts, hb, err = s.authTCP(ctx, rr, wr, p); err == nil {
+			// 將user Channel放到某一個Bucket內做保存
 			ch.Watch(accepts...)
 			b = s.Bucket(ch.Key)
 			err = b.Put(rid, ch)
@@ -184,7 +185,13 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 			}
 		}
 	}
+
 	step = 2
+
+	// 如果操作有異常則
+	// 1. 回收讀寫Buffer
+	// 2. 解除心跳任務(close 連線)
+	// 3. 關閉連線
 	if err != nil {
 		conn.Close()
 		rp.Put(rb)
@@ -193,16 +200,24 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 		log.Errorf("key: %s handshake failed error(%v)", ch.Key, err)
 		return
 	}
+
+	// 進入某房間成功後重置心跳任務
 	trd.Key = ch.Key
 	tr.Set(trd, hb)
+
 	white = whitelist.Contains(ch.Mid)
 	if white {
 		whitelist.Printf("key: %s[%s] auth\n", ch.Key, rid)
 	}
+
 	step = 3
-	// hanshake ok start dispatch goroutine
+
+	// 處理訊息推送
 	go s.dispatchTCP(conn, wr, wp, wb, ch)
+
 	serverHeartbeat := s.RandServerHearbeat()
+
+	// 處理tcp送過來的資料邏輯
 	for {
 		if p, err = ch.CliProto.Set(); err != nil {
 			break
@@ -216,6 +231,8 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 		if white {
 			whitelist.Printf("key: %s read proto:%v\n", ch.Key, p)
 		}
+
+		// client回應心跳，server要回覆心跳結果
 		if p.Op == grpc.OpHeartbeat {
 			tr.Set(trd, hb)
 			p.Op = grpc.OpHeartbeatReply
@@ -231,6 +248,7 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 			}
 			step++
 		} else {
+			// 非心跳動作
 			if err = s.Operate(ctx, p, ch, b); err != nil {
 				break
 			}
@@ -238,12 +256,24 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 		if white {
 			whitelist.Printf("key: %s process proto:%v\n", ch.Key, p)
 		}
+
+		// 寫的游標要++讓Get可以取得已寫入的Proto
 		ch.CliProto.SetAdv()
+
+		// 通知負責訊息推播goroutine處理本次接收到的資料
 		ch.Signal()
+
 		if white {
 			whitelist.Printf("key: %s signal\n", ch.Key)
 		}
 	}
+
+	// 如果某人連線有異常或是server要踢人則
+	// 1. 從Bucket移除user Channel，這樣對Bucket內的Channel才都是活人
+	// 2. 解除心跳任務(close 連線)
+	// 3. 回收讀Buffer，不回收寫的Buffer是因為Channel close後dispatchTCP會被通知到並回收寫的Buffer
+	// 4. 關閉連線
+	// 5. 通知logic某人下線了
 	if white {
 		whitelist.Printf("key: %s server tcp error(%v)\n", ch.Key, err)
 	}
@@ -283,6 +313,8 @@ func (s *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool
 		if white {
 			whitelist.Printf("key: %s wait proto ready\n", ch.Key)
 		}
+
+		// 接收到別人通知説有資料要推送，沒資料時就阻塞
 		var p = ch.Ready()
 		if white {
 			whitelist.Printf("key: %s proto ready\n", ch.Key)
@@ -291,6 +323,8 @@ func (s *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool
 			log.Infof("key:%s dispatch msg:%v", ch.Key, *p)
 		}
 		switch p {
+
+		// tcp連線要關閉
 		case grpc.ProtoFinish:
 			if white {
 				whitelist.Printf("key: %s receive proto finish\n", ch.Key)
@@ -300,9 +334,11 @@ func (s *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool
 			}
 			finish = true
 			goto failed
+
+			// 有資料需要推送
 		case grpc.ProtoReady:
-			// fetch message from svrbox(client send)
 			for {
+				// 取得上次透過Set()寫入資料的Proto
 				if p, err = ch.CliProto.Get(); err != nil {
 					break
 				}
@@ -324,7 +360,9 @@ func (s *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool
 				if white {
 					whitelist.Printf("key: %s write client proto%v\n", ch.Key, p)
 				}
-				p.Body = nil // avoid memory leak
+				p.Body = nil
+
+				// 讀的游標++
 				ch.CliProto.GetAdv()
 			}
 		default:
@@ -345,7 +383,7 @@ func (s *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool
 		if white {
 			whitelist.Printf("key: %s start flush \n", ch.Key)
 		}
-		// only hungry flush response
+		// 送出資料給client
 		if err = wr.Flush(); err != nil {
 			break
 		}
@@ -353,6 +391,9 @@ func (s *Server) dispatchTCP(conn *net.TCPConn, wr *bufio.Writer, wp *bytes.Pool
 			whitelist.Printf("key: %s flush\n", ch.Key)
 		}
 	}
+	// 連線有異常或是server要踢人
+	// 1. 連線close
+	// 2. 回收寫的Buffter
 failed:
 	if white {
 		whitelist.Printf("key: %s dispatch tcp error(%v)\n", ch.Key, err)
@@ -377,6 +418,7 @@ func (s *Server) authTCP(ctx context.Context, rr *bufio.Reader, wr *bufio.Writer
 		if err = p.ReadTCP(rr); err != nil {
 			return
 		}
+		// 如果第一次連線送的資料不是請求連接到某房間則會一直等待
 		if p.Op == grpc.OpAuth {
 			break
 		} else {

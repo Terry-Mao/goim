@@ -7,12 +7,17 @@ import (
 	"github.com/Terry-Mao/goim/pkg/bufio"
 )
 
-// 用於推送消息給user
+// 用於推送消息給user，可以把這個識別user在聊天室內的地址
+// 紀錄了當初連線至聊天室時所給的參數值
+// 1. 身處在哪一個聊天室
+// 2. user mid (user id)
+// 3. user key
+// 4. user operation
 type Channel struct {
 	// 該user進入的房間
 	Room *Room
 
-	//
+	// 讀寫異步的grpc.Proto緩型Pool
 	CliProto Ring
 
 	// 透過此管道處理Job service 送過來的資料
@@ -57,6 +62,7 @@ func NewChannel(cli, svr int) *Channel {
 	return c
 }
 
+// 設置user operation
 func (c *Channel) Watch(accepts ...int32) {
 	c.mutex.Lock()
 	for _, op := range accepts {
@@ -65,6 +71,7 @@ func (c *Channel) Watch(accepts ...int32) {
 	c.mutex.Unlock()
 }
 
+// 移除user operation
 func (c *Channel) UnWatch(accepts ...int32) {
 	c.mutex.Lock()
 	for _, op := range accepts {
@@ -73,6 +80,7 @@ func (c *Channel) UnWatch(accepts ...int32) {
 	c.mutex.Unlock()
 }
 
+// 判斷operation是否存在user內
 func (c *Channel) NeedPush(op int32) bool {
 	c.mutex.RLock()
 	if _, ok := c.watchOps[op]; ok {
