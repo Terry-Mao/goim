@@ -31,17 +31,20 @@ func main() {
 		panic(err)
 	}
 	log.Infof("goim-logic [version: %s env: %+v] start", ver, conf.Conf.Env)
-	
+
 	// 初始化註冊中心
 	dis := naming.New(conf.Conf.Discovery)
 	resolver.Register(dis)
 
-	// logic
+	// new srever
 	srv := logic.New(conf.Conf)
 	httpSrv := http.New(conf.Conf.HTTPServer, srv)
 	rpcSrv := grpc.New(conf.Conf.RPCServer, srv)
+
+	// 向註冊中心提交節點資料
 	cancel := register(dis, srv)
-	// signal
+
+	// 接收到close signal的處理
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	for {

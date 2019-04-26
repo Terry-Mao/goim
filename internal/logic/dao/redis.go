@@ -31,7 +31,7 @@ func keyServerOnline(key string) string {
 	return fmt.Sprintf(_prefixServerOnline, key)
 }
 
-// pingRedis check redis connection.
+// ping redis是否活著
 func (d *Dao) pingRedis(c context.Context) (err error) {
 	conn := d.redis.Get()
 	_, err = conn.Do("SET", "PING", "PONG")
@@ -39,10 +39,9 @@ func (d *Dao) pingRedis(c context.Context) (err error) {
 	return
 }
 
-// AddMapping add a mapping.
-// Mapping:
-//	mid -> key_server
-//	key -> server
+// 儲存user資訊
+// HSET : mid_userId userKey server_name
+// SET : key_userKey server_name
 func (d *Dao) AddMapping(c context.Context, mid int64, key, server string) (err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
@@ -79,7 +78,9 @@ func (d *Dao) AddMapping(c context.Context, mid int64, key, server string) (err 
 	return
 }
 
-// ExpireMapping expire a mapping.
+// restart user資料的過期時間
+// EXPIRE : mid_userId  (HSET)
+// EXPIRE : key_userKey (SET)
 func (d *Dao) ExpireMapping(c context.Context, mid int64, key string) (has bool, err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
@@ -108,7 +109,9 @@ func (d *Dao) ExpireMapping(c context.Context, mid int64, key string) (has bool,
 	return
 }
 
-// DelMapping del a mapping.
+// 移除user資訊
+// HDEL : mid_userId userKey
+// DEL : key_userKey
 func (d *Dao) DelMapping(c context.Context, mid int64, key, server string) (has bool, err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
@@ -184,7 +187,11 @@ func (d *Dao) KeysByMids(c context.Context, mids []int64) (ress map[string]strin
 	return
 }
 
-// AddServerOnline add a server online.
+// 以HSET方式儲存房間人數
+// HSET Key hashKey (json)
+// Key用server name
+// hashKey則是將room name以City Hash32做hash後得出一個數字，以這個數字當hashKey
+// 至於為什麼hashKey還要用City Hash32做hash就不知道
 func (d *Dao) AddServerOnline(c context.Context, server string, online *model.Online) (err error) {
 	roomsMap := map[uint32]map[string]int32{}
 	for room, count := range online.RoomCount {
@@ -205,6 +212,9 @@ func (d *Dao) AddServerOnline(c context.Context, server string, online *model.On
 	return
 }
 
+// 以HSET方式儲存房間人數
+// HSET Key hashKey (json)
+// Key用server name
 func (d *Dao) addServerOnline(c context.Context, key string, hashKey string, online *model.Online) (err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
@@ -233,6 +243,7 @@ func (d *Dao) addServerOnline(c context.Context, key string, hashKey string, onl
 // ServerOnline get a server online.
 func (d *Dao) ServerOnline(c context.Context, server string) (online *model.Online, err error) {
 	online = &model.Online{RoomCount: map[string]int32{}}
+	// server name
 	key := keyServerOnline(server)
 	for i := 0; i < 64; i++ {
 		ol, err := d.serverOnline(c, key, strconv.FormatInt(int64(i), 10))

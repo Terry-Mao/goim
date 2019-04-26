@@ -14,6 +14,8 @@ type Dao struct {
 	c           *conf.Config
 	kafkaPub    kafka.SyncProducer
 	redis       *redis.Pool
+
+	// redis 過期時間
 	redisExpire int32
 }
 
@@ -65,7 +67,7 @@ func (d *Dao) Close() error {
 	return d.redis.Close()
 }
 
-// Ping dao ping.
+// ping redis是否活著
 func (d *Dao) Ping(c context.Context) error {
 	return d.pingRedis(c)
 }

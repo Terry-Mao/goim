@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bilibili/discovery/naming"
 	xtime "github.com/Terry-Mao/goim/pkg/time"
+	"github.com/bilibili/discovery/naming"
 
 	"github.com/BurntSushi/toml"
 )
@@ -100,9 +100,13 @@ type Node struct {
 	TCPPort       int
 	WSPort        int
 	WSSPort       int
-	HeartbeatMax  int
-	Heartbeat     xtime.Duration
-	RegionWeight  float64
+
+	// 心跳週期，連線沒有在既定的週期內回應，server就close
+	// Heartbeat * HeartbeatMax = 週期時間
+	HeartbeatMax int
+	Heartbeat    xtime.Duration
+
+	RegionWeight float64
 }
 
 // Backoff backoff.
@@ -113,18 +117,37 @@ type Backoff struct {
 	Jitter    float32
 }
 
-// Redis .
+// Redis
 type Redis struct {
-	Network      string
-	Addr         string
-	Auth         string
-	Active       int
-	Idle         int
-	DialTimeout  xtime.Duration
-	ReadTimeout  xtime.Duration
+	// host
+	Network string
+
+	// port
+	Addr string
+
+	// password
+	Auth string
+
+	// pool內最大連線總數
+	Active int
+
+	// 最大保留的閒置連線數
+	Idle int
+
+	// 建立連線超時多久後放棄
+	DialTimeout xtime.Duration
+
+	// read多久沒回覆則放棄
+	ReadTimeout xtime.Duration
+
+	// write多久沒回覆則放棄
 	WriteTimeout xtime.Duration
-	IdleTimeout  xtime.Duration
-	Expire       xtime.Duration
+
+	// 空閒連線多久沒做事就close
+	IdleTimeout xtime.Duration
+
+	// redis過期時間
+	Expire xtime.Duration
 }
 
 // Kafka .

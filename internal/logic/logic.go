@@ -19,17 +19,31 @@ const (
 
 // Logic struct
 type Logic struct {
-	c   *conf.Config
+	//
+	c *conf.Config
+
+	// discovery client
 	dis *naming.Discovery
+
+	// kafka and redis Dao
 	dao *dao.Dao
-	// online
-	totalIPs   int64
+
+	//
+	totalIPs int64
+
+	//
 	totalConns int64
-	roomCount  map[string]int32
-	// load balancer
-	nodes        []*naming.Instance
+
+	//
+	roomCount map[string]int32
+
+	nodes []*naming.Instance
+
+	//
 	loadBalancer *LoadBalancer
-	regions      map[string]string // province -> region
+
+	//
+	regions map[string]string
 }
 
 // New init
@@ -138,6 +152,7 @@ func (l *Logic) onlineproc() {
 	}
 }
 
+// 從redis拿出現在各房間人數
 func (l *Logic) loadOnline() (err error) {
 	var (
 		roomCount = make(map[string]int32)

@@ -20,9 +20,9 @@ func New(c *conf.RPCServer, l *logic.Logic) *grpc.Server {
 	keepParams := grpc.KeepaliveParams(keepalive.ServerParameters{
 		MaxConnectionIdle:     time.Duration(c.IdleTimeout),
 		MaxConnectionAgeGrace: time.Duration(c.ForceCloseWait),
-		Time:             time.Duration(c.KeepAliveInterval),
-		Timeout:          time.Duration(c.KeepAliveTimeout),
-		MaxConnectionAge: time.Duration(c.MaxLifeTime),
+		Time:                  time.Duration(c.KeepAliveInterval),
+		Timeout:               time.Duration(c.KeepAliveTimeout),
+		MaxConnectionAge:      time.Duration(c.MaxLifeTime),
 	})
 	srv := grpc.NewServer(keepParams)
 	pb.RegisterLogicServer(srv, &server{l})
@@ -54,7 +54,7 @@ func (s *server) Close(ctx context.Context, req *pb.CloseReq) (*pb.CloseReply, e
 	return &pb.CloseReply{}, nil
 }
 
-// Connect connect a conn.
+// 某client要做連線
 func (s *server) Connect(ctx context.Context, req *pb.ConnectReq) (*pb.ConnectReply, error) {
 	mid, key, room, accepts, hb, err := s.srv.Connect(ctx, req.Server, req.Cookie, req.Token)
 	if err != nil {
@@ -63,7 +63,7 @@ func (s *server) Connect(ctx context.Context, req *pb.ConnectReq) (*pb.ConnectRe
 	return &pb.ConnectReply{Mid: mid, Key: key, RoomID: room, Accepts: accepts, Heartbeat: hb}, nil
 }
 
-// Disconnect disconnect a conn.
+// 某client要中斷連線
 func (s *server) Disconnect(ctx context.Context, req *pb.DisconnectReq) (*pb.DisconnectReply, error) {
 	has, err := s.srv.Disconnect(ctx, req.Mid, req.Key, req.Server)
 	if err != nil {
@@ -72,7 +72,7 @@ func (s *server) Disconnect(ctx context.Context, req *pb.DisconnectReq) (*pb.Dis
 	return &pb.DisconnectReply{Has: has}, nil
 }
 
-// Heartbeat beartbeat a conn.
+// 重置user redis過期時間
 func (s *server) Heartbeat(ctx context.Context, req *pb.HeartbeatReq) (*pb.HeartbeatReply, error) {
 	if err := s.srv.Heartbeat(ctx, req.Mid, req.Key, req.Server); err != nil {
 		return &pb.HeartbeatReply{}, err
@@ -80,7 +80,7 @@ func (s *server) Heartbeat(ctx context.Context, req *pb.HeartbeatReq) (*pb.Heart
 	return &pb.HeartbeatReply{}, nil
 }
 
-// RenewOnline renew server online.
+// 更新每個房間線上總人數資料
 func (s *server) RenewOnline(ctx context.Context, req *pb.OnlineReq) (*pb.OnlineReply, error) {
 	allRoomCount, err := s.srv.RenewOnline(ctx, req.Server, req.RoomCount)
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *server) RenewOnline(ctx context.Context, req *pb.OnlineReq) (*pb.Online
 	return &pb.OnlineReply{AllRoomCount: allRoomCount}, nil
 }
 
-// Receive receive a message.
+//
 func (s *server) Receive(ctx context.Context, req *pb.ReceiveReq) (*pb.ReceiveReply, error) {
 	if err := s.srv.Receive(ctx, req.Mid, req.Proto); err != nil {
 		return &pb.ReceiveReply{}, err
@@ -97,7 +97,7 @@ func (s *server) Receive(ctx context.Context, req *pb.ReceiveReq) (*pb.ReceiveRe
 	return &pb.ReceiveReply{}, nil
 }
 
-// nodes return nodes.
+//
 func (s *server) Nodes(ctx context.Context, req *pb.NodesReq) (*pb.NodesReply, error) {
 	return s.srv.NodesWeighted(ctx, req.Platform, req.ClientIP), nil
 }
