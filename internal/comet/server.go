@@ -2,6 +2,7 @@ package comet
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -131,7 +132,10 @@ func (s *Server) Bucket(subKey string) *Bucket {
 
 // 通知logic Refresh client連線狀態的時間(心跳包的週期)
 func (s *Server) RandServerHearbeat() time.Duration {
-	return (minServerHeartbeat + time.Duration(rand.Int63n(int64(maxServerHeartbeat-minServerHeartbeat))))
+	duration := time.Duration(rand.Int63n(int64(maxServerHeartbeat - minServerHeartbeat)))
+	fmt.Println(maxServerHeartbeat-minServerHeartbeat)
+	fmt.Println(duration)
+	return (minServerHeartbeat + duration)
 }
 
 func (s *Server) Close() (err error) {
