@@ -67,16 +67,19 @@ func (s *Server) Receive(ctx context.Context, mid int64, p *model.Proto) (err er
 // 處理Proto相關邏輯
 func (s *Server) Operate(ctx context.Context, p *model.Proto, ch *Channel, b *Bucket) error {
 	switch p.Op {
+	// 更換房間
 	case model.OpChangeRoom:
 		if err := b.ChangeRoom(string(p.Body), ch); err != nil {
 			log.Errorf("b.ChangeRoom(%s) error(%v)", p.Body, err)
 		}
 		p.Op = model.OpChangeRoomReply
+	// user新增operation
 	case model.OpSub:
 		if ops, err := strings.SplitInt32s(string(p.Body), ","); err == nil {
 			ch.Watch(ops...)
 		}
 		p.Op = model.OpSubReply
+	// user移除operation
 	case model.OpUnsub:
 		if ops, err := strings.SplitInt32s(string(p.Body), ","); err == nil {
 			ch.UnWatch(ops...)

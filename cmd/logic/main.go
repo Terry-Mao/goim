@@ -31,9 +31,11 @@ func main() {
 		panic(err)
 	}
 	log.Infof("goim-logic [version: %s env: %+v] start", ver, conf.Conf.Env)
-	// grpc register naming
+	
+	// 初始化註冊中心
 	dis := naming.New(conf.Conf.Discovery)
 	resolver.Register(dis)
+
 	// logic
 	srv := logic.New(conf.Conf)
 	httpSrv := http.New(conf.Conf.HTTPServer, srv)

@@ -19,9 +19,9 @@ func New(c *conf.RPCServer, s *comet.Server) *grpc.Server {
 	keepParams := grpc.KeepaliveParams(keepalive.ServerParameters{
 		MaxConnectionIdle:     time.Duration(c.IdleTimeout),
 		MaxConnectionAgeGrace: time.Duration(c.ForceCloseWait),
-		Time:             time.Duration(c.KeepAliveInterval),
-		Timeout:          time.Duration(c.KeepAliveTimeout),
-		MaxConnectionAge: time.Duration(c.MaxLifeTime),
+		Time:                  time.Duration(c.KeepAliveInterval),
+		Timeout:               time.Duration(c.KeepAliveTimeout),
+		MaxConnectionAge:      time.Duration(c.MaxLifeTime),
 	})
 	srv := grpc.NewServer(keepParams)
 	pb.RegisterCometServer(srv, &server{s})
@@ -54,16 +54,19 @@ func (s *server) Close(ctx context.Context, req *pb.Empty) (*pb.Empty, error) {
 	return &pb.Empty{}, nil
 }
 
-// PushMsg push a message to specified sub keys.
+// 對某人訊息推送
 func (s *server) PushMsg(ctx context.Context, req *pb.PushMsgReq) (reply *pb.PushMsgReply, err error) {
 	if len(req.Keys) == 0 || req.Proto == nil {
 		return nil, errors.ErrPushMsgArg
 	}
 	for _, key := range req.Keys {
+		// 根據key在Bucket找出對應Channel
 		if channel := s.srv.Bucket(key).Channel(key); channel != nil {
+			// 判斷Channel是否符合推送的Operation條件
 			if !channel.NeedPush(req.ProtoOp) {
 				continue
 			}
+			// 針對某人推送訊息
 			if err = channel.Push(req.Proto); err != nil {
 				return
 			}
@@ -72,7 +75,7 @@ func (s *server) PushMsg(ctx context.Context, req *pb.PushMsgReq) (reply *pb.Pus
 	return &pb.PushMsgReply{}, nil
 }
 
-// Broadcast broadcast msg to all user.
+// 所有房間做推送
 func (s *server) Broadcast(ctx context.Context, req *pb.BroadcastReq) (*pb.BroadcastReply, error) {
 	if req.Proto == nil {
 		return nil, errors.ErrBroadCastArg
@@ -90,7 +93,7 @@ func (s *server) Broadcast(ctx context.Context, req *pb.BroadcastReq) (*pb.Broad
 	return &pb.BroadcastReply{}, nil
 }
 
-// BroadcastRoom broadcast msg to specified room.
+// 單一房間推送
 func (s *server) BroadcastRoom(ctx context.Context, req *pb.BroadcastRoomReq) (*pb.BroadcastRoomReply, error) {
 	if req.Proto == nil || req.RoomID == "" {
 		return nil, errors.ErrBroadCastRoomArg
@@ -101,7 +104,7 @@ func (s *server) BroadcastRoom(ctx context.Context, req *pb.BroadcastRoomReq) (*
 	return &pb.BroadcastRoomReply{}, nil
 }
 
-// Rooms gets all the room ids for the server.
+// server上有哪些房間
 func (s *server) Rooms(ctx context.Context, req *pb.RoomsReq) (*pb.RoomsReply, error) {
 	var (
 		roomIds = make(map[string]bool)
