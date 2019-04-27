@@ -22,9 +22,10 @@ type Job struct {
 	// 接收Kafka推送
 	consumer *cluster.Consumer
 
-	//
+	// 線上有運行哪些Comet server (不同host)
 	cometServers map[string]*Comet
 
+	// 房間訊息聚合
 	rooms map[string]*Room
 
 	// 讀寫鎖

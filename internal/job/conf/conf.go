@@ -61,13 +61,18 @@ type Config struct {
 	Room      *Room
 }
 
-// Room is room config.
+// 房間消息聚合
 type Room struct {
+	// Signal時間內最大緩衝的訊息量，超過就推送給comet
+	// 設太小等於Signal沒用，設大太每次都一定要等Signal時間到
+	// 默認是20筆
 	Batch int
 
-	// 多久才推送房間消息給comet
+	// 消息聚合等待多久才推送房間消息給comet，默認一秒應該是最好的優化
+	// 設小會提高job通知comet的頻率，設太大房間訊息會更延遲
 	Signal xtime.Duration
 
+	// 消息聚合goroutine等待多久都沒收到訊息自動close
 	Idle xtime.Duration
 }
 

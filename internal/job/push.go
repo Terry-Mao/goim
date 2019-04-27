@@ -56,7 +56,7 @@ func (j *Job) pushKeys(operation int32, serverID string, subKeys []string, body 
 	return
 }
 
-// broadcast broadcast a message to all.
+// 多房間訊息推送給comet
 func (j *Job) broadcast(operation int32, body []byte, speed int32) (err error) {
 	buf := bytes.NewWriterSize(len(body) + 64)
 	p := &comet.Proto{
@@ -83,7 +83,7 @@ func (j *Job) broadcast(operation int32, body []byte, speed int32) (err error) {
 	return
 }
 
-// broadcastRoomRawBytes broadcast aggregation messages to room.
+// 房間訊息推送給comet
 func (j *Job) broadcastRoomRawBytes(roomID string, body []byte) (err error) {
 	args := comet.BroadcastRoomReq{
 		RoomID: roomID,

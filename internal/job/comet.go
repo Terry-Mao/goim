@@ -205,7 +205,7 @@ func (c *Comet) process(pushChan chan *comet.PushMsgReq, roomChan chan *comet.Br
 	}
 }
 
-// Close close the resouces.
+// 關閉其他正在執行的goroutine (好像沒用到)
 func (c *Comet) Close() (err error) {
 	finish := make(chan bool)
 	go func() {

@@ -2,7 +2,6 @@ package job
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	comet "github.com/Terry-Mao/goim/api/comet/grpc"
@@ -21,21 +20,19 @@ var (
 	// ErrRoomFull room chan full.
 	ErrRoomFull = errors.New("room proto chan full")
 
-	// 通知該推送房間消息的flag
+	// 通知該推送房間訊息的flag
 	roomReadyProto = new(comet.Proto)
 )
 
-// Room room.
+// 房間訊息聚合
 type Room struct {
-	c *conf.Room
-
-	//
+	c   *conf.Room
 	job *Job
 
-	//
+	// 房間id
 	id string
 
-	//
+	// 發送訊息至房間訊息聚合的chan
 	proto chan *comet.Proto
 }
 
@@ -51,7 +48,7 @@ func NewRoom(job *Job, id string, c *conf.Room) (r *Room) {
 	return
 }
 
-// Push push msg to the room, if chan full discard it.
+// 訊息放到房間訊息聚合決定何時推送給comet
 func (r *Room) Push(op int32, msg []byte) (err error) {
 	var p = &comet.Proto{
 		Ver:  1,
@@ -66,7 +63,7 @@ func (r *Room) Push(op int32, msg []byte) (err error) {
 	return
 }
 
-// 房間消息聚合
+// 房間訊息聚合
 func (r *Room) pushproc(batch int, sigTime time.Duration) {
 	var (
 		// 緩衝的訊息筆數
@@ -75,13 +72,12 @@ func (r *Room) pushproc(batch int, sigTime time.Duration) {
 		// 第一筆開始緩衝的時間
 		last time.Time
 
-		//
+		// 接收待推送給comet
 		p *comet.Proto
 
 		// 緩衝訊息
 		buf = bytes.NewWriterSize(int(comet.MaxBodySize))
 	)
-	fmt.Println("new")
 	log.Infof("start room:%s goroutine", r.id)
 
 	// 控制多久才推送訊息給comet server
@@ -93,7 +89,6 @@ func (r *Room) pushproc(batch int, sigTime time.Duration) {
 	})
 
 	defer td.Stop()
-	//
 	for {
 		if p = <-r.proto; p == nil {
 			break // exit
@@ -113,6 +108,7 @@ func (r *Room) pushproc(batch int, sigTime time.Duration) {
 			// 2. 任務倒數已到
 			//    (1) 有緩衝到一筆就推送給comet
 			//    (2) 如果沒緩衝到一筆代表這個房間都沒人推送了，就可以close goroutine
+			//        PS 這情況的任務非推送週期時間而是等待訊息時間，請看internal/job/conf/conf.go room的Idle
 			if n++; n == 1 {
 				last = time.Now()
 				td.Reset(sigTime)
@@ -124,15 +120,18 @@ func (r *Room) pushproc(batch int, sigTime time.Duration) {
 			}
 		} else {
 			if n == 0 {
-				fmt.Println("close")
 				break
 			}
 		}
 
 		_ = r.job.broadcastRoomRawBytes(r.id, buf.Buffer())
+
 		// TODO use reset buffer
 		// after push to room channel, renew a buffer, let old buffer gc
 		buf = bytes.NewWriterSize(buf.Size())
+
+		// 重置緩衝數量
+		// 設定此goroutine等待多久沒動作就close
 		n = 0
 		if r.c.Idle != 0 {
 			td.Reset(time.Duration(r.c.Idle))
@@ -140,17 +139,20 @@ func (r *Room) pushproc(batch int, sigTime time.Duration) {
 			td.Reset(time.Minute)
 		}
 	}
+
+	// 該房間已超過多久都有訊息要推送就刪除
 	r.job.delRoom(r.id)
 	log.Infof("room:%s goroutine exit", r.id)
 }
 
+// 移除房間訊息聚合
 func (j *Job) delRoom(roomID string) {
 	j.roomsMutex.Lock()
 	delete(j.rooms, roomID)
 	j.roomsMutex.Unlock()
 }
 
-// 根據room id取Room
+// 根據room id取Roomd用做房間訊息聚合
 func (j *Job) getRoom(roomID string) *Room {
 	j.roomsMutex.RLock()
 	room, ok := j.rooms[roomID]
