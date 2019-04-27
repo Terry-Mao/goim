@@ -17,11 +17,17 @@ import (
 
 // Job is push job.
 type Job struct {
-	c            *conf.Config
-	consumer     *cluster.Consumer
+	c *conf.Config
+
+	// 接收Kafka推送
+	consumer *cluster.Consumer
+
+	//
 	cometServers map[string]*Comet
 
-	rooms      map[string]*Room
+	rooms map[string]*Room
+
+	// 讀寫鎖
 	roomsMutex sync.RWMutex
 }
 
@@ -55,7 +61,7 @@ func (j *Job) Close() error {
 	return nil
 }
 
-// Consume messages, watch signals
+// 接收Kafka推送的資料
 func (j *Job) Consume() {
 	for {
 		select {
@@ -74,6 +80,7 @@ func (j *Job) Consume() {
 				log.Errorf("proto.Unmarshal(%v) error(%v)", msg, err)
 				continue
 			}
+			// 開始處理推送至comet server
 			if err := j.push(context.Background(), pushMsg); err != nil {
 				log.Errorf("j.push(%v) error(%v)", pushMsg, err)
 			}
@@ -82,6 +89,7 @@ func (j *Job) Consume() {
 	}
 }
 
+// 監控註冊中心有關於comet server node
 func (j *Job) watchComet(c *naming.Config) {
 	dis := naming.New(c)
 	resolver := dis.Build("goim.comet")
@@ -118,17 +126,22 @@ func (j *Job) watchComet(c *naming.Config) {
 	}()
 }
 
+// 同步註冊中心comet server node
 func (j *Job) newAddress(insMap map[string][]*naming.Instance) error {
 	ins := insMap[j.c.Env.Zone]
 	if len(ins) == 0 {
 		return fmt.Errorf("watchComet instance is empty")
 	}
+
 	comets := map[string]*Comet{}
 	for _, in := range ins {
+		// 如果comet server有更新node給註冊中心則job紀錄的comet server資料也要更新
 		if old, ok := j.cometServers[in.Hostname]; ok {
 			comets[in.Hostname] = old
 			continue
 		}
+
+		// 如果comet server有向註冊中心提交新的node
 		c, err := NewComet(in, j.c.Comet)
 		if err != nil {
 			log.Errorf("watchComet NewComet(%+v) error(%v)", in, err)
@@ -137,6 +150,8 @@ func (j *Job) newAddress(insMap map[string][]*naming.Instance) error {
 		comets[in.Hostname] = c
 		log.Infof("watchComet AddComet grpc:%+v", in)
 	}
+
+	// 如果有comet node資料不存在註冊中心，就代表有異常需要清掉
 	for key, old := range j.cometServers {
 		if _, ok := comets[key]; !ok {
 			old.cancel()

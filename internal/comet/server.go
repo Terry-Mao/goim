@@ -45,16 +45,13 @@ func newLogicClient(c *conf.RPCClient) logic.LogicClient {
 		[]grpc.DialOption{
 			// 與server溝通不用檢查憑證之類
 			grpc.WithInsecure(),
-
 			// Http2相關參數設定
 			grpc.WithInitialWindowSize(grpcInitialWindowSize),
 			grpc.WithInitialConnWindowSize(grpcInitialConnWindowSize),
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(grpcMaxCallMsgSize)),
 			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(grpcMaxSendMsgSize)),
-
 			//
 			grpc.WithBackoffMaxDelay(grpcBackoffMaxDelay),
-
 			// 心跳機制參數
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
 				Time:                grpcKeepAliveTime,

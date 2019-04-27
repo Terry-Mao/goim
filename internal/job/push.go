@@ -10,21 +10,26 @@ import (
 	log "github.com/golang/glog"
 )
 
+// 訊息推送至comet server
 func (j *Job) push(ctx context.Context, pushMsg *pb.PushMsg) (err error) {
 	switch pushMsg.Type {
+	// 單一人推送
 	case pb.PushMsg_PUSH:
 		err = j.pushKeys(pushMsg.Operation, pushMsg.Server, pushMsg.Keys, pushMsg.Msg)
+	// 單一房間推送
 	case pb.PushMsg_ROOM:
 		err = j.getRoom(pushMsg.Room).Push(pushMsg.Operation, pushMsg.Msg)
+	// 所有房間推送
 	case pb.PushMsg_BROADCAST:
 		err = j.broadcast(pushMsg.Operation, pushMsg.Msg, pushMsg.Speed)
+	// 異常資料
 	default:
 		err = fmt.Errorf("no match push type: %s", pushMsg.Type)
 	}
 	return
 }
 
-// pushKeys push a message to a batch of subkeys.
+// 單人訊息推送至comet server
 func (j *Job) pushKeys(operation int32, serverID string, subKeys []string, body []byte) (err error) {
 	buf := bytes.NewWriterSize(len(body) + 64)
 	p := &comet.Proto{
@@ -40,6 +45,8 @@ func (j *Job) pushKeys(operation int32, serverID string, subKeys []string, body 
 		ProtoOp: operation,
 		Proto:   p,
 	}
+
+	// 根據user所在的comet server id做發送
 	if c, ok := j.cometServers[serverID]; ok {
 		if err = c.Push(&args); err != nil {
 			log.Errorf("c.Push(%v) serverID:%s error(%v)", args, serverID, err)

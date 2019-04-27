@@ -24,13 +24,15 @@ func main() {
 		panic(err)
 	}
 	log.Infof("goim-job [version: %s env: %+v] start", ver, conf.Conf.Env)
-	// grpc register naming
+
+	// 初始化註冊中心
 	dis := naming.New(conf.Conf.Discovery)
 	resolver.Register(dis)
-	// job
+
 	j := job.New(conf.Conf)
 	go j.Consume()
-	// signal
+
+	// 接收到close signal的處理
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	for {

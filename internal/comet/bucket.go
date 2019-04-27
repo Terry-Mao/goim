@@ -215,8 +215,9 @@ func (b *Bucket) DelRoom(room *Room) {
 }
 
 // logic service透過grpc推送給某個房間訊息
-// Bucket本身會開多個goroutine做併發推送，與goroutine溝透透過chan
-// 會使用原子鎖做遞增%Bucket開的goroutine數量來做選擇
+// Bucket自己會預先開好多個goroutine，每個goroutine內都有一把
+// 用於訊息推送chan，用原子鎖遞增%goroutine總數量來輪替
+// 由哪一個goroutine，也就是平均分配推送的量給各goroutine
 func (b *Bucket) BroadcastRoom(arg *grpc.BroadcastRoomReq) {
 	num := atomic.AddUint64(&b.routinesNum, 1) % b.c.RoutineAmount
 	b.routines[num] <- arg

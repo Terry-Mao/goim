@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/bilibili/discovery/naming"
 	"github.com/BurntSushi/toml"
 	xtime "github.com/Terry-Mao/goim/pkg/time"
+	"github.com/bilibili/discovery/naming"
 )
 
 var (
@@ -63,14 +63,20 @@ type Config struct {
 
 // Room is room config.
 type Room struct {
-	Batch  int
+	Batch int
+
+	// 多久才推送房間消息給comet
 	Signal xtime.Duration
-	Idle   xtime.Duration
+
+	Idle xtime.Duration
 }
 
 // Comet is comet config.
 type Comet struct {
+	// 處理訊息推送給comet的chan數量
 	RoutineChan int
+
+	// 處理訊息推送給comet的chan的Buffer
 	RoutineSize int
 }
 
