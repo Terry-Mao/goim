@@ -34,9 +34,10 @@ type Logic struct {
 	//
 	totalConns int64
 
-	//
+	// 房間在線人數，key是房間id
 	roomCount map[string]int32
 
+	//
 	nodes []*naming.Instance
 
 	//

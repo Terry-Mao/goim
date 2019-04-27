@@ -111,9 +111,16 @@ type Node struct {
 
 // Backoff backoff.
 type Backoff struct {
+	//
 	MaxDelay  int32
+
+	//
 	BaseDelay int32
+
+	//
 	Factor    float32
+
+	//
 	Jitter    float32
 }
 
@@ -152,32 +159,61 @@ type Redis struct {
 
 // Kafka .
 type Kafka struct {
+	// Kafka 推送與接收Topic
 	Topic   string
+
+	//
 	Brokers []string
 }
 
-// RPCClient is RPC client config.
+// RPCClient is RPC client config
 type RPCClient struct {
-	Dial    xtime.Duration
+	// 沒用到
+	Dial xtime.Duration
+
+	// 沒用到
 	Timeout xtime.Duration
 }
 
 // RPCServer is RPC server config.
 type RPCServer struct {
-	Network           string
-	Addr              string
-	Timeout           xtime.Duration
-	IdleTimeout       xtime.Duration
-	MaxLifeTime       xtime.Duration
-	ForceCloseWait    xtime.Duration
+	// host
+	Network string
+
+	// port
+	Addr string
+
+	// 沒用到
+	Timeout xtime.Duration
+
+	// 當連線閒置多久後發送一個`GOAWAY` Framer 封包告知Client說太久沒活動
+	//至於Client收到`GOAWAY`後要做什麼目前要自己實現stream，server只是做通知而已，grpc server默認沒開啟此功能
+	IdleTimeout xtime.Duration
+
+	// 任何連線只要連線超過某時間就會強制被close，但是在close之前會先發送`GOAWAY`Framer 封包告知Client
+	MaxLifeTime xtime.Duration
+
+	// MaxConnectionAge要關閉之前等待的時間
+	ForceCloseWait xtime.Duration
+
+	// keepalive頻率(心跳週期)
 	KeepAliveInterval xtime.Duration
-	KeepAliveTimeout  xtime.Duration
+
+	// 每次做keepalive完後等待多少秒如果server沒有回應則將此連線close掉
+	KeepAliveTimeout xtime.Duration
 }
 
 // HTTPServer is http server config.
 type HTTPServer struct {
-	Network      string
-	Addr         string
-	ReadTimeout  xtime.Duration
+	// host
+	Network string
+
+	// port
+	Addr string
+
+	// 沒用到
+	ReadTimeout xtime.Duration
+
+	// 沒用到
 	WriteTimeout xtime.Duration
 }

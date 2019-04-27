@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// 依照房間總人數取前幾名的房間的房間id與在線人數
 func (s *Server) onlineTop(c *gin.Context) {
 	var arg struct {
 		Type  string `form:"type" binding:"required"`
@@ -23,6 +24,7 @@ func (s *Server) onlineTop(c *gin.Context) {
 	result(c, res, OK)
 }
 
+// 根據房間type與room id取房間在線人數
 func (s *Server) onlineRoom(c *gin.Context) {
 	var arg struct {
 		Type  string   `form:"type" binding:"required"`

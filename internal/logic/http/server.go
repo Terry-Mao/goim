@@ -45,5 +45,4 @@ func (s *Server) initRouter() {
 
 // Close close the server.
 func (s *Server) Close() {
-
 }

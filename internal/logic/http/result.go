@@ -7,8 +7,10 @@ import (
 const (
 	// OK ok
 	OK = 0
+
 	// RequestErr request error
 	RequestErr = -400
+
 	// ServerErr server error
 	ServerErr = -500
 

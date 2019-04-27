@@ -10,6 +10,7 @@ import (
 	log "github.com/golang/glog"
 )
 
+// http request log
 func loggerHandler(c *gin.Context) {
 	// Start timer
 	start := time.Now()
@@ -32,6 +33,7 @@ func loggerHandler(c *gin.Context) {
 	log.Infof("METHOD:%s | PATH:%s | CODE:%d | IP:%s | TIME:%d | ECODE:%d", method, path, statusCode, clientIP, latency/time.Millisecond, ecode)
 }
 
+// try catch log
 func recoverHandler(c *gin.Context) {
 	defer func() {
 		if err := recover(); err != nil {

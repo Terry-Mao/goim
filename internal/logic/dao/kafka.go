@@ -7,10 +7,13 @@ import (
 	pb "github.com/Terry-Mao/goim/api/logic/grpc"
 	"github.com/gogo/protobuf/proto"
 	log "github.com/golang/glog"
-	sarama "gopkg.in/Shopify/sarama.v1"
+	"gopkg.in/Shopify/sarama.v1"
 )
 
-// PushMsg push a message to databus.
+// 單一推送，以下為條件
+// 1. server name
+// 2. user key
+// 3. operation
 func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_PUSH,
@@ -23,6 +26,8 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 	if err != nil {
 		return
 	}
+
+	// 推送給kafka
 	m := &sarama.ProducerMessage{
 		Key:   sarama.StringEncoder(keys[0]),
 		Topic: d.c.Kafka.Topic,
@@ -34,7 +39,9 @@ func (d *Dao) PushMsg(c context.Context, op int32, server string, keys []string,
 	return
 }
 
-// BroadcastRoomMsg push a message to databus.
+// 房間推送，以下為條件
+// 1. room id
+// 2. operation
 func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_ROOM,
@@ -46,6 +53,8 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []b
 	if err != nil {
 		return
 	}
+
+	// 推送給kafka
 	m := &sarama.ProducerMessage{
 		Key:   sarama.StringEncoder(room),
 		Topic: d.c.Kafka.Topic,
@@ -57,7 +66,8 @@ func (d *Dao) BroadcastRoomMsg(c context.Context, op int32, room string, msg []b
 	return
 }
 
-// BroadcastMsg push a message to databus.
+// 所有房間推送，以下為條件
+// 1. operation
 func (d *Dao) BroadcastMsg(c context.Context, op, speed int32, msg []byte) (err error) {
 	pushMsg := &pb.PushMsg{
 		Type:      pb.PushMsg_BROADCAST,

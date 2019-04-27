@@ -14,9 +14,14 @@ import (
 )
 
 const (
-	_prefixMidServer    = "mid_%d" // mid -> key:server
-	_prefixKeyServer    = "key_%s" // key -> server
-	_prefixServerOnline = "ol_%s"  // server -> online
+	// user id的前綴詞，用於存儲在redis當key
+	_prefixMidServer = "mid_%d"
+
+	// user key的前綴詞，用於存儲在redis當key
+	_prefixKeyServer = "key_%s"
+
+	// server name的前綴詞，用於存儲在redis當key
+	_prefixServerOnline = "ol_%s"
 )
 
 func keyMidServer(mid int64) string {
@@ -40,8 +45,8 @@ func (d *Dao) pingRedis(c context.Context) (err error) {
 }
 
 // 儲存user資訊
-// HSET : mid_userId userKey server_name
-// SET : key_userKey server_name
+// HSET : mid_{user id} {user key} {server name}
+// SET : key_{user key} {server name}
 func (d *Dao) AddMapping(c context.Context, mid int64, key, server string) (err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
@@ -79,8 +84,8 @@ func (d *Dao) AddMapping(c context.Context, mid int64, key, server string) (err 
 }
 
 // restart user資料的過期時間
-// EXPIRE : mid_userId  (HSET)
-// EXPIRE : key_userKey (SET)
+// EXPIRE : mid_{user id}  (HSET)
+// EXPIRE : key_{user key} (SET)
 func (d *Dao) ExpireMapping(c context.Context, mid int64, key string) (has bool, err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
@@ -110,8 +115,8 @@ func (d *Dao) ExpireMapping(c context.Context, mid int64, key string) (has bool,
 }
 
 // 移除user資訊
-// HDEL : mid_userId userKey
-// DEL : key_userKey
+// HDEL : mid_{user id} {user key}
+// DEL : key_{user key}
 func (d *Dao) DelMapping(c context.Context, mid int64, key, server string) (has bool, err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
@@ -140,7 +145,7 @@ func (d *Dao) DelMapping(c context.Context, mid int64, key, server string) (has 
 	return
 }
 
-// ServersByKeys get a server by key.
+// 根據多組user key取各自server name
 func (d *Dao) ServersByKeys(c context.Context, keys []string) (res []string, err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
@@ -148,13 +153,14 @@ func (d *Dao) ServersByKeys(c context.Context, keys []string) (res []string, err
 	for _, key := range keys {
 		args = append(args, keyKeyServer(key))
 	}
+	// res資料為各個user所在的server name
 	if res, err = redis.Strings(conn.Do("MGET", args...)); err != nil {
 		log.Errorf("conn.Do(MGET %v) error(%v)", args, err)
 	}
 	return
 }
 
-// KeysByMids get a key server by mid.
+// 根據user id取user key與所在server name
 func (d *Dao) KeysByMids(c context.Context, mids []int64) (ress map[string]string, olMids []int64, err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
@@ -177,9 +183,11 @@ func (d *Dao) KeysByMids(c context.Context, mids []int64) (ress map[string]strin
 			log.Errorf("conn.Receive() error(%v)", err)
 			return
 		}
+		// 如果查有此userId
 		if len(res) > 0 {
 			olMids = append(olMids, mids[idx])
 		}
+		// res資料為user key => server name
 		for k, v := range res {
 			ress[k] = v
 		}
@@ -188,7 +196,7 @@ func (d *Dao) KeysByMids(c context.Context, mids []int64) (ress map[string]strin
 }
 
 // 以HSET方式儲存房間人數
-// HSET Key hashKey (json)
+// HSET Key hashKey jsonBody
 // Key用server name
 // hashKey則是將room name以City Hash32做hash後得出一個數字，以這個數字當hashKey
 // 至於為什麼hashKey還要用City Hash32做hash就不知道
@@ -213,7 +221,7 @@ func (d *Dao) AddServerOnline(c context.Context, server string, online *model.On
 }
 
 // 以HSET方式儲存房間人數
-// HSET Key hashKey (json)
+// HSET Key hashKey jsonBody
 // Key用server name
 func (d *Dao) addServerOnline(c context.Context, key string, hashKey string, online *model.Online) (err error) {
 	conn := d.redis.Get()
@@ -240,7 +248,7 @@ func (d *Dao) addServerOnline(c context.Context, key string, hashKey string, onl
 	return
 }
 
-// ServerOnline get a server online.
+// 根據server name取線上各房間總人數
 func (d *Dao) ServerOnline(c context.Context, server string) (online *model.Online, err error) {
 	online = &model.Online{RoomCount: map[string]int32{}}
 	// server name
@@ -260,9 +268,20 @@ func (d *Dao) ServerOnline(c context.Context, server string) (online *model.Onli
 	return
 }
 
+// 根據server name與hashKey取該server name內線上各房間總人數
 func (d *Dao) serverOnline(c context.Context, key string, hashKey string) (online *model.Online, err error) {
 	conn := d.redis.Get()
 	defer conn.Close()
+	// b是一個json
+	// {
+	// 		"server":"ne0002de-MacBook-Pro.local",
+	// 		"room_count":{
+	// 			"chat://1000":1
+	// 		 },
+	// 		 "updated":1556368160
+	// }"
+	// chat://1000是房間type + id，1是人數
+	// updated是資料更新時間
 	b, err := redis.Bytes(conn.Do("HGET", key, hashKey))
 	if err != nil {
 		if err != redis.ErrNil {
@@ -278,7 +297,7 @@ func (d *Dao) serverOnline(c context.Context, key string, hashKey string) (onlin
 	return
 }
 
-// DelServerOnline del a server online.
+// 根據server name 刪除線上各房間總人數
 func (d *Dao) DelServerOnline(c context.Context, server string) (err error) {
 	conn := d.redis.Get()
 	defer conn.Close()

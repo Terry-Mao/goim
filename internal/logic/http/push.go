@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// 以user key來推送訊息
 func (s *Server) pushKeys(c *gin.Context) {
 	var arg struct {
 		Op   int32    `form:"operation"`
@@ -16,7 +17,6 @@ func (s *Server) pushKeys(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	// read message
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		errors(c, RequestErr, err.Error())
@@ -29,6 +29,7 @@ func (s *Server) pushKeys(c *gin.Context) {
 	result(c, nil, OK)
 }
 
+// 以user id來推送訊息
 func (s *Server) pushMids(c *gin.Context) {
 	var arg struct {
 		Op   int32   `form:"operation"`
@@ -38,7 +39,6 @@ func (s *Server) pushMids(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	// read message
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		errors(c, RequestErr, err.Error())
@@ -51,6 +51,7 @@ func (s *Server) pushMids(c *gin.Context) {
 	result(c, nil, OK)
 }
 
+// 以room id來推送訊息
 func (s *Server) pushRoom(c *gin.Context) {
 	var arg struct {
 		Op   int32  `form:"operation" binding:"required"`
@@ -61,7 +62,6 @@ func (s *Server) pushRoom(c *gin.Context) {
 		errors(c, RequestErr, err.Error())
 		return
 	}
-	// read message
 	msg, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		errors(c, RequestErr, err.Error())
@@ -74,6 +74,7 @@ func (s *Server) pushRoom(c *gin.Context) {
 	result(c, nil, OK)
 }
 
+// 以operation來推送訊息
 func (s *Server) pushAll(c *gin.Context) {
 	var arg struct {
 		Op    int32 `form:"operation" binding:"required"`
