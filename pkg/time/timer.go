@@ -1,7 +1,6 @@
 package time
 
 import (
-	"fmt"
 	"sync"
 	itime "time"
 
@@ -199,7 +198,6 @@ func (t *Timer) start() {
 	for {
 		t.expire()
 		<-t.signal.C
-		fmt.Println("eee")
 	}
 }
 

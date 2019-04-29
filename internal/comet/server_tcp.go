@@ -234,10 +234,17 @@ func (s *Server) ServeTCP(conn *net.TCPConn, rp, wp *bytes.Pool, tr *xtime.Timer
 
 		// client回應心跳，server要回覆心跳結果
 		if p.Op == grpc.OpHeartbeat {
+			// comet有心跳機制維護連線狀態，對於logic來說也需要有人利用心跳機制去告知哪個user還在線
+			// 目前在不在線這個狀態都是由comet控管，但不需要每次tcp -> 心跳 -> comet就 -> 心跳 -> logic
+			// 所以webSocket -> comet 心跳週期會比 comet -> logic還要短
+			// 假設
+			// 1. tcp -> comet 5分鐘沒心跳就過期
+			// 2. comet -> logic 20分鐘沒心跳就過期
+			// tcp -> 每30秒心跳 -> comet <====== 每次只要不超過5分鐘沒心跳則comet會認為連線沒問題
+			// tcp -> 每30秒心跳 -> comet -> 判斷是否已經快20分鐘沒通知logic(是就發) -> logic
 			tr.Set(trd, hb)
 			p.Op = grpc.OpHeartbeatReply
 			p.Body = nil
-			// NOTE: send server heartbeat for a long time
 			if now := time.Now(); now.Sub(lastHb) > serverHeartbeat {
 				if err1 := s.Heartbeat(ctx, ch.Mid, ch.Key); err1 == nil {
 					lastHb = now
