@@ -44,7 +44,7 @@ type Channel struct {
 	// user ip
 	IP string
 
-	// user 類似tag的東西，可以用這個當作推送條件之一
+	// user只接收哪個房間id來的訊息
 	watchOps map[int32]struct{}
 
 	// 讀寫鎖
@@ -62,7 +62,7 @@ func NewChannel(cli, svr int) *Channel {
 	return c
 }
 
-// 設置user operation
+// 設置user 能接收到哪些房間來的訊息
 func (c *Channel) Watch(accepts ...int32) {
 	c.mutex.Lock()
 	for _, op := range accepts {
@@ -71,7 +71,7 @@ func (c *Channel) Watch(accepts ...int32) {
 	c.mutex.Unlock()
 }
 
-// 移除user operation
+// 移除user 不可在接收到某房間的訊息
 func (c *Channel) UnWatch(accepts ...int32) {
 	c.mutex.Lock()
 	for _, op := range accepts {
@@ -80,7 +80,7 @@ func (c *Channel) UnWatch(accepts ...int32) {
 	c.mutex.Unlock()
 }
 
-// 判斷operation是否存在user內
+// 判斷user能否接收來自某房間的訊息
 func (c *Channel) NeedPush(op int32) bool {
 	c.mutex.RLock()
 	if _, ok := c.watchOps[op]; ok {
