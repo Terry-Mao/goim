@@ -20,7 +20,11 @@ Add some annotations to the source code and draw the architecture diagram
 ![arch](./docs/arch.png)
 
 ## comet
+![arch](./docs/comet.png)
+
 
 ## logic
+![arch](./docs/logic.png)
 
 ## job
+![arch](./docs/job.png)
