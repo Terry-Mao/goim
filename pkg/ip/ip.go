@@ -12,7 +12,7 @@ func InternalIP() string {
 		return ""
 	}
 	for _, inter := range inters {
-		if !strings.HasPrefix(inter.Name, "lo") {
+		if inter.Flags&net.FlagUp != 0 && !strings.HasPrefix(inter.Name, "lo") {
 			addrs, err := inter.Addrs()
 			if err != nil {
 				continue
