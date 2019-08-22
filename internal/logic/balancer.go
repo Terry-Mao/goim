@@ -41,7 +41,7 @@ func (w *weightedNode) reset() {
 	w.currentWeight = 0
 }
 
-func (w *weightedNode) calcuateWeight(totalWeight, totalConns int64, gainWeight float64) {
+func (w *weightedNode) calculateWeight(totalWeight, totalConns int64, gainWeight float64) {
 	fixedWeight := float64(w.fixedWeight) * gainWeight
 	totalWeight += int64(fixedWeight) - w.fixedWeight
 	if totalConns > 0 {
@@ -101,7 +101,7 @@ func (lb *LoadBalancer) weightedNodes(region string, regionWeight float64) (node
 		if n.region == region {
 			gainWeight *= regionWeight
 		}
-		n.calcuateWeight(lb.totalWeight, lb.totalConns, gainWeight)
+		n.calculateWeight(lb.totalWeight, lb.totalConns, gainWeight)
 		nodes = append(nodes, n)
 	}
 	sort.Slice(nodes, func(i, j int) bool {
