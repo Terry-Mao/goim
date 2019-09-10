@@ -51,20 +51,21 @@ const (
 var (
 	// ErrMessageClose close control message
 	ErrMessageClose = errors.New("close control message")
-	// ErrMessageMaxRead continuation frrame max read
+	// ErrMessageMaxRead continuation frame max read
 	ErrMessageMaxRead = errors.New("continuation frame max read")
 )
 
 // Conn represents a WebSocket connection.
 type Conn struct {
-	rwc io.ReadWriteCloser
-	r   *bufio.Reader
-	w   *bufio.Writer
+	rwc     io.ReadWriteCloser
+	r       *bufio.Reader
+	w       *bufio.Writer
+	maskKey []byte
 }
 
 // new connection
 func newConn(rwc io.ReadWriteCloser, r *bufio.Reader, w *bufio.Writer) *Conn {
-	return &Conn{rwc: rwc, r: r, w: w}
+	return &Conn{rwc: rwc, r: r, w: w, maskKey: make([]byte, 4)}
 }
 
 // WriteMessage write a message by type.
@@ -229,6 +230,10 @@ func (c *Conn) readFrame() (fin bool, op int, payload []byte, err error) {
 		if err != nil {
 			return
 		}
+		if c.maskKey == nil {
+			c.maskKey = make([]byte, 4)
+		}
+		copy(c.maskKey, maskKey)
 	}
 	// read payload
 	if payloadLen > 0 {
@@ -236,7 +241,7 @@ func (c *Conn) readFrame() (fin bool, op int, payload []byte, err error) {
 			return
 		}
 		if mask {
-			maskBytes(maskKey, 0, payload)
+			maskBytes(c.maskKey, 0, payload)
 		}
 	}
 	return
