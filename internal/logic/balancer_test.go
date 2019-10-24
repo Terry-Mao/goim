@@ -16,7 +16,7 @@ func TestWeightedNode(t *testing.T) {
 	}
 	for i := 0; i < 100; i++ {
 		for _, n := range nodes {
-			n.calcuateWeight(6, nodes[0].currentConns+nodes[1].currentConns+nodes[2].currentConns, 1.0)
+			n.calculateWeight(6, nodes[0].currentConns+nodes[1].currentConns+nodes[2].currentConns, 1.0)
 		}
 		sort.Slice(nodes, func(i, j int) bool {
 			return nodes[i].currentWeight > nodes[j].currentWeight
