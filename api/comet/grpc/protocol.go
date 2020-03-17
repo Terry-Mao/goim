@@ -159,7 +159,7 @@ func (p *Proto) ReadWebsocket(ws *websocket.Conn) (err error) {
 	p.Ver = int32(binary.BigEndian.Int16(buf[_verOffset:_opOffset]))
 	p.Op = binary.BigEndian.Int32(buf[_opOffset:_seqOffset])
 	p.Seq = binary.BigEndian.Int32(buf[_seqOffset:])
-	if packLen > _maxPackSize {
+	if packLen < 0 || packLen > _maxPackSize {
 		return ErrProtoPackLen
 	}
 	if headerLen != _rawHeaderSize {
