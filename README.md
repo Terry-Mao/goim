@@ -4,7 +4,7 @@ goim v2.0
 [![Go Report Card](https://goreportcard.com/badge/github.com/Terry-Mao/goim)](https://goreportcard.com/report/github.com/Terry-Mao/goim)
 [![codecov](https://codecov.io/gh/Terry-Mao/goim/branch/master/graph/badge.svg)](https://codecov.io/gh/Terry-Mao/goim)
 
-goim is a im server writen by golang.
+goim is an im server writen in golang.
 
 ## Features
  * Light weight
