@@ -48,6 +48,9 @@ func (r *Room) Put(ch *Channel) (err error) {
 // Del delete channel from the room.
 func (r *Room) Del(ch *Channel) bool {
 	r.rLock.Lock()
+	if ch.Prev == nil && ch.Next == nil {
+		return false
+	}
 	if ch.Next != nil {
 		// if not footer
 		ch.Next.Prev = ch.Prev
@@ -58,6 +61,9 @@ func (r *Room) Del(ch *Channel) bool {
 	} else {
 		r.next = ch.Next
 	}
+
+	ch.Next = nil
+	ch.Prev = nil
 	r.Online--
 	r.drop = (r.Online == 0)
 	r.rLock.Unlock()
