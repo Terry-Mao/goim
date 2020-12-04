@@ -227,7 +227,7 @@ func (t *Timer) expire() {
 func (t *Timer) up(j int) {
 	for {
 		i := (j - 1) / 2 // parent
-		if i <= j || !t.less(j, i) {
+		if i >= j || !t.less(j, i) {
 			break
 		}
 		t.swap(i, j)
