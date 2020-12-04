@@ -1,7 +1,7 @@
 package comet
 
 import (
-	"github.com/Terry-Mao/goim/api/comet/grpc"
+	"github.com/Terry-Mao/goim/api/protocol"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
 	"github.com/Terry-Mao/goim/internal/comet/errors"
 	log "github.com/golang/glog"
@@ -17,7 +17,7 @@ type Ring struct {
 	// pad [40]byte
 	// write
 	wp   uint64
-	data []grpc.Proto
+	data []protocol.Proto
 }
 
 // NewRing new a ring buffer.
@@ -40,13 +40,13 @@ func (r *Ring) init(num uint64) {
 		}
 		num = num << 1
 	}
-	r.data = make([]grpc.Proto, num)
+	r.data = make([]protocol.Proto, num)
 	r.num = num
 	r.mask = r.num - 1
 }
 
 // Get get a proto from ring.
-func (r *Ring) Get() (proto *grpc.Proto, err error) {
+func (r *Ring) Get() (proto *protocol.Proto, err error) {
 	if r.rp == r.wp {
 		return nil, errors.ErrRingEmpty
 	}
@@ -63,7 +63,7 @@ func (r *Ring) GetAdv() {
 }
 
 // Set get a proto to write.
-func (r *Ring) Set() (proto *grpc.Proto, err error) {
+func (r *Ring) Set() (proto *protocol.Proto, err error) {
 	if r.wp-r.rp >= r.num {
 		return nil, errors.ErrRingFull
 	}

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package goim.protocol;
+
+option go_package = "github.com/Terry-Mao/goim/api/protocol;protocol";
+
+/*
+ * v1.0.0
+ * protocol
+ */
+message Proto {
+    int32 ver = 1;
+    int32 op = 2;
+    int32 seq = 3;
+    bytes body = 4;
+}

@@ -1,4 +1,4 @@
-package grpc
+package protocol
 
 const (
 	// OpHandshake handshake

@@ -5,12 +5,13 @@ import (
 	"net"
 	"time"
 
-	pb "github.com/Terry-Mao/goim/api/logic/grpc"
+	pb "github.com/Terry-Mao/goim/api/logic"
 	"github.com/Terry-Mao/goim/internal/logic"
 	"github.com/Terry-Mao/goim/internal/logic/conf"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+
 	// use gzip decoder
 	_ "google.golang.org/grpc/encoding/gzip"
 )
@@ -20,9 +21,9 @@ func New(c *conf.RPCServer, l *logic.Logic) *grpc.Server {
 	keepParams := grpc.KeepaliveParams(keepalive.ServerParameters{
 		MaxConnectionIdle:     time.Duration(c.IdleTimeout),
 		MaxConnectionAgeGrace: time.Duration(c.ForceCloseWait),
-		Time:             time.Duration(c.KeepAliveInterval),
-		Timeout:          time.Duration(c.KeepAliveTimeout),
-		MaxConnectionAge: time.Duration(c.MaxLifeTime),
+		Time:                  time.Duration(c.KeepAliveInterval),
+		Timeout:               time.Duration(c.KeepAliveTimeout),
+		MaxConnectionAge:      time.Duration(c.MaxLifeTime),
 	})
 	srv := grpc.NewServer(keepParams)
 	pb.RegisterLogicServer(srv, &server{l})
@@ -43,16 +44,6 @@ type server struct {
 }
 
 var _ pb.LogicServer = &server{}
-
-// Ping Service
-func (s *server) Ping(ctx context.Context, req *pb.PingReq) (*pb.PingReply, error) {
-	return &pb.PingReply{}, nil
-}
-
-// Close Service
-func (s *server) Close(ctx context.Context, req *pb.CloseReq) (*pb.CloseReply, error) {
-	return &pb.CloseReply{}, nil
-}
 
 // Connect connect a conn.
 func (s *server) Connect(ctx context.Context, req *pb.ConnectReq) (*pb.ConnectReply, error) {

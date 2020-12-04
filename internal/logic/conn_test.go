@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Terry-Mao/goim/api/comet/grpc"
+	"github.com/Terry-Mao/goim/api/protocol"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,6 +37,6 @@ func TestConnect(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, online)
 	// message
-	err = lg.Receive(c, mid, &grpc.Proto{})
+	err = lg.Receive(c, mid, &protocol.Proto{})
 	assert.Nil(t, err)
 }

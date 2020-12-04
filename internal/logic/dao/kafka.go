@@ -4,9 +4,9 @@ import (
 	"context"
 	"strconv"
 
-	pb "github.com/Terry-Mao/goim/api/logic/grpc"
-	"github.com/gogo/protobuf/proto"
+	pb "github.com/Terry-Mao/goim/api/logic"
 	log "github.com/golang/glog"
+	"github.com/golang/protobuf/proto"
 	sarama "gopkg.in/Shopify/sarama.v1"
 )
 

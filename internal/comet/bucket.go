@@ -4,7 +4,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/Terry-Mao/goim/api/comet/grpc"
+	pb "github.com/Terry-Mao/goim/api/comet"
+	"github.com/Terry-Mao/goim/api/protocol"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
 )
 
@@ -15,7 +16,7 @@ type Bucket struct {
 	chs   map[string]*Channel // map sub key to a channel
 	// room
 	rooms       map[string]*Room // bucket room channels
-	routines    []chan *grpc.BroadcastRoomReq
+	routines    []chan *pb.BroadcastRoomReq
 	routinesNum uint64
 
 	ipCnts map[string]int32
@@ -28,9 +29,9 @@ func NewBucket(c *conf.Bucket) (b *Bucket) {
 	b.ipCnts = make(map[string]int32)
 	b.c = c
 	b.rooms = make(map[string]*Room, c.Room)
-	b.routines = make([]chan *grpc.BroadcastRoomReq, c.RoutineAmount)
+	b.routines = make([]chan *pb.BroadcastRoomReq, c.RoutineAmount)
 	for i := uint64(0); i < c.RoutineAmount; i++ {
-		c := make(chan *grpc.BroadcastRoomReq, c.RoutineSize)
+		c := make(chan *pb.BroadcastRoomReq, c.RoutineSize)
 		b.routines[i] = c
 		go b.roomproc(c)
 	}
@@ -88,7 +89,7 @@ func (b *Bucket) ChangeRoom(nrid string, ch *Channel) (err error) {
 	if oroom != nil && oroom.Del(ch) {
 		b.DelRoom(oroom)
 	}
-	
+
 	if err = nroom.Put(ch); err != nil {
 		return
 	}
@@ -159,7 +160,7 @@ func (b *Bucket) Channel(key string) (ch *Channel) {
 }
 
 // Broadcast push msgs to all channels in the bucket.
-func (b *Bucket) Broadcast(p *grpc.Proto, op int32) {
+func (b *Bucket) Broadcast(p *protocol.Proto, op int32) {
 	var ch *Channel
 	b.cLock.RLock()
 	for _, ch = range b.chs {
@@ -188,7 +189,7 @@ func (b *Bucket) DelRoom(room *Room) {
 }
 
 // BroadcastRoom broadcast a message to specified room
-func (b *Bucket) BroadcastRoom(arg *grpc.BroadcastRoomReq) {
+func (b *Bucket) BroadcastRoom(arg *pb.BroadcastRoomReq) {
 	num := atomic.AddUint64(&b.routinesNum, 1) % b.c.RoutineAmount
 	b.routines[num] <- arg
 }
@@ -238,7 +239,7 @@ func (b *Bucket) UpRoomsCount(roomCountMap map[string]int32) {
 }
 
 // roomproc
-func (b *Bucket) roomproc(c chan *grpc.BroadcastRoomReq) {
+func (b *Bucket) roomproc(c chan *pb.BroadcastRoomReq) {
 	for {
 		arg := <-c
 		if room := b.Room(arg.RoomID); room != nil {
