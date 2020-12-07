@@ -1,8 +1,10 @@
 goim v2.0
 ==============
-[![Build Status](https://travis-ci.org/Terry-Mao/goim.svg?branch=master)](https://travis-ci.org/Terry-Mao/goim) 
+
+[![Language](https://img.shields.io/badge/Language-Go-blue.svg)](https://golang.org/)
+[![Build Status](https://github.com/Terry-Mao/goim/workflows/Go/badge.svg)](https://github.com/Terry-Mao/goim/actions)
+[![GoDoc](https://godoc.org/github.com/go-kratos/kratos?status.svg)](https://pkg.go.dev/github.com/Terry-Mao/goim)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Terry-Mao/goim)](https://goreportcard.com/report/github.com/Terry-Mao/goim)
-[![codecov](https://codecov.io/gh/Terry-Mao/goim/branch/master/graph/badge.svg)](https://codecov.io/gh/Terry-Mao/goim)
 
 goim is an im server writen in golang.
 
