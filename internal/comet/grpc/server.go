@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	pb "github.com/Terry-Mao/goim/api/comet/grpc"
+	pb "github.com/Terry-Mao/goim/api/comet"
 	"github.com/Terry-Mao/goim/internal/comet"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
 	"github.com/Terry-Mao/goim/internal/comet/errors"
@@ -19,9 +19,9 @@ func New(c *conf.RPCServer, s *comet.Server) *grpc.Server {
 	keepParams := grpc.KeepaliveParams(keepalive.ServerParameters{
 		MaxConnectionIdle:     time.Duration(c.IdleTimeout),
 		MaxConnectionAgeGrace: time.Duration(c.ForceCloseWait),
-		Time:             time.Duration(c.KeepAliveInterval),
-		Timeout:          time.Duration(c.KeepAliveTimeout),
-		MaxConnectionAge: time.Duration(c.MaxLifeTime),
+		Time:                  time.Duration(c.KeepAliveInterval),
+		Timeout:               time.Duration(c.KeepAliveTimeout),
+		MaxConnectionAge:      time.Duration(c.MaxLifeTime),
 	})
 	srv := grpc.NewServer(keepParams)
 	pb.RegisterCometServer(srv, &server{s})
@@ -42,17 +42,6 @@ type server struct {
 }
 
 var _ pb.CometServer = &server{}
-
-// Ping Service
-func (s *server) Ping(ctx context.Context, req *pb.Empty) (*pb.Empty, error) {
-	return &pb.Empty{}, nil
-}
-
-// Close Service
-func (s *server) Close(ctx context.Context, req *pb.Empty) (*pb.Empty, error) {
-	// TODO: some graceful close
-	return &pb.Empty{}, nil
-}
 
 // PushMsg push a message to specified sub keys.
 func (s *server) PushMsg(ctx context.Context, req *pb.PushMsgReq) (reply *pb.PushMsgReply, err error) {

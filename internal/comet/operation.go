@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	model "github.com/Terry-Mao/goim/api/comet/grpc"
-	logic "github.com/Terry-Mao/goim/api/logic/grpc"
+	"github.com/Terry-Mao/goim/api/logic"
+	"github.com/Terry-Mao/goim/api/protocol"
 	"github.com/Terry-Mao/goim/pkg/strings"
 	log "github.com/golang/glog"
 
@@ -14,7 +14,7 @@ import (
 )
 
 // Connect connected a connection.
-func (s *Server) Connect(c context.Context, p *model.Proto, cookie string) (mid int64, key, rid string, accepts []int32, heartbeat time.Duration, err error) {
+func (s *Server) Connect(c context.Context, p *protocol.Proto, cookie string) (mid int64, key, rid string, accepts []int32, heartbeat time.Duration, err error) {
 	reply, err := s.rpcClient.Connect(c, &logic.ConnectReq{
 		Server: s.serverID,
 		Cookie: cookie,
@@ -59,29 +59,29 @@ func (s *Server) RenewOnline(ctx context.Context, serverID string, rommCount map
 }
 
 // Receive receive a message.
-func (s *Server) Receive(ctx context.Context, mid int64, p *model.Proto) (err error) {
+func (s *Server) Receive(ctx context.Context, mid int64, p *protocol.Proto) (err error) {
 	_, err = s.rpcClient.Receive(ctx, &logic.ReceiveReq{Mid: mid, Proto: p})
 	return
 }
 
 // Operate operate.
-func (s *Server) Operate(ctx context.Context, p *model.Proto, ch *Channel, b *Bucket) error {
+func (s *Server) Operate(ctx context.Context, p *protocol.Proto, ch *Channel, b *Bucket) error {
 	switch p.Op {
-	case model.OpChangeRoom:
+	case protocol.OpChangeRoom:
 		if err := b.ChangeRoom(string(p.Body), ch); err != nil {
 			log.Errorf("b.ChangeRoom(%s) error(%v)", p.Body, err)
 		}
-		p.Op = model.OpChangeRoomReply
-	case model.OpSub:
+		p.Op = protocol.OpChangeRoomReply
+	case protocol.OpSub:
 		if ops, err := strings.SplitInt32s(string(p.Body), ","); err == nil {
 			ch.Watch(ops...)
 		}
-		p.Op = model.OpSubReply
-	case model.OpUnsub:
+		p.Op = protocol.OpSubReply
+	case protocol.OpUnsub:
 		if ops, err := strings.SplitInt32s(string(p.Body), ","); err == nil {
 			ch.UnWatch(ops...)
 		}
-		p.Op = model.OpUnsubReply
+		p.Op = protocol.OpUnsubReply
 	default:
 		// TODO ack ok&failed
 		if err := s.Receive(ctx, ch.Mid, p); err != nil {

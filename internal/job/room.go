@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	comet "github.com/Terry-Mao/goim/api/comet/grpc"
+	"github.com/Terry-Mao/goim/api/protocol"
 	"github.com/Terry-Mao/goim/internal/job/conf"
 	"github.com/Terry-Mao/goim/pkg/bytes"
 	log "github.com/golang/glog"
@@ -18,7 +18,7 @@ var (
 	// ErrRoomFull room chan full.
 	ErrRoomFull = errors.New("room proto chan full")
 
-	roomReadyProto = new(comet.Proto)
+	roomReadyProto = new(protocol.Proto)
 )
 
 // Room room.
@@ -26,7 +26,7 @@ type Room struct {
 	c     *conf.Room
 	job   *Job
 	id    string
-	proto chan *comet.Proto
+	proto chan *protocol.Proto
 }
 
 // NewRoom new a room struct, store channel room info.
@@ -35,7 +35,7 @@ func NewRoom(job *Job, id string, c *conf.Room) (r *Room) {
 		c:     c,
 		id:    id,
 		job:   job,
-		proto: make(chan *comet.Proto, c.Batch*2),
+		proto: make(chan *protocol.Proto, c.Batch*2),
 	}
 	go r.pushproc(c.Batch, time.Duration(c.Signal))
 	return
@@ -43,7 +43,7 @@ func NewRoom(job *Job, id string, c *conf.Room) (r *Room) {
 
 // Push push msg to the room, if chan full discard it.
 func (r *Room) Push(op int32, msg []byte) (err error) {
-	var p = &comet.Proto{
+	var p = &protocol.Proto{
 		Ver:  1,
 		Op:   op,
 		Body: msg,
@@ -61,8 +61,8 @@ func (r *Room) pushproc(batch int, sigTime time.Duration) {
 	var (
 		n    int
 		last time.Time
-		p    *comet.Proto
-		buf  = bytes.NewWriterSize(int(comet.MaxBodySize))
+		p    *protocol.Proto
+		buf  = bytes.NewWriterSize(int(protocol.MaxBodySize))
 	)
 	log.Infof("start room:%s goroutine", r.id)
 	td := time.AfterFunc(sigTime, func() {

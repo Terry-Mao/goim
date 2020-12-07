@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Terry-Mao/goim/api/comet/grpc"
+	"github.com/Terry-Mao/goim/api/protocol"
 	"github.com/Terry-Mao/goim/internal/logic/model"
 	log "github.com/golang/glog"
 	"github.com/google/uuid"
@@ -79,7 +79,7 @@ func (l *Logic) RenewOnline(c context.Context, server string, roomCount map[stri
 }
 
 // Receive receive a message.
-func (l *Logic) Receive(c context.Context, mid int64, proto *grpc.Proto) (err error) {
+func (l *Logic) Receive(c context.Context, mid int64, proto *protocol.Proto) (err error) {
 	log.Infof("receive mid:%d message:%+v", mid, proto)
 	return
 }

@@ -3,7 +3,7 @@ package comet
 import (
 	"sync"
 
-	"github.com/Terry-Mao/goim/api/comet/grpc"
+	"github.com/Terry-Mao/goim/api/protocol"
 	"github.com/Terry-Mao/goim/internal/comet/errors"
 )
 
@@ -65,7 +65,7 @@ func (r *Room) Del(ch *Channel) bool {
 }
 
 // Push push msg to the room, if chan full discard it.
-func (r *Room) Push(p *grpc.Proto) {
+func (r *Room) Push(p *protocol.Proto) {
 	r.rLock.RLock()
 	for ch := r.next; ch != nil; ch = ch.Next {
 		_ = ch.Push(p)

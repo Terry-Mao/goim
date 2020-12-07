@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	comet "github.com/Terry-Mao/goim/api/comet/grpc"
-	pb "github.com/Terry-Mao/goim/api/logic/grpc"
+	"github.com/Terry-Mao/goim/api/comet"
+	pb "github.com/Terry-Mao/goim/api/logic"
+	"github.com/Terry-Mao/goim/api/protocol"
 	"github.com/Terry-Mao/goim/pkg/bytes"
 	log "github.com/golang/glog"
 )
@@ -27,14 +28,14 @@ func (j *Job) push(ctx context.Context, pushMsg *pb.PushMsg) (err error) {
 // pushKeys push a message to a batch of subkeys.
 func (j *Job) pushKeys(operation int32, serverID string, subKeys []string, body []byte) (err error) {
 	buf := bytes.NewWriterSize(len(body) + 64)
-	p := &comet.Proto{
+	p := &protocol.Proto{
 		Ver:  1,
 		Op:   operation,
 		Body: body,
 	}
 	p.WriteTo(buf)
 	p.Body = buf.Buffer()
-	p.Op = comet.OpRaw
+	p.Op = protocol.OpRaw
 	var args = comet.PushMsgReq{
 		Keys:    subKeys,
 		ProtoOp: operation,
@@ -52,14 +53,14 @@ func (j *Job) pushKeys(operation int32, serverID string, subKeys []string, body 
 // broadcast broadcast a message to all.
 func (j *Job) broadcast(operation int32, body []byte, speed int32) (err error) {
 	buf := bytes.NewWriterSize(len(body) + 64)
-	p := &comet.Proto{
+	p := &protocol.Proto{
 		Ver:  1,
 		Op:   operation,
 		Body: body,
 	}
 	p.WriteTo(buf)
 	p.Body = buf.Buffer()
-	p.Op = comet.OpRaw
+	p.Op = protocol.OpRaw
 	comets := j.cometServers
 	speed /= int32(len(comets))
 	var args = comet.BroadcastReq{
@@ -80,9 +81,9 @@ func (j *Job) broadcast(operation int32, body []byte, speed int32) (err error) {
 func (j *Job) broadcastRoomRawBytes(roomID string, body []byte) (err error) {
 	args := comet.BroadcastRoomReq{
 		RoomID: roomID,
-		Proto: &comet.Proto{
+		Proto: &protocol.Proto{
 			Ver:  1,
-			Op:   comet.OpRaw,
+			Op:   protocol.OpRaw,
 			Body: body,
 		},
 	}

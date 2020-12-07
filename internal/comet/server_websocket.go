@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Terry-Mao/goim/api/comet/grpc"
+	"github.com/Terry-Mao/goim/api/protocol"
 	"github.com/Terry-Mao/goim/internal/comet/conf"
 	"github.com/Terry-Mao/goim/pkg/bytes"
 	xtime "github.com/Terry-Mao/goim/pkg/time"
@@ -155,7 +155,7 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 		accepts []int32
 		hb      time.Duration
 		white   bool
-		p       *grpc.Proto
+		p       *protocol.Proto
 		b       *Bucket
 		trd     *xtime.TimerData
 		lastHB  = time.Now()
@@ -250,9 +250,9 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 		if white {
 			whitelist.Printf("key: %s read proto:%v\n", ch.Key, p)
 		}
-		if p.Op == grpc.OpHeartbeat {
+		if p.Op == protocol.OpHeartbeat {
 			tr.Set(trd, hb)
-			p.Op = grpc.OpHeartbeatReply
+			p.Op = protocol.OpHeartbeatReply
 			p.Body = nil
 			// NOTE: send server heartbeat for a long time
 			if now := time.Now(); now.Sub(lastHB) > serverHeartbeat {
@@ -325,7 +325,7 @@ func (s *Server) dispatchWebsocket(ws *websocket.Conn, wp *bytes.Pool, wb *bytes
 			log.Infof("key:%s dispatch msg:%s", ch.Key, p.Body)
 		}
 		switch p {
-		case grpc.ProtoFinish:
+		case protocol.ProtoFinish:
 			if white {
 				whitelist.Printf("key: %s receive proto finish\n", ch.Key)
 			}
@@ -334,7 +334,7 @@ func (s *Server) dispatchWebsocket(ws *websocket.Conn, wp *bytes.Pool, wb *bytes
 			}
 			finish = true
 			goto failed
-		case grpc.ProtoReady:
+		case protocol.ProtoReady:
 			// fetch message from svrbox(client send)
 			for {
 				if p, err = ch.CliProto.Get(); err != nil {
@@ -343,7 +343,7 @@ func (s *Server) dispatchWebsocket(ws *websocket.Conn, wp *bytes.Pool, wb *bytes
 				if white {
 					whitelist.Printf("key: %s start write client proto%v\n", ch.Key, p)
 				}
-				if p.Op == grpc.OpHeartbeatReply {
+				if p.Op == protocol.OpHeartbeatReply {
 					if ch.Room != nil {
 						online = ch.Room.OnlineNum()
 					}
@@ -397,7 +397,7 @@ failed:
 	wp.Put(wb)
 	// must ensure all channel message discard, for reader won't blocking Signal
 	for !finish {
-		finish = (ch.Ready() == grpc.ProtoFinish)
+		finish = (ch.Ready() == protocol.ProtoFinish)
 	}
 	if conf.Conf.Debug {
 		log.Infof("key: %s dispatch goroutine exit", ch.Key)
@@ -405,12 +405,12 @@ failed:
 }
 
 // auth for goim handshake with client, use rsa & aes.
-func (s *Server) authWebsocket(ctx context.Context, ws *websocket.Conn, p *grpc.Proto, cookie string) (mid int64, key, rid string, accepts []int32, hb time.Duration, err error) {
+func (s *Server) authWebsocket(ctx context.Context, ws *websocket.Conn, p *protocol.Proto, cookie string) (mid int64, key, rid string, accepts []int32, hb time.Duration, err error) {
 	for {
 		if err = p.ReadWebsocket(ws); err != nil {
 			return
 		}
-		if p.Op == grpc.OpAuth {
+		if p.Op == protocol.OpAuth {
 			break
 		} else {
 			log.Errorf("ws request operation(%d) not auth", p.Op)
@@ -419,7 +419,7 @@ func (s *Server) authWebsocket(ctx context.Context, ws *websocket.Conn, p *grpc.
 	if mid, key, rid, accepts, hb, err = s.Connect(ctx, p, cookie); err != nil {
 		return
 	}
-	p.Op = grpc.OpAuthReply
+	p.Op = protocol.OpAuthReply
 	p.Body = nil
 	if err = p.WriteWebsocket(ws); err != nil {
 		return

@@ -3,7 +3,7 @@ package comet
 import (
 	"sync"
 
-	"github.com/Terry-Mao/goim/api/comet/grpc"
+	"github.com/Terry-Mao/goim/api/protocol"
 	"github.com/Terry-Mao/goim/pkg/bufio"
 )
 
@@ -11,7 +11,7 @@ import (
 type Channel struct {
 	Room     *Room
 	CliProto Ring
-	signal   chan *grpc.Proto
+	signal   chan *protocol.Proto
 	Writer   bufio.Writer
 	Reader   bufio.Reader
 	Next     *Channel
@@ -28,7 +28,7 @@ type Channel struct {
 func NewChannel(cli, svr int) *Channel {
 	c := new(Channel)
 	c.CliProto.Init(cli)
-	c.signal = make(chan *grpc.Proto, svr)
+	c.signal = make(chan *protocol.Proto, svr)
 	c.watchOps = make(map[int32]struct{})
 	return c
 }
@@ -63,7 +63,7 @@ func (c *Channel) NeedPush(op int32) bool {
 }
 
 // Push server push message.
-func (c *Channel) Push(p *grpc.Proto) (err error) {
+func (c *Channel) Push(p *protocol.Proto) (err error) {
 	select {
 	case c.signal <- p:
 	default:
@@ -72,16 +72,16 @@ func (c *Channel) Push(p *grpc.Proto) (err error) {
 }
 
 // Ready check the channel ready or close?
-func (c *Channel) Ready() *grpc.Proto {
+func (c *Channel) Ready() *protocol.Proto {
 	return <-c.signal
 }
 
 // Signal send signal to the channel, protocol ready.
 func (c *Channel) Signal() {
-	c.signal <- grpc.ProtoReady
+	c.signal <- protocol.ProtoReady
 }
 
 // Close close the channel.
 func (c *Channel) Close() {
-	c.signal <- grpc.ProtoFinish
+	c.signal <- protocol.ProtoFinish
 }
