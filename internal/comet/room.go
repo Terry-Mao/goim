@@ -65,7 +65,7 @@ func (r *Room) Del(ch *Channel) bool {
 	ch.Next = nil
 	ch.Prev = nil
 	r.Online--
-	r.drop = (r.Online == 0)
+	r.drop = r.Online == 0
 	r.rLock.Unlock()
 	return r.drop
 }

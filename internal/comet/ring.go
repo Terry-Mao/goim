@@ -36,9 +36,9 @@ func (r *Ring) init(num uint64) {
 	// 2^N
 	if num&(num-1) != 0 {
 		for num&(num-1) != 0 {
-			num &= (num - 1)
+			num &= num - 1
 		}
-		num = num << 1
+		num <<= 1
 	}
 	r.data = make([]protocol.Proto, num)
 	r.num = num
