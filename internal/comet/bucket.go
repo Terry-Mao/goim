@@ -231,6 +231,7 @@ func (b *Bucket) UpRoomsCount(roomCountMap map[string]int32) {
 		roomID string
 		room   *Room
 	)
+
 	b.cLock.RLock()
 	for roomID, room = range b.rooms {
 		room.AllOnline = roomCountMap[roomID]
