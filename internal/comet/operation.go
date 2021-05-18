@@ -47,10 +47,10 @@ func (s *Server) Heartbeat(ctx context.Context, mid int64, key string) (err erro
 }
 
 // RenewOnline renew room online.
-func (s *Server) RenewOnline(ctx context.Context, serverID string, rommCount map[string]int32) (allRoom map[string]int32, err error) {
+func (s *Server) RenewOnline(ctx context.Context, serverID string, roomCount map[string]int32) (allRoom map[string]int32, err error) {
 	reply, err := s.rpcClient.RenewOnline(ctx, &logic.OnlineReq{
 		Server:    s.serverID,
-		RoomCount: rommCount,
+		RoomCount: roomCount,
 	}, grpc.UseCompressor(gzip.Name))
 	if err != nil {
 		return
