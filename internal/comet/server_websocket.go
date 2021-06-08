@@ -212,7 +212,7 @@ func (s *Server) ServeWebsocket(conn net.Conn, rp, wp *bytes.Pool, tr *xtime.Tim
 			b = s.Bucket(ch.Key)
 			err = b.Put(rid, ch)
 			if conf.Conf.Debug {
-				log.Infof("websocket connnected key:%s mid:%d proto:%+v", ch.Key, ch.Mid, p)
+				log.Infof("websocket connected key:%s mid:%d proto:%+v", ch.Key, ch.Mid, p)
 			}
 		}
 	}
