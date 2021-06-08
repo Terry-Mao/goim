@@ -158,7 +158,7 @@ func (c *Comet) process(pushChan chan *comet.PushMsgReq, roomChan chan *comet.Br
 	}
 }
 
-// Close close the resouces.
+// Close close the resources.
 func (c *Comet) Close() (err error) {
 	finish := make(chan bool)
 	go func() {
