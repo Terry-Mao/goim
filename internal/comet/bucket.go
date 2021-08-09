@@ -126,14 +126,9 @@ func (b *Bucket) Put(rid string, ch *Channel) (err error) {
 
 // Del delete the channel by sub key.
 func (b *Bucket) Del(dch *Channel) {
-	var (
-		ok   bool
-		ch   *Channel
-		room *Room
-	)
+	room := dch.Room
 	b.cLock.Lock()
-	if ch, ok = b.chs[dch.Key]; ok {
-		room = ch.Room
+	if ch, ok := b.chs[dch.Key]; ok {
 		if ch == dch {
 			delete(b.chs, ch.Key)
 		}
@@ -145,7 +140,7 @@ func (b *Bucket) Del(dch *Channel) {
 		}
 	}
 	b.cLock.Unlock()
-	if room != nil && room.Del(ch) {
+	if room != nil && room.Del(dch) {
 		// if empty room, must delete from bucket
 		b.DelRoom(room)
 	}
