@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
+	"os"
 	"strings"
 	"testing"
 	"testing/iotest"
@@ -29,6 +31,7 @@ func newRot13Reader(r io.Reader) *rot13Reader {
 	return r13
 }
 
+// Read 字符 "a"-"m"向后移动13位, "n"到"z"向前移动13位
 func (r13 *rot13Reader) Read(p []byte) (int, error) {
 	n, err := r13.r.Read(p)
 	for i := 0; i < n; i++ {
@@ -61,6 +64,7 @@ func readBytes(buf *Reader) string {
 	return string(b[0:nb])
 }
 
+// 使用 bufio.NewReader.ReadByte()
 func TestReaderSimple(t *testing.T) {
 	data := "hello world"
 	b := NewReader(strings.NewReader(data))
@@ -79,6 +83,7 @@ type readMaker struct {
 	fn   func(io.Reader) io.Reader
 }
 
+// io读取模式，有全/字节/一半儿/读取失败/概率超时
 var readMakers = []readMaker{
 	{"full", func(r io.Reader) io.Reader { return r }},
 	{"byte", iotest.OneByteReader},
@@ -132,6 +137,8 @@ func TestReader(t *testing.T) {
 		str += fmt.Sprintf("%x", i%26+'a')
 	}
 	texts[len(texts)-1] = all
+
+	//fmt.Printf("texts: %v\nall: %v\n", texts, all)
 
 	for h := 0; h < len(texts); h++ {
 		text := texts[h]
@@ -1006,5 +1013,122 @@ func BenchmarkWriterFlush(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_, _ = bw.WriteString(str)
 		_ = bw.Flush()
+	}
+}
+
+// 测试copy方法，copy返回的大小为 min(len(dst),len(src))
+func TestCopy(t *testing.T) {
+	dest := make([]int, 0)
+	src := make([]int, 10)
+	var n int
+	for i := 0; i < 10; i++ {
+		src[i] = i
+	}
+
+	n = copy(dest, src)
+	if n != 0 {
+		fmt.Println("n != 0")
+		t.FailNow()
+	}
+
+	dest = make([]int, 3)
+	n = copy(dest, src)
+	if n != 3 {
+		fmt.Printf("n != 3, n %v", n)
+		t.FailNow()
+	}
+	dest = make([]int, 11)
+	n = copy(dest, src)
+	if n != 10 {
+		fmt.Println("n != 10")
+		t.FailNow()
+	}
+
+	dest = make([]int, 11)
+
+	n = copy(dest[10:], src)
+	if n != 1 {
+		fmt.Println("n != 1")
+		t.FailNow()
+	}
+}
+
+// 测试reader，看一下功能
+func TestReader_1(t *testing.T) {
+	text := "hello draymonder"
+	times := 3
+
+	for i, _ := range readMakers {
+		readMaker := readMakers[i]
+		rd := strings.NewReader(text)
+		r := readMaker.fn(rd)
+		var l int
+		if i == 0 || i == 3 {
+			l = len(text)
+		} else {
+			l = rand.Intn(len(text))
+		}
+		for j := 0; j < times; j++ {
+			p := make([]byte, l)
+			n, err := r.Read(p)
+			fmt.Printf("readMaker[%v] n [%v] p %v string(p) %v err [%v]\n", readMaker.name, n, p[:n], string(p[:n]), err)
+		}
+	}
+}
+
+func Test_TimeoutReader(t *testing.T) {
+	text := "hello draymonder"
+	readMaker := readMakers[4]
+	rd := strings.NewReader(text)
+
+	r := readMaker.fn(rd)
+
+	p := make([]byte, 2)
+	n, err := r.Read(p)
+	if err != nil {
+		fmt.Printf("n %v\n", n)
+		t.FailNow()
+	}
+	n, err = r.Read(p)
+	if err == nil {
+		fmt.Printf("n %v\n", n)
+		t.FailNow()
+	} else {
+		fmt.Printf("err %v\n", err)
+	}
+}
+
+// 简单io读写
+func Test_ReadAndWrite_1(t *testing.T) {
+	text := "hello draymonder"
+	for i := 0; i < 100; i++ {
+		text += "\nhello draymonder"
+	}
+
+	rd := strings.NewReader(text)
+	r := NewReader(rd)
+
+	f, err := os.OpenFile("./temp.txt", os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		t.FailNow()
+	}
+	w := NewWriter(f)
+	defer w.Flush()
+
+	p := make([]byte, 1024)
+	for {
+		n, err := r.Read(p)
+		if err == io.EOF {
+			break
+		}
+		if err != nil || n == 0 {
+			fmt.Println("read err...")
+			t.FailNow()
+		}
+		n, err = w.Write(p[:n])
+		if err != nil || n == 0 {
+			fmt.Println("write err...")
+			t.FailNow()
+		}
 	}
 }

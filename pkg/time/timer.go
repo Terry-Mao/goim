@@ -65,6 +65,7 @@ func (t *Timer) init(num int) {
 	go t.start()
 }
 
+// grow 链表串联起来
 func (t *Timer) grow() {
 	var (
 		i   int
@@ -90,6 +91,7 @@ func (t *Timer) get() (td *TimerData) {
 	return
 }
 
+// put 是指回收无效的timeData
 // put put back a timer data.
 func (t *Timer) put(td *TimerData) {
 	td.fn = nil
@@ -118,6 +120,7 @@ func (t *Timer) Del(td *TimerData) {
 	t.lock.Unlock()
 }
 
+// 小顶堆，堆顶时间最小
 // Push pushes the element x onto the heap. The complexity is
 // O(log(n)) where n = h.Len().
 func (t *Timer) add(td *TimerData) {
@@ -139,6 +142,7 @@ func (t *Timer) add(td *TimerData) {
 	}
 }
 
+// 删除某个元素
 func (t *Timer) del(td *TimerData) {
 	var (
 		i    = td.index
@@ -226,8 +230,8 @@ func (t *Timer) expire() {
 
 func (t *Timer) up(j int) {
 	for {
-		i := (j - 1) / 2 // parent
-		if i >= j || !t.less(j, i) {
+		i := (j - 1) / 2             // parent
+		if i >= j || !t.less(j, i) { // timeData[j] > timeData[i]
 			break
 		}
 		t.swap(i, j)
@@ -241,14 +245,14 @@ func (t *Timer) down(i, n int) {
 		if j1 >= n || j1 < 0 { // j1 < 0 after int overflow
 			break
 		}
-		j := j1 // left child
-		if j2 := j1 + 1; j2 < n && !t.less(j1, j2) {
+		j := j1                                      // left child
+		if j2 := j1 + 1; j2 < n && !t.less(j1, j2) { // timeData[j1] > timeData[j2] 找更小的
 			j = j2 // = 2*i + 2  // right child
 		}
-		if !t.less(j, i) {
+		if !t.less(j, i) { // timeData[j] > timeData[i]
 			break
 		}
-		t.swap(i, j)
+		t.swap(i, j) // 这里是指 左/右儿子比当前值小，所以交换
 		i = j
 	}
 }

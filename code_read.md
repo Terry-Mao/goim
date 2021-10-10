@@ -1,0 +1,93 @@
+# 源码阅读
+
+    不要急于求成
+
+## 源码目录树
+
+- [ ] internal
+    - [ ] logic
+        - [ ] grpc
+            - [ ] server.go
+        - [ ] logic.go
+        - [ ] dao
+            - [ ] kafka.go
+            - [ ] redis.go
+            - [ ] size_coverage.out
+            - [ ] dao.go
+        - [ ] online.go
+        - [ ] http
+            - [ ] server.go
+            - [ ] online.go
+            - [ ] result.go
+            - [ ] push.go
+            - [ ] middleware.go
+            - [ ] nodes.go
+        - [ ] model
+            - [ ] metadata.go
+            - [ ] online.go
+            - [ ] room.go
+        - [ ] push.go
+        - [ ] balancer.go
+        - [ ] conf
+            - [ ] conf.go
+        - [ ] nodes.go
+        - [ ] conn.go
+    - [ ] comet
+        - [ ] bucket.go
+        - [ ] server.go
+        - [ ] grpc
+            - [ ] server.go
+        - [ ] operation.go
+        - [ ] server_websocket.go
+        - [ ] channel.go
+        - [ ] whitelist.go
+        - [ ] round.go
+        - [ ] server_tcp.go
+        - [ ] room.go
+        - [ ] errors
+            - [ ] errors.go
+        - [ ] ring.go
+        - [ ] conf
+            - [ ] conf.go
+    - [ ] job
+        - [ ] comet.go
+        - [ ] job.go
+        - [ ] push.go
+        - [ ] room.go
+        - [ ] conf
+            - [ ] conf.go
+- [ ] api
+    - [ ] generate.go
+    - [ ] logic
+        - [ ] logic.proto
+        - [ ] logic.pb.go
+    - [ ] protocol
+        - [ ] operation.go
+        - [ ] protocol.go
+        - [ ] protocol.pb.go
+        - [ ] protocol.proto
+    - [ ] comet
+        - [ ] comet.proto
+        - [ ] comet.pb.go
+- [x] pkg
+    - [x] bufio
+        - [x] bufio.go // reader的read方法，writer的write/flush方法
+    - [x] websocket
+        - [x] server.go // 将tcp解析为http请求，并校验是否是websocket请求 
+        - [x] request.go // 读取http请求的请求头 和 请求行
+        - [x] conn.go // 主要是用来写binary bytes和读取的，优化点是用1个byte,2个byte,8个byte分别存 [0,125], [126, 65535], [65536, 2^64-1]
+    - [x] strings
+        - [x] ints.go
+    - [x] bytes
+        - [x] writer.go
+        - [x] buffer.go
+    - [x] time
+        - [x] duration.go
+        - [x] timer.go  // 用堆来维护时间和对应函数回调，log(n)复杂度来处理时间问题，不好的一点是初始化需要size，数组没有扩容操作
+            - [go timer](https://tonybai.com/2016/12/21/how-to-use-timer-reset-in-golang-correctly/)
+        - [x] debug.go
+    - [x] ip
+        - [x] ip.go
+    - [x] encoding
+        - [x] binary
+            - [x] endian.go

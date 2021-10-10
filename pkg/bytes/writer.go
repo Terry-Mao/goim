@@ -1,5 +1,7 @@
 package bytes
 
+import "fmt"
+
 // Writer writer.
 type Writer struct {
 	n   int
@@ -46,12 +48,18 @@ func (w *Writer) Write(p []byte) {
 	w.n += copy(w.buf[w.n:], p)
 }
 
+// grow 扩容支撑buf接下来能存下n个字符
 func (w *Writer) grow(n int) {
 	var buf []byte
 	if w.n+n < len(w.buf) {
 		return
 	}
-	buf = make([]byte, 2*len(w.buf)+n)
+	buf = make([]byte, 2*len(w.buf)+n) // 2倍增长+n
 	copy(buf, w.buf[:w.n])
 	w.buf = buf
+}
+
+// print 拓展方法，方便了解writer的方法
+func (w *Writer) print() {
+	fmt.Printf("len %v size %v n %v\nbuf: %v\n", w.Len(), w.Size(), w.n, w.buf)
 }

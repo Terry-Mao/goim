@@ -18,7 +18,7 @@ func (b *Buffer) Bytes() []byte {
 // Pool is a buffer pool.
 type Pool struct {
 	lock sync.Mutex
-	free *Buffer
+	free *Buffer // 构成了num个size相同的元素，以指针相连，一开始分配的时候，在内存中是连续的，后面不一定连续了就
 	max  int
 	num  int
 	size int
@@ -68,6 +68,7 @@ func (p *Pool) grow() {
 // Get get a free memory buffer.
 func (p *Pool) Get() (b *Buffer) {
 	p.lock.Lock()
+	// 每次不够了时候，重新生成num个size大小的元素，以指针相连
 	if b = p.free; b == nil {
 		p.grow()
 		b = p.free

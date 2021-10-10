@@ -1,5 +1,6 @@
 package binary
 
+// int -> byte 转化
 // BigEndian big endian.
 var BigEndian bigEndian
 
