@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/Terry-Mao/goim/api/protocol"
+	"github.com/Terry-Mao/goim/internal/comet/errors"
 	"github.com/Terry-Mao/goim/pkg/bufio"
 )
 
@@ -67,6 +68,7 @@ func (c *Channel) Push(p *protocol.Proto) (err error) {
 	select {
 	case c.signal <- p:
 	default:
+		err = errors.ErrSignalFullMsgDropped
 	}
 	return
 }
