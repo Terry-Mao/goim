@@ -49,7 +49,11 @@ func (s *server) PushMsg(ctx context.Context, req *pb.PushMsgReq) (reply *pb.Pus
 		return nil, errors.ErrPushMsgArg
 	}
 	for _, key := range req.Keys {
-		if channel := s.srv.Bucket(key).Channel(key); channel != nil {
+		bucket := s.srv.Bucket(key)
+		if bucket == nil {
+			continue
+		}
+		if channel := bucket.Channel(key); channel != nil {
 			if !channel.NeedPush(req.ProtoOp) {
 				continue
 			}
