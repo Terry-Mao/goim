@@ -49,12 +49,11 @@ func InitTCP(server *Server, addrs []string, accept int) (err error) {
 // invokes it in a go statement.
 func acceptTCP(server *Server, lis *net.TCPListener) {
 	var (
-		conn *net.TCPConn
-		err  error
-		r    int
+		r int
 	)
 	for {
-		if conn, err = lis.AcceptTCP(); err != nil {
+		conn, err := lis.AcceptTCP()
+		if err != nil {
 			// if listener close then return
 			log.Errorf("listener.Accept(\"%s\") error(%v)", lis.Addr().String(), err)
 			return
