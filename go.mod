@@ -24,7 +24,7 @@ require (
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/zhenjl/cityhash v0.0.0-20131128155616-cdd6a94144ab
-	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
+	golang.org/x/net v0.7.0
 	google.golang.org/grpc v1.22.3
 	gopkg.in/Shopify/sarama.v1 v1.19.0
 )
