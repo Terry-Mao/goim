@@ -2,6 +2,7 @@
 GOCMD=GO111MODULE=on go
 GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
+GIT_REVISION = $(shell git show -s --pretty=format:%h)
 
 all: test build
 build:
@@ -13,6 +14,16 @@ build:
 	$(GOBUILD) -o target/comet cmd/comet/main.go
 	$(GOBUILD) -o target/logic cmd/logic/main.go
 	$(GOBUILD) -o target/job cmd/job/main.go
+
+push:
+	docker build -f Dockerfile-comet -t ccr.ccs.tencentyun.com/comet:$(GIT_REVISION)
+	docker build -f Dockerfile-logic -t ccr.ccs.tencentyun.com/logic:$(GIT_REVISION)
+	docker build -f Dockerfile-job -t ccr.ccs.tencentyun.com/logic:$(GIT_REVISION)
+	docker login ccr.ccs.tencentyun.com --username=100005922594 -p docker123
+	docker push  ccr.ccs.tencentyun.com/comet:$(GIT_REVISION)
+	docker push  ccr.ccs.tencentyun.com/logic:$(GIT_REVISION)
+	docker push  ccr.ccs.tencentyun.com/job:$(GIT_REVISION)
+	docker logout
 
 test:
 	$(GOTEST) -v ./...

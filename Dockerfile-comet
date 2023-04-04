@@ -1,0 +1,8 @@
+FROM golang:1.20
+WORKDIR /usr/local/app
+COPY . .
+RUN mv comet-example.toml comet.toml \
+    && mv logic-example.toml logic.toml \
+    && mv job-example.toml job.toml
+RUN GO111MODULE=on go build -o comet cmd/comet/main.go
+ENTRYPOINT ["/usr/local/app/comet"]
